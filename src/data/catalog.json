@@ -1,0 +1,38 @@
+{
+  "series": [
+    {
+      "id": "altan-zagas",
+      "title": "Алтан загас",
+      "tagline": "Хөгшин загасчны хүсэл мөрөөдөл түүнийг хаана хүргэх бол…",
+      "genre": "Үлгэр · Адал явдал",
+      "poster": "posters/s1.jpg",
+      "freeCount": 2,
+      "unlockCost": 30,
+      "bundleCost": 50,
+      "episodes": [
+        { "index": 1, "video": "videos/s1_e1.mp4", "title": "Далайн эрэг дээр" },
+        { "index": 2, "video": "videos/s1_e2.mp4", "title": "Гайхамшигт агнуур" },
+        { "index": 3, "video": "videos/s1_e3.mp4", "title": "Гурван хүсэл" },
+        { "index": 4, "video": "videos/s1_e4.mp4", "title": "Төгсгөлийн сургамж" }
+      ]
+    },
+    {
+      "id": "tsuutiin-guu",
+      "title": "Цуутын Цагаагч гүү",
+      "tagline": "Ээжийн долоон сургаал унаганд амьдралын зам заажээ — Монгол ардын үлгэр.",
+      "genre": "Үлгэр · Сургаал",
+      "poster": "posters/s2.jpg",
+      "freeCount": 2,
+      "unlockCost": 30,
+      "bundleCost": 80,
+      "episodes": [
+        { "index": 1, "video": "videos/s2_e1.mp4", "title": "Өргөн бэлчээрийн сүрэг" },
+        { "index": 2, "video": "videos/s2_e2.mp4", "title": "Ган гачиг, урт аян" },
+        { "index": 3, "video": "videos/s2_e3.mp4", "title": "Эвдэрсэн өндөгнүүд" },
+        { "index": 4, "video": "videos/s2_e4.mp4", "title": "Тэнгэрийн шувууны дайралт" },
+        { "index": 5, "video": "videos/s2_e5.mp4", "title": "Ээжийн долоон сургаал" },
+        { "index": 6, "video": "videos/s2_e6.mp4", "title": "Эзэн морио таних нь" }
+      ]
+    }
+  ]
+}
