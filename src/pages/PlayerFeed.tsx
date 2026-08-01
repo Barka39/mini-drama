@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getSeries } from "../data/catalog";
 import { isUnlocked, setProgress, unlockEpisode, useAppState } from "../lib/store";
+import { openTopup } from "../lib/ui";
 import { CoinBadge } from "../components/CoinBadge";
 
 export function PlayerFeed() {
@@ -112,18 +113,32 @@ export function PlayerFeed() {
                   <h3>
                     {ep.index}-р анги · {ep.title}
                   </h3>
-                  <p className="muted">Үргэлжлэлийг үзэхийн тулд ангиа нээнэ үү</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      if (!unlockEpisode(series.id, ep.index, series.unlockCost)) {
-                        alert("Coin хүрэлцэхгүй байна. Баруун дээд буланд дарж цэнэглэнэ үү.");
-                      }
-                    }}
-                  >
-                    Нээх — {series.unlockCost} 🪙
-                  </button>
-                  <p className="muted small">Танд {s.coins} 🪙 байна</p>
+                  {s.coins >= series.unlockCost ? (
+                    <>
+                      <p className="muted">Үргэлжлэлийг үзэхийн тулд ангиа нээнэ үү</p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          if (!unlockEpisode(series.id, ep.index, series.unlockCost)) {
+                            openTopup();
+                          }
+                        }}
+                      >
+                        Нээх — {series.unlockCost} 🪙
+                      </button>
+                      <p className="muted small">Танд {s.coins} 🪙 байна</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="muted">
+                        Танд {s.coins} 🪙 байна — энэ анги нээхэд {series.unlockCost} 🪙 хэрэгтэй.
+                        Цэнэглээд үргэлжлүүлэн үзээрэй.
+                      </p>
+                      <button className="btn btn-primary" onClick={openTopup}>
+                        🪙 Цэнэглэх — хэрхэн гэдгийг харах
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

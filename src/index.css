@@ -474,6 +474,13 @@ a {
   gap: 14px;
 }
 
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+
 .pack-list {
   display: flex;
   flex-direction: column;

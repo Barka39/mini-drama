@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getSeries } from "../data/catalog";
 import { isUnlocked, unlockBundle, useAppState } from "../lib/store";
+import { openTopup } from "../lib/ui";
 import { CoinBadge } from "../components/CoinBadge";
 
 export function SeriesPage() {
@@ -52,7 +53,7 @@ export function SeriesPage() {
               className="btn btn-outline"
               onClick={() => {
                 if (!unlockBundle(series.id, lockedIndexes, series.bundleCost)) {
-                  alert("Coin хүрэлцэхгүй байна. Баруун дээд буланд дарж цэнэглэнэ үү.");
+                  openTopup();
                 }
               }}
             >
