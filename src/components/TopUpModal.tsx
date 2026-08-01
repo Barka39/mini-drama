@@ -1,102 +1,122 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CONFIG } from "../config";
-import { verifyCode } from "../lib/codes";
-import { addCoins, redeemCoins, useAppState } from "../lib/store";
-import { closeTopup, useTopupOpen } from "../lib/ui";
+import {
+  myTopups,
+  refreshWallet,
+  requestTopup,
+  useAppState,
+  type TopupRow,
+} from "../lib/store";
+import { closeModals, openAuth, useOpenModal } from "../lib/ui";
+
+const STATUS_MN: Record<string, string> = {
+  pending: "⏳ Хүлээгдэж байна",
+  confirmed: "✅ Баталгаажсан",
+  rejected: "❌ Татгалзсан",
+};
 
 export function TopUpModal() {
-  const open = useTopupOpen();
+  const open = useOpenModal() === "topup";
   const s = useAppState();
-  const [code, setCode] = useState("");
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [rows, setRows] = useState<TopupRow[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open && s.signedIn) {
+      void myTopups().then(setRows);
+    }
+  }, [open, s.signedIn]);
 
   if (!open) return null;
 
-  async function onRedeem() {
-    const result = await verifyCode(code, s.redeemedCodes);
-    if (result.ok && result.coins) {
-      redeemCoins(result.coins, code);
-      setMsg({ ok: true, text: `+${result.coins} 🪙 амжилттай нэмэгдлээ! Одоо үзэж болно.` });
-      setCode("");
+  async function order(coins: number) {
+    setBusy(true);
+    setMsg(null);
+    const res = await requestTopup(coins);
+    setBusy(false);
+    if (res.ok) {
+      setMsg("Хүсэлт бүртгэгдлээ! Одоо доорх данс руу шилжүүлээд хүлээнэ үү.");
+      setRows(await myTopups());
     } else {
-      setMsg({ ok: false, text: result.reason ?? "Код буруу байна" });
+      setMsg(res.reason ?? "Алдаа гарлаа");
     }
   }
 
-  function close() {
-    closeTopup();
-    setMsg(null);
+  async function refresh() {
+    await refreshWallet();
+    setRows(await myTopups());
   }
 
   return (
-    <div className="modal-backdrop" onClick={close}>
+    <div className="modal-backdrop" onClick={closeModals}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Coin цэнэглэх</h3>
-        <p className="muted small">
-          Танд одоо <strong>{s.coins} 🪙</strong> байна. Нэг анги нээхэд ихэвчлэн 30 🪙 хэрэгтэй.
-        </p>
 
-        <div className="steps">
-          <p>
-            <strong>1.</strong> Багцаа сонгоод доорх данс руу шилжүүлнэ:
-          </p>
-          <div className="pack-list">
-            {CONFIG.packs.map((p) => (
-              <div key={p.coins} className="pack-row">
-                <span>🪙 {p.coins}</span>
-                <span className="pack-price">{p.price.toLocaleString("mn-MN")}₮</span>
-              </div>
-            ))}
-          </div>
-          <div className="bank-box">
-            <p>
-              <strong>{CONFIG.bank.bankName}</strong> · {CONFIG.bank.accountNumber}
+        {!s.signedIn ? (
+          <>
+            <p className="muted small">
+              Цэнэглэхийн тулд эхлээд утасны дугаараараа бүртгүүлнэ — данс тань хаанаас ч
+              нэвтрэхэд хадгалагдана.
             </p>
-            <p>Хүлээн авагч: {CONFIG.bank.accountName}</p>
-            <p className="muted small">Гүйлгээний утга дээр утасны дугаараа бичнэ үү.</p>
-          </div>
-          <p>
-            <strong>2.</strong> {CONFIG.contact}
-          </p>
-          <p>
-            <strong>3.</strong> Бидний илгээсэн кодыг энд оруулна:
-          </p>
-        </div>
+            <button className="btn btn-primary" onClick={openAuth}>
+              Нэвтрэх / Бүртгүүлэх
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="muted small">
+              Танд <strong>{s.coins} 🪙</strong> байна. Багцаа сонгоно уу:
+            </p>
 
-        <div className="code-row">
-          <input
-            className="code-input"
-            placeholder="Идэвхжүүлэх код (MD…)"
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              setMsg(null);
-            }}
-          />
-          <button className="btn btn-primary" onClick={onRedeem} disabled={!code.trim()}>
-            Идэвхжүүлэх
-          </button>
-        </div>
-        {msg && <p className={msg.ok ? "msg-ok" : "msg-err"}>{msg.text}</p>}
+            <div className="pack-list">
+              {CONFIG.packs.map((p) => (
+                <button
+                  key={p.coins}
+                  className="pack-row pack-btn"
+                  disabled={busy}
+                  onClick={() => order(p.coins)}
+                >
+                  <span>🪙 {p.coins}</span>
+                  <span className="pack-price">{p.price.toLocaleString("mn-MN")}₮</span>
+                </button>
+              ))}
+            </div>
 
-        {CONFIG.demoMode && (
-          <div className="topup-row">
-            {[100, 300].map((n) => (
-              <button
-                key={n}
-                className="btn btn-outline"
-                onClick={() => {
-                  addCoins(n);
-                  close();
-                }}
-              >
-                +{n} 🪙 (демо)
-              </button>
-            ))}
-          </div>
+            {msg && <p className="msg-ok">{msg}</p>}
+
+            <div className="bank-box">
+              <p className="bank-title">Шилжүүлэх данс:</p>
+              <p>
+                <strong>{CONFIG.bank.bankName}</strong> · {CONFIG.bank.accountNumber}
+              </p>
+              <p>Хүлээн авагч: {CONFIG.bank.accountName}</p>
+              <p className="muted small">
+                Гүйлгээний утга: <strong>{s.phone}</strong> (таны дугаар). Шилжүүлснээс хойш
+                удалгүй админ баталгаажуулахад coin автоматаар нэмэгдэнэ.
+              </p>
+            </div>
+
+            {rows.length > 0 && (
+              <div className="topup-history">
+                {rows.map((r) => (
+                  <div key={r.id} className="topup-hrow">
+                    <span>
+                      🪙 {r.coins} · {r.price.toLocaleString("mn-MN")}₮
+                    </span>
+                    <span className="muted small">{STATUS_MN[r.status] ?? r.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button className="btn btn-outline" onClick={refresh}>
+              🔄 Шинэчлэх (баталгаажсан эсэхийг шалгах)
+            </button>
+          </>
         )}
 
-        <button className="btn btn-ghost" onClick={close}>
+        <button className="btn btn-ghost" onClick={closeModals}>
           Хаах
         </button>
       </div>

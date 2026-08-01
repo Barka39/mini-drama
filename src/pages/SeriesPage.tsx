@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getSeries } from "../data/catalog";
 import { isUnlocked, unlockBundle, useAppState } from "../lib/store";
-import { openTopup } from "../lib/ui";
+import { openAuth, openTopup } from "../lib/ui";
 import { CoinBadge } from "../components/CoinBadge";
 
 export function SeriesPage() {
@@ -52,9 +52,14 @@ export function SeriesPage() {
             <button
               className="btn btn-outline"
               onClick={() => {
-                if (!unlockBundle(series.id, lockedIndexes, series.bundleCost)) {
-                  openTopup();
+                if (!s.signedIn) {
+                  openAuth();
+                  return;
                 }
+                void unlockBundle(series.id, lockedIndexes).then((r) => {
+                  if (r === "insufficient") openTopup();
+                  else if (r === "auth") openAuth();
+                });
               }}
             >
               🔓 Багцаар нээх — {series.bundleCost} 🪙 ({lockedIndexes.length} анги)

@@ -24,7 +24,7 @@ export const CONFIG = {
     { coins: 500, price: 12000 },
   ],
 
-  // Код үүсгэгч (tools/make-code.ps1)-тэй ЯГ ижил нууц үг байх ёстой.
-  // TODO: өөрийн дурын урт нууц үгээр солино уу (солибол хуучин кодууд хүчингүй болно)
-  codeSecret: "mini-dram-nuuts-2026",
+  // Supabase (S2 — сервер). Anon түлхүүр нь client-д зориулагдсан нээлттэй түлхүүр.
+  supabaseUrl: "https://uloxtmssvloffbwfwzki.supabase.co",
+  supabaseAnonKey: "sb_publishable_uDORytsT_NzUAqnBXnq6Bw_Fk9o0LQ1",
 };

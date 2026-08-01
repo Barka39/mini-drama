@@ -1,29 +1,39 @@
-// Цэнэглэх цонхыг аль ч хуудаснаас нээх боломжтой жижиг UI store
+// Цэнэглэх/нэвтрэх цонхыг аль ч хуудаснаас нээх боломжтой жижиг UI store
 import { useSyncExternalStore } from "react";
 
-let topupOpen = false;
+type ModalName = "topup" | "auth" | null;
+
+let openModal: ModalName = null;
 const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((l) => l());
 }
 
-export function useTopupOpen(): boolean {
+export function useOpenModal(): ModalName {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => topupOpen,
+    () => openModal,
   );
 }
 
 export function openTopup() {
-  topupOpen = true;
+  openModal = "topup";
   notify();
 }
 
-export function closeTopup() {
-  topupOpen = false;
+export function openAuth() {
+  openModal = "auth";
   notify();
 }
+
+export function closeModals() {
+  openModal = null;
+  notify();
+}
+
+// Хуучин нэрээр дуудсан газруудад зориулсан alias
+export const closeTopup = closeModals;

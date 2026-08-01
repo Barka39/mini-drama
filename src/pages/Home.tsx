@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { CATALOG } from "../data/catalog";
-import { useAppState } from "../lib/store";
+import { signOut, useAppState } from "../lib/store";
 import { CoinBadge } from "../components/CoinBadge";
 
 export function Home() {
@@ -41,7 +41,16 @@ export function Home() {
       </section>
 
       <footer className="foot">
-        Демо хувилбар · Контент: tale2film туршилтын бичлэгүүд
+        {s.signedIn ? (
+          <>
+            {s.phone} гэж нэвтэрсэн ·{" "}
+            <button className="link-btn" onClick={() => void signOut()}>
+              Гарах
+            </button>
+          </>
+        ) : (
+          "Демо хувилбар · Контент: tale2film туршилтын бичлэгүүд"
+        )}
       </footer>
     </div>
   );

@@ -559,6 +559,69 @@ a {
   gap: 10px;
 }
 
+.pack-btn {
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  width: 100%;
+}
+
+.pack-btn:hover {
+  border-color: var(--accent);
+}
+
+.topup-history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topup-hrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+
+.admin-h {
+  margin: 22px 0 10px;
+  font-size: 16px;
+}
+
+.admin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.admin-coins-input {
+  flex: 0 0 90px;
+}
+
 .topup-row .btn {
   flex: 1;
 }

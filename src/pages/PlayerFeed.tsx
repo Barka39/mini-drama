@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getSeries } from "../data/catalog";
 import { isUnlocked, setProgress, unlockEpisode, useAppState } from "../lib/store";
-import { openTopup } from "../lib/ui";
+import { openAuth, openTopup } from "../lib/ui";
 import { CoinBadge } from "../components/CoinBadge";
 
 export function PlayerFeed() {
@@ -113,15 +113,26 @@ export function PlayerFeed() {
                   <h3>
                     {ep.index}-р анги · {ep.title}
                   </h3>
-                  {s.coins >= series.unlockCost ? (
+                  {!s.signedIn ? (
+                    <>
+                      <p className="muted">
+                        Үргэлжлүүлэн үзэхийн тулд утасны дугаараараа бүртгүүлж coin-оор ангиа
+                        нээнэ.
+                      </p>
+                      <button className="btn btn-primary" onClick={openAuth}>
+                        Нэвтрэх / Бүртгүүлэх
+                      </button>
+                    </>
+                  ) : s.coins >= series.unlockCost ? (
                     <>
                       <p className="muted">Үргэлжлэлийг үзэхийн тулд ангиа нээнэ үү</p>
                       <button
                         className="btn btn-primary"
                         onClick={() => {
-                          if (!unlockEpisode(series.id, ep.index, series.unlockCost)) {
-                            openTopup();
-                          }
+                          void unlockEpisode(series.id, ep.index).then((r) => {
+                            if (r === "insufficient") openTopup();
+                            else if (r === "auth") openAuth();
+                          });
                         }}
                       >
                         Нээх — {series.unlockCost} 🪙
