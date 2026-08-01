@@ -2,7 +2,7 @@
 
 Богино ангитай босоо драм стриминг вебсайт — ReelShort/1mindrama загварын Монголын зах зээлд зориулсан.
 
-**Сайт:** https://barka39.github.io/mini-drama/ (GitHub Pages, үнэгүй)
+**Сайт:** https://minidram.pages.dev (Cloudflare Pages, үнэгүй) · Нөөц: https://barka39.github.io/mini-drama/
 
 ---
 
