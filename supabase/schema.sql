@@ -14,16 +14,15 @@ create table if not exists public.md_profiles (
   created_at timestamptz not null default now()
 );
 
--- Хамгийн анхны бүртгүүлсэн хэрэглэгч автоматаар админ болно
--- (схем суулгасны ДАРАА ХАМГИЙН ТҮРҮҮНД ЭЗЭН ӨӨРӨӨ бүртгүүлэх ёстой!)
-create or replace function public.md_first_user_is_admin()
+-- Эзний утасны дугаараар бүртгүүлсэн хэрэглэгч автоматаар админ болно
+create or replace function public.md_owner_is_admin()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
-  if not exists (select 1 from md_profiles where is_admin) then
+  if new.phone = '91300737' then
     new.is_admin := true;
   end if;
   return new;
@@ -31,9 +30,10 @@ end;
 $$;
 
 drop trigger if exists md_first_admin on public.md_profiles;
-create trigger md_first_admin
+drop trigger if exists md_owner_admin on public.md_profiles;
+create trigger md_owner_admin
   before insert on public.md_profiles
-  for each row execute function public.md_first_user_is_admin();
+  for each row execute function public.md_owner_is_admin();
 
 -- 2) Цувралын үнийн мэдээлэл (сервер талын үнэн — client үнэ илгээдэггүй)
 create table if not exists public.md_series (
