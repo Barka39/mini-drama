@@ -1,10 +1,12 @@
-# Сайтыг шинэчилж GitHub Pages руу гаргана.
+﻿# Сайтыг шинэчилж GitHub Pages руу гаргана.
 # Хэрэглээ: .\tools\deploy.ps1  (эсвэл -Message "юу өөрчилснөө бичих")
 param(
     [string]$Message = "Сайт шинэчлэв"
 )
 
-$ErrorActionPreference = "Stop"
+# git нь энгийн мэдээллээ stderr-т бичдэг тул Stop горим ашиглахгүй —
+# алдааг $LASTEXITCODE-оор шалгана
+$ErrorActionPreference = "Continue"
 Set-Location (Join-Path $PSScriptRoot "..")
 
 Write-Host "1/3 Build хийж байна..."
