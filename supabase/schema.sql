@@ -63,9 +63,12 @@ create table if not exists public.md_settings (
   id integer primary key default 1 check (id = 1),
   bank_name text not null default '',
   account_number text not null default '',
+  iban text not null default '',
   account_name text not null default '',
   contact text not null default ''
 );
+
+alter table public.md_settings add column if not exists iban text not null default '';
 
 insert into public.md_settings (id, bank_name, account_number, account_name, contact)
 values (1, 'Хаан банк', '', '', '')
@@ -252,9 +255,12 @@ end;
 $$;
 
 -- АДМИН: сайтын тохиргоог (данс) шинэчлэх
+drop function if exists public.md_update_settings(text, text, text, text);
+
 create or replace function public.md_update_settings(
   p_bank_name text,
   p_account_number text,
+  p_iban text,
   p_account_name text,
   p_contact text
 )
@@ -270,6 +276,7 @@ begin
   update md_settings
      set bank_name = p_bank_name,
          account_number = p_account_number,
+         iban = p_iban,
          account_name = p_account_name,
          contact = p_contact
    where id = 1;
@@ -290,7 +297,7 @@ grant execute on function
   public.md_confirm_purchase(bigint),
   public.md_reject_purchase(bigint),
   public.md_admin_grant(text, text),
-  public.md_update_settings(text, text, text, text)
+  public.md_update_settings(text, text, text, text, text)
 to authenticated;
 
 -- ============================================================

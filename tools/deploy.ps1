@@ -15,7 +15,8 @@ foreach ($line in Get-Content ".env" | Where-Object { $_ -match '^\w+=' }) {
     Set-Item -Path "env:$k" -Value $v.Trim()
 }
 
-Write-Host "1/5 Build хийж байна..."
+Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
+& (Join-Path $PSScriptRoot "make-landing.ps1")
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
 

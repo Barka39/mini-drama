@@ -129,6 +129,132 @@ a {
   color: var(--text-muted);
 }
 
+/* ---- Төлбөрийн цонх ---- */
+.pay-modal {
+  text-align: left;
+}
+
+.pay-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.pay-poster {
+  width: 64px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.pay-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.pay-price {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.pay-steps {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.pay-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 45, 111, 0.1);
+  border: 1px solid rgba(255, 45, 111, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pay-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: pay-spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pay-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pay-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 14px;
+}
+
+.pay-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.pay-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pay-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pay-value {
+  font-size: 15px;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.pay-value-big {
+  font-size: 19px;
+  letter-spacing: 0.5px;
+}
+
+.pay-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.copy-btn {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .ep-progress {
   position: absolute;
   left: 0;

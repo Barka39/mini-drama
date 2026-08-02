@@ -162,6 +162,12 @@ export function AdminPage() {
           />
           <input
             className="code-input"
+            placeholder="IBAN (заавал биш)"
+            value={settings.iban}
+            onChange={(e) => setSettings({ ...settings, iban: e.target.value })}
+          />
+          <input
+            className="code-input"
             placeholder="Данс эзэмшигчийн нэр"
             value={settings.account_name}
             onChange={(e) => setSettings({ ...settings, account_name: e.target.value })}
