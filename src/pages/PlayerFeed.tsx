@@ -15,6 +15,22 @@ export function PlayerFeed() {
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
   const [active, setActive] = useState(startIndex);
   const [muted, setMuted] = useState(true);
+  const [pct, setPct] = useState(0); // идэвхтэй ангийн явц (0..100)
+
+  // Анги дуусахад дараагийн анги руу автоматаар шилжинэ —
+  // үнэгүй хэсэг дуусахад үзэгч түгжээтэй анги (худалдан авалт) дээр очно
+  function advanceFrom(epIdx: number) {
+    const feed = containerRef.current;
+    if (!feed) return;
+    feed.scrollTo({ top: feed.clientHeight * epIdx, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    if (series) document.title = `${series.title} — Мини Драм`;
+    return () => {
+      document.title = "Мини Драм — богино драм монголоор";
+    };
+  }, [series]);
 
   // Эхлэх анги руу гүйлгэх
   useEffect(() => {
@@ -37,6 +53,7 @@ export function PlayerFeed() {
   useEffect(() => {
     if (!series) return;
     setProgress(series.id, Math.min(active, series.episodes.length));
+    setPct(0);
     videoRefs.current.forEach((video, ep) => {
       if (ep === active) {
         video.muted = muted;
@@ -94,7 +111,6 @@ export function PlayerFeed() {
                     src={ep.video}
                     poster={series.poster}
                     playsInline
-                    loop
                     muted={muted}
                     preload={Math.abs(ep.index - active) <= 1 ? "auto" : "metadata"}
                     onClick={(e) => {
@@ -102,7 +118,18 @@ export function PlayerFeed() {
                       if (v.paused) v.play();
                       else v.pause();
                     }}
+                    onTimeUpdate={(e) => {
+                      if (ep.index !== active) return;
+                      const v = e.currentTarget;
+                      if (v.duration > 0) setPct((v.currentTime / v.duration) * 100);
+                    }}
+                    onEnded={() => advanceFrom(ep.index)}
                   />
+                  {ep.index === active && (
+                    <div className="ep-progress">
+                      <div className="ep-progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
                   <div className="slide-meta">
                     <strong>
                       {ep.index}-р анги · {ep.title}

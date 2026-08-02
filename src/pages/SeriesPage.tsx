@@ -1,14 +1,24 @@
+import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatPrice, freeEpCount, getSeries } from "../data/catalog";
 import { buyStatus, canWatch, useAppState } from "../lib/store";
 import { openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
+const DEFAULT_TITLE = "Мини Драм — богино драм монголоор";
+
 export function SeriesPage() {
   const { seriesId } = useParams();
   const navigate = useNavigate();
   const s = useAppState();
   const series = seriesId ? getSeries(seriesId) : undefined;
+
+  useEffect(() => {
+    if (series) document.title = `${series.title} — Мини Драм`;
+    return () => {
+      document.title = DEFAULT_TITLE;
+    };
+  }, [series]);
 
   if (!series) {
     return (

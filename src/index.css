@@ -129,6 +129,22 @@ a {
   color: var(--text-muted);
 }
 
+.ep-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 5;
+}
+
+.ep-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.25s linear;
+}
+
 .settings-form {
   display: flex;
   flex-direction: column;
