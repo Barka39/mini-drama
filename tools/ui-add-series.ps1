@@ -34,9 +34,14 @@ $price = Read-Host "5) Киноны үнэ төгрөгөөр (хоосон = 35
 if ($price -eq "") { $price = 3500 }
 $freeMin = Read-Host "6) Эхний хэдэн минут үнэгүй үзүүлэх вэ? (хоосон = 20)"
 if (-not $freeMin) { $freeMin = 20 }
+Write-Host ""
+Write-Host "   Анхдагчаар бичлэгийн хэлбэрийг хэвээр нь хадгална (16:9 бол 16:9-ээр гарна)."
+$crop = Read-Host "7) Хэвтээ бичлэгийг босоо (9:16) болгож тайрах уу? (y / хоосон = үгүй)"
 
 Write-Host ""
-& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -EpisodeSeconds ([int]$sec) -Price ([int]$price) -FreeMinutes ([double]$freeMin)
+$argsExtra = @{}
+if ($crop -eq "y") { $argsExtra["Crop9x16"] = $true }
+& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -EpisodeSeconds ([int]$sec) -Price ([int]$price) -FreeMinutes ([double]$freeMin) @argsExtra
 if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
     Read-Host "Алдаа гарлаа. Enter дарж хаана уу"
     exit 1

@@ -14,7 +14,10 @@ param(
     [string]$Genre = "Драм",
     [int]$EpisodeSeconds = 120,
     [int]$Price = 3500,
-    [double]$FreeMinutes = 20
+    [double]$FreeMinutes = 20,
+    # Анхдагчаар бичлэгийн хэлбэрийг ХЭВЭЭР нь хадгална (16:9, 4:3, босоо бүгд болно).
+    # Зөвхөн энэ сонголтыг өгвөл хэвтээ бичлэгийг голоос нь босоо болгож тайрна.
+    [switch]$Crop9x16
 )
 
 $ErrorActionPreference = "Stop"
@@ -64,15 +67,20 @@ $episodes = @()
 for ($i = 0; $i -lt $epCount; $i++) {
     $ss = $i * $EpisodeSeconds
     $outFile = Join-Path $videosDir "$($Id)_e$($i + 1).mp4"
-    if ($isVertical) {
-        # Босоо видео: кодлолгүй хурдан хэрчинэ (faststart = шууд тоглож эхэлнэ)
-        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c copy -movflags +faststart $outFile
-    }
-    else {
-        # Хэвтээ видео: голоос нь 9:16 болгож тайрна (дахин кодлоно)
+    if ($Crop9x16 -and -not $isVertical) {
+        # Зөвхөн хүсэлтээр: хэвтээ бичлэгийг голоос нь 9:16 болгож тайрна (дахин кодлоно)
         $cropW = [int]($h * 9 / 16); if ($cropW % 2 -ne 0) { $cropW-- }
         $cropX = [int](($w - $cropW) / 2)
         & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -vf "crop=${cropW}:${h}:${cropX}:0" -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 128k -movflags +faststart $outFile
+    }
+    else {
+        # Хэлбэрийг хэвээр нь: кодлолгүй хурдан хэрчинэ (faststart = шууд тоглож эхэлнэ)
+        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c copy -movflags +faststart $outFile
+        if ($LASTEXITCODE -ne 0) {
+            # mkv/avi зэрэг mp4-д шууд ордоггүй формат бол дахин кодлоно
+            Write-Host "  (формат тохирохгүй тул дахин кодолж байна…)"
+            & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 128k -movflags +faststart $outFile
+        }
     }
     # Бодит урт (сүүлийн анги богино байдаг)
     $epDur = [math]::Round([double](& $ffp -v error -show_entries format=duration -of csv=p=0 $outFile), 1)
@@ -85,9 +93,20 @@ for ($i = 0; $i -lt $epCount; $i++) {
     Write-Host "  анги $($i + 1)/$epCount бэлэн ($epDur сек)"
 }
 
-# Poster: 1-р ангийн 5 дахь секундын кадр
+# Poster: 1-р ангийн 5 дахь секундын кадр.
+# Каталогийн карт босоо хэлбэртэй тул хэвтээ бичлэгээс постер хийхдээ
+# бүдгэрсэн дэвсгэр дээр буулгана — эс бөгөөс карт дээр хоёр тал нь тасарна.
 $posterTime = [math]::Min(5, [math]::Max(1, $EpisodeSeconds / 2))
-& $ff -v error -y -ss $posterTime -i (Join-Path $videosDir "$($Id)_e1.mp4") -frames:v 1 -vf "scale=540:-2" (Join-Path $postersDir "$Id.jpg")
+$ep1 = Join-Path $videosDir "$($Id)_e1.mp4"
+$posterOut = Join-Path $postersDir "$Id.jpg"
+if ($isVertical -or $Crop9x16) {
+    & $ff -v error -y -ss $posterTime -i $ep1 -frames:v 1 -vf "scale=540:-2" $posterOut
+}
+else {
+    & $ff -v error -y -ss $posterTime -i $ep1 -frames:v 1 -filter_complex `
+        "[0:v]scale=540:780:force_original_aspect_ratio=increase,crop=540:780,boxblur=20:2[bg];[0:v]scale=540:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" `
+        $posterOut
+}
 
 # R2 руу хуулах
 Write-Host ""
