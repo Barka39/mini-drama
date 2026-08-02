@@ -78,38 +78,54 @@ export function PlayerFeed() {
 
       {series.episodes.map((ep) => {
         const watchable = canWatch(s, series, ep.index);
+        // Утасны browser цөөн video decoder зэрэг ажиллуулдаг тул зөвхөн ойр
+        // орчмын ангиудыг жинхэнэ <video> болгоно — бусад нь хөнгөн зураг
+        const mountVideo = Math.abs(ep.index - active) <= 2;
         return (
           <section key={ep.index} className="slide" data-ep={ep.index}>
             {watchable ? (
-              <>
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(ep.index, el);
-                    else videoRefs.current.delete(ep.index);
-                  }}
-                  src={ep.video}
-                  poster={series.poster}
-                  playsInline
-                  loop
-                  muted={muted}
-                  preload={Math.abs(ep.index - active) <= 1 ? "auto" : "metadata"}
-                  onClick={(e) => {
-                    const v = e.currentTarget;
-                    if (v.paused) v.play();
-                    else v.pause();
-                  }}
-                />
-                <div className="slide-meta">
-                  <strong>
-                    {ep.index}-р анги · {ep.title}
-                  </strong>
+              mountVideo ? (
+                <>
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(ep.index, el);
+                      else videoRefs.current.delete(ep.index);
+                    }}
+                    src={ep.video}
+                    poster={series.poster}
+                    playsInline
+                    loop
+                    muted={muted}
+                    preload={Math.abs(ep.index - active) <= 1 ? "auto" : "metadata"}
+                    onClick={(e) => {
+                      const v = e.currentTarget;
+                      if (v.paused) v.play();
+                      else v.pause();
+                    }}
+                  />
+                  <div className="slide-meta">
+                    <strong>
+                      {ep.index}-р анги · {ep.title}
+                    </strong>
+                  </div>
+                  {muted && (
+                    <button className="unmute" onClick={() => setMuted(false)}>
+                      🔊 Дуу асаах
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div
+                  className="lock-slide"
+                  style={{ backgroundImage: `url(${series.poster})` }}
+                >
+                  <div className="slide-meta">
+                    <strong>
+                      {ep.index}-р анги · {ep.title}
+                    </strong>
+                  </div>
                 </div>
-                {muted && (
-                  <button className="unmute" onClick={() => setMuted(false)}>
-                    🔊 Дуу асаах
-                  </button>
-                )}
-              </>
+              )
             ) : (
               <div className="lock-slide" style={{ backgroundImage: `url(${series.poster})` }}>
                 <div className="lock-panel">
