@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { CATALOG } from "../data/catalog";
-import { signOut, useAppState } from "../lib/store";
-import { CoinBadge } from "../components/CoinBadge";
+import { CATALOG, formatPrice } from "../data/catalog";
+import { buyStatus, signOut, useAppState } from "../lib/store";
+import { AccountBadge } from "../components/AccountBadge";
 
 export function Home() {
   const s = useAppState();
@@ -12,17 +12,18 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark">▶</span> Мини Драм
         </div>
-        <CoinBadge />
+        <AccountBadge />
       </header>
 
       <section className="hero">
         <h1>Богино ангитай драм, монголоор</h1>
-        <p>1–2 минутын ангиуд · Эхний ангиуд үнэгүй · Утсандаа шууд үз</p>
+        <p>Эхний минутууд үнэгүй · Нэг удаа төлөөд дуустал үзнэ · Утсандаа шууд үз</p>
       </section>
 
       <section className="grid">
         {CATALOG.map((series) => {
           const last = s.progress[series.id];
+          const owned = buyStatus(s, series.id) === "owned";
           return (
             <Link key={series.id} to={`/series/${series.id}`} className="card">
               <div className="card-poster">
@@ -32,7 +33,10 @@ export function Home() {
               </div>
               <div className="card-body">
                 <h3>{series.title}</h3>
-                <p className="card-genre">{series.genre}</p>
+                <p className="card-genre">
+                  {series.genre} ·{" "}
+                  {series.price <= 0 ? "Үнэгүй" : owned ? "✅ Нээлттэй" : formatPrice(series.price)}
+                </p>
                 <p className="card-tagline">{series.tagline}</p>
               </div>
             </Link>
@@ -49,7 +53,7 @@ export function Home() {
             </button>
           </>
         ) : (
-          "Демо хувилбар · Контент: tale2film туршилтын бичлэгүүд"
+          "Мини Драм · Богино драм стриминг"
         )}
       </footer>
     </div>

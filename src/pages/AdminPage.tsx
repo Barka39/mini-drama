@@ -1,43 +1,48 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supa } from "../lib/supa";
+import { CATALOG, formatPrice, getSeries } from "../data/catalog";
 import { useAppState } from "../lib/store";
 import { openAuth } from "../lib/ui";
-import { CoinBadge } from "../components/CoinBadge";
+import { AccountBadge } from "../components/AccountBadge";
 
-interface AdminTopup {
+interface AdminPurchase {
   id: number;
-  coins: number;
+  series_id: string;
   price: number;
   status: string;
   created_at: string;
   phone: string;
 }
 
+function seriesTitle(id: string): string {
+  return getSeries(id)?.title ?? id;
+}
+
 export function AdminPage() {
   const s = useAppState();
-  const [pending, setPending] = useState<AdminTopup[]>([]);
-  const [history, setHistory] = useState<AdminTopup[]>([]);
-  const [creditPhone, setCreditPhone] = useState("");
-  const [creditCoins, setCreditCoins] = useState("");
+  const [pending, setPending] = useState<AdminPurchase[]>([]);
+  const [history, setHistory] = useState<AdminPurchase[]>([]);
+  const [grantPhone, setGrantPhone] = useState("");
+  const [grantSeries, setGrantSeries] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [p, h] = await Promise.all([
       supa
-        .from("md_topups_admin")
+        .from("md_purchases_admin")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: true }),
       supa
-        .from("md_topups_admin")
+        .from("md_purchases_admin")
         .select("*")
         .neq("status", "pending")
         .order("decided_at", { ascending: false })
         .limit(15),
     ]);
-    setPending((p.data ?? []) as AdminTopup[]);
-    setHistory((h.data ?? []) as AdminTopup[]);
+    setPending((p.data ?? []) as AdminPurchase[]);
+    setHistory((h.data ?? []) as AdminPurchase[]);
   }, []);
 
   useEffect(() => {
@@ -68,30 +73,33 @@ export function AdminPage() {
   }
 
   async function decide(id: number, confirm: boolean) {
-    const { error } = await supa.rpc(confirm ? "md_confirm_topup" : "md_reject_topup", {
+    const { error } = await supa.rpc(confirm ? "md_confirm_purchase" : "md_reject_purchase", {
       p_id: id,
     });
     setMsg(error ? "Алдаа: " + error.message : confirm ? "Баталгаажлаа ✅" : "Татгалзлаа");
     await load();
   }
 
-  async function credit() {
-    const { error } = await supa.rpc("md_admin_credit", {
-      p_phone: creditPhone.replace(/\D/g, ""),
-      p_coins: Number(creditCoins),
+  async function grant() {
+    const { error } = await supa.rpc("md_admin_grant", {
+      p_phone: grantPhone.replace(/\D/g, ""),
+      p_series: grantSeries,
     });
     setMsg(
       error
         ? /phone_not_found/.test(error.message)
           ? "Ийм дугаартай хэрэглэгч олдсонгүй"
           : "Алдаа: " + error.message
-        : `+${creditCoins} 🪙 → ${creditPhone} амжилттай`,
+        : `«${seriesTitle(grantSeries)}» → ${grantPhone} нээгдлээ ✅`,
     );
     if (!error) {
-      setCreditPhone("");
-      setCreditCoins("");
+      setGrantPhone("");
+      setGrantSeries("");
+      await load();
     }
   }
+
+  const paidSeries = CATALOG.filter((c) => c.price > 0);
 
   return (
     <div className="page">
@@ -99,8 +107,8 @@ export function AdminPage() {
         <Link to="/" className="back">
           ←
         </Link>
-        <div className="brand">Админ · Цэнэглэлт</div>
-        <CoinBadge />
+        <div className="brand">Админ · Худалдан авалт</div>
+        <AccountBadge />
       </header>
 
       {msg && <p className="msg-ok">{msg}</p>}
@@ -110,8 +118,8 @@ export function AdminPage() {
       {pending.map((t) => (
         <div key={t.id} className="admin-row">
           <div>
-            <strong>{t.phone}</strong> · 🪙 {t.coins} ·{" "}
-            <span className="pack-price">{t.price.toLocaleString("mn-MN")}₮</span>
+            <strong>{t.phone}</strong> · {seriesTitle(t.series_id)} ·{" "}
+            <span className="pack-price">{formatPrice(t.price)}</span>
             <div className="muted small">{new Date(t.created_at).toLocaleString("mn-MN")}</div>
           </div>
           <div className="admin-actions">
@@ -125,26 +133,32 @@ export function AdminPage() {
         </div>
       ))}
 
-      <h3 className="admin-h">Гараар coin нэмэх</h3>
+      <h3 className="admin-h">Гараар кино нээж өгөх</h3>
       <div className="code-row">
         <input
           className="code-input"
           placeholder="Утасны дугаар"
-          value={creditPhone}
-          onChange={(e) => setCreditPhone(e.target.value)}
+          value={grantPhone}
+          onChange={(e) => setGrantPhone(e.target.value)}
         />
-        <input
-          className="code-input admin-coins-input"
-          placeholder="Coin"
-          value={creditCoins}
-          onChange={(e) => setCreditCoins(e.target.value)}
-        />
+        <select
+          className="code-input"
+          value={grantSeries}
+          onChange={(e) => setGrantSeries(e.target.value)}
+        >
+          <option value="">Кино сонгох…</option>
+          {paidSeries.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
         <button
           className="btn btn-primary"
-          disabled={!creditPhone || !/^\d+$/.test(creditCoins)}
-          onClick={credit}
+          disabled={!grantPhone || !grantSeries}
+          onClick={grant}
         >
-          Нэмэх
+          Нээх
         </button>
       </div>
 
@@ -152,7 +166,7 @@ export function AdminPage() {
       {history.map((t) => (
         <div key={t.id} className="admin-row">
           <div>
-            {t.phone} · 🪙 {t.coins} · {t.price.toLocaleString("mn-MN")}₮
+            {t.phone} · {seriesTitle(t.series_id)} · {formatPrice(t.price)}
           </div>
           <span className="muted small">{t.status === "confirmed" ? "✅" : "❌"}</span>
         </div>

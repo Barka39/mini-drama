@@ -31,7 +31,8 @@ export function AuthModal() {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>{mode === "in" ? "Нэвтрэх" : "Бүртгүүлэх"}</h3>
         <p className="muted small">
-          Coin данс тань утасны дугаартаа холбогдоно — өөр төхөөрөмжөөс ч нэвтэрч үзэж болно.
+          Худалдаж авсан кинонууд тань утасны дугаартаа холбогдоно — өөр төхөөрөмжөөс ч нэвтэрч
+          үзэж болно.
         </p>
 
         <input

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getSeries } from "../data/catalog";
-import { isUnlocked, setProgress, unlockEpisode, useAppState } from "../lib/store";
-import { openAuth, openTopup } from "../lib/ui";
-import { CoinBadge } from "../components/CoinBadge";
+import { formatPrice, freeEpCount, getSeries } from "../data/catalog";
+import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
+import { openAuth, openPurchase } from "../lib/ui";
+import { AccountBadge } from "../components/AccountBadge";
 
 export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
@@ -48,18 +48,21 @@ export function PlayerFeed() {
         video.currentTime = 0;
       }
     });
-  }, [active, muted, series, s.unlocked]);
+  }, [active, muted, series, s.purchased]);
 
   if (!series) {
     return (
       <div className="page center">
-        <p>Цуврал олдсонгүй.</p>
+        <p>Кино олдсонгүй.</p>
         <Link className="btn" to="/">
           Нүүр хуудас
         </Link>
       </div>
     );
   }
+
+  const freeCount = freeEpCount(series);
+  const pending = buyStatus(s, series.id) === "pending";
 
   return (
     <div className="feed" ref={containerRef}>
@@ -70,14 +73,14 @@ export function PlayerFeed() {
         <div className="feed-title">
           {series.title} · {active}-р анги
         </div>
-        <CoinBadge />
+        <AccountBadge />
       </header>
 
       {series.episodes.map((ep) => {
-        const unlocked = isUnlocked(s, series.id, ep.index, series.freeCount);
+        const watchable = canWatch(s, series, ep.index);
         return (
           <section key={ep.index} className="slide" data-ep={ep.index}>
-            {unlocked ? (
+            {watchable ? (
               <>
                 <video
                   ref={(el) => {
@@ -113,42 +116,30 @@ export function PlayerFeed() {
                   <h3>
                     {ep.index}-р анги · {ep.title}
                   </h3>
+                  <p className="muted">
+                    Эхний {freeCount} анги ({series.freeMinutes} минут) үнэгүй. Үргэлжлэлийг үзэхийн
+                    тулд киног бүтнээр нь нээнэ — нэг удаа төлөөд дуустал үзнэ.
+                  </p>
                   {!s.signedIn ? (
                     <>
-                      <p className="muted">
-                        Үргэлжлүүлэн үзэхийн тулд утасны дугаараараа бүртгүүлж coin-оор ангиа
-                        нээнэ.
-                      </p>
                       <button className="btn btn-primary" onClick={openAuth}>
                         Нэвтрэх / Бүртгүүлэх
                       </button>
+                      <p className="muted small">
+                        Бүтэн кино: {formatPrice(series.price)}
+                      </p>
                     </>
-                  ) : s.coins >= series.unlockCost ? (
+                  ) : pending ? (
                     <>
-                      <p className="muted">Үргэлжлэлийг үзэхийн тулд ангиа нээнэ үү</p>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          void unlockEpisode(series.id, ep.index).then((r) => {
-                            if (r === "insufficient") openTopup();
-                            else if (r === "auth") openAuth();
-                          });
-                        }}
-                      >
-                        Нээх — {series.unlockCost} 🪙
+                      <p className="msg-ok">⏳ Хүсэлт хүлээгдэж байна</p>
+                      <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
+                        Шилжүүлгийн мэдээлэл харах
                       </button>
-                      <p className="muted small">Танд {s.coins} 🪙 байна</p>
                     </>
                   ) : (
-                    <>
-                      <p className="muted">
-                        Танд {s.coins} 🪙 байна — энэ анги нээхэд {series.unlockCost} 🪙 хэрэгтэй.
-                        Цэнэглээд үргэлжлүүлэн үзээрэй.
-                      </p>
-                      <button className="btn btn-primary" onClick={openTopup}>
-                        🪙 Цэнэглэх — хэрхэн гэдгийг харах
-                      </button>
-                    </>
+                    <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
+                      🎬 Худалдаж авах — {formatPrice(series.price)}
+                    </button>
                   )}
                 </div>
               </div>
@@ -160,8 +151,8 @@ export function PlayerFeed() {
 
       <section className="slide end-slide" data-ep={series.episodes.length + 1}>
         <div className="lock-panel">
-          <h3>Цуврал дууслаа 🎬</h3>
-          <p className="muted">Өөр цуврал үзэх үү?</p>
+          <h3>Кино дууслаа 🎬</h3>
+          <p className="muted">Өөр кино үзэх үү?</p>
           <Link className="btn btn-primary" to="/">
             Каталог руу буцах
           </Link>

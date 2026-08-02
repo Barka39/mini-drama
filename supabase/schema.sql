@@ -1,15 +1,16 @@
 -- ============================================================
--- МИНИ ДРАМ — S2 схем (Supabase)
+-- МИНИ ДРАМ — S2.5 схем (Supabase): кино бүр нэг үнэтэй загвар
 -- khiye-ийн project дээр зэрэгцэн ажиллана: бүх хүснэгт md_ угтвартай.
--- Суулгах: Supabase Dashboard → SQL Editor → энэ файлыг бүхэлд нь
--- хуулж буулгаад Run дарна. Дахин ажиллуулахад аюулгүй (idempotent).
+-- Coin систем хасагдсан: кино бүр өөрийн үнэтэй, эхний минутууд үнэгүй,
+-- худалдан авалт = нэг удаагийн шилжүүлэг + админы баталгаажуулалт.
+-- Суулгах: Management API-ийн database/query эсвэл Dashboard SQL Editor.
+-- Дахин ажиллуулахад аюулгүй (idempotent).
 -- ============================================================
 
--- 1) Хэрэглэгчийн профайл (утас + coin данс)
+-- 1) Хэрэглэгчийн профайл (утас = данс)
 create table if not exists public.md_profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   phone text unique not null,
-  coins integer not null default 0 check (coins >= 0),
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
@@ -29,52 +30,39 @@ begin
 end;
 $$;
 
-drop trigger if exists md_first_admin on public.md_profiles;
 drop trigger if exists md_owner_admin on public.md_profiles;
 create trigger md_owner_admin
   before insert on public.md_profiles
   for each row execute function public.md_owner_is_admin();
 
--- 2) Цувралын үнийн мэдээлэл (сервер талын үнэн — client үнэ илгээдэггүй)
+-- 2) Кинонуудын үнэ (сервер талын үнэн — client үнэ илгээдэггүй)
+--    price = 0 бол бүх анги үнэгүй; free_minutes = эхний хэдэн минут үнэгүй
 create table if not exists public.md_series (
   id text primary key,
-  free_count integer not null default 2,
-  unlock_cost integer not null default 30,
-  bundle_cost integer not null default 80
+  price integer not null default 3500,
+  free_minutes numeric not null default 20
 );
 
-insert into public.md_series (id, free_count, unlock_cost, bundle_cost) values
-  ('altan-zagas', 2, 30, 50),
-  ('tsuutiin-guu', 2, 30, 80)
+alter table public.md_series add column if not exists price integer not null default 3500;
+alter table public.md_series add column if not exists free_minutes numeric not null default 20;
+alter table public.md_series drop column if exists free_count;
+alter table public.md_series drop column if exists unlock_cost;
+alter table public.md_series drop column if exists bundle_cost;
+
+insert into public.md_series (id, price, free_minutes) values
+  ('altan-zagas', 0, 20),
+  ('tsuutiin-guu', 0, 20),
+  ('series-260802-0128', 3500, 20),
+  ('series-260802-0147', 3500, 20)
 on conflict (id) do update
-  set free_count = excluded.free_count,
-      unlock_cost = excluded.unlock_cost,
-      bundle_cost = excluded.bundle_cost;
+  set price = excluded.price,
+      free_minutes = excluded.free_minutes;
 
--- 3) Coin-ий багцууд (цэнэглэлтийн зөвшөөрөгдсөн үнэ)
-create table if not exists public.md_packs (
-  coins integer primary key,
-  price integer not null
-);
-
-insert into public.md_packs (coins, price) values
-  (100, 3000), (300, 8000), (500, 12000)
-on conflict (coins) do update set price = excluded.price;
-
--- 4) Нээсэн ангиуд
-create table if not exists public.md_unlocks (
-  user_id uuid not null references public.md_profiles (id) on delete cascade,
-  series_id text not null,
-  ep_index integer not null,
-  created_at timestamptz not null default now(),
-  primary key (user_id, series_id, ep_index)
-);
-
--- 5) Цэнэглэлтийн хүсэлтүүд
-create table if not exists public.md_topups (
+-- 3) Худалдан авалтууд (хүсэлт → админ баталгаажуулбал кино бүрмөсөн нээгдэнэ)
+create table if not exists public.md_purchases (
   id bigint generated always as identity primary key,
   user_id uuid not null references public.md_profiles (id) on delete cascade,
-  coins integer not null,
+  series_id text not null,
   price integer not null,
   status text not null default 'pending'
     check (status in ('pending', 'confirmed', 'rejected')),
@@ -82,14 +70,18 @@ create table if not exists public.md_topups (
   decided_at timestamptz
 );
 
+-- Нэг хэрэглэгч нэг киног давхардуулж хүсэх/авахгүй
+create unique index if not exists md_purchases_one_pending
+  on public.md_purchases (user_id, series_id) where status = 'pending';
+create unique index if not exists md_purchases_one_confirmed
+  on public.md_purchases (user_id, series_id) where status = 'confirmed';
+
 -- ============================================================
--- RLS — уншихыг хязгаарлана; бичилт зөвхөн доорх функцуудаар
+-- RLS
 -- ============================================================
 alter table public.md_profiles enable row level security;
 alter table public.md_series enable row level security;
-alter table public.md_packs enable row level security;
-alter table public.md_unlocks enable row level security;
-alter table public.md_topups enable row level security;
+alter table public.md_purchases enable row level security;
 
 create or replace function public.md_is_admin()
 returns boolean
@@ -116,108 +108,16 @@ drop policy if exists md_series_select on public.md_series;
 create policy md_series_select on public.md_series
   for select using (true);
 
-drop policy if exists md_packs_select on public.md_packs;
-create policy md_packs_select on public.md_packs
-  for select using (true);
-
-drop policy if exists md_unlocks_select on public.md_unlocks;
-create policy md_unlocks_select on public.md_unlocks
-  for select using (user_id = auth.uid() or public.md_is_admin());
-
-drop policy if exists md_topups_select on public.md_topups;
-create policy md_topups_select on public.md_topups
+drop policy if exists md_purchases_select on public.md_purchases;
+create policy md_purchases_select on public.md_purchases
   for select using (user_id = auth.uid() or public.md_is_admin());
 
 -- ============================================================
 -- Функцууд (бүх мөнгөн гүйлгээ зөвхөн эндээс — атомар, сервер талын үнээр)
 -- ============================================================
 
--- Анги нээх: амжилттай бол шинэ үлдэгдэл буцаана
-create or replace function public.md_unlock_episode(p_series text, p_ep integer)
-returns integer
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_cost integer;
-  v_free integer;
-  v_coins integer;
-begin
-  if auth.uid() is null then
-    raise exception 'not_signed_in';
-  end if;
-
-  select coalesce(s.unlock_cost, 30), coalesce(s.free_count, 2)
-    into v_cost, v_free
-    from (select 1) x
-    left join md_series s on s.id = p_series;
-
-  -- Үнэгүй эсвэл аль хэдийн нээсэн бол мөнгө авахгүй
-  if p_ep <= v_free
-     or exists (select 1 from md_unlocks
-                where user_id = auth.uid() and series_id = p_series and ep_index = p_ep) then
-    return (select coins from md_profiles where id = auth.uid());
-  end if;
-
-  update md_profiles
-     set coins = coins - v_cost
-   where id = auth.uid() and coins >= v_cost
-  returning coins into v_coins;
-
-  if v_coins is null then
-    raise exception 'insufficient_coins';
-  end if;
-
-  insert into md_unlocks (user_id, series_id, ep_index)
-  values (auth.uid(), p_series, p_ep)
-  on conflict do nothing;
-
-  return v_coins;
-end;
-$$;
-
--- Багцаар нээх: цувралын түгжээтэй бүх ангийг bundle үнээр нээнэ
-create or replace function public.md_unlock_bundle(p_series text, p_eps integer[])
-returns integer
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_cost integer;
-  v_coins integer;
-begin
-  if auth.uid() is null then
-    raise exception 'not_signed_in';
-  end if;
-  if p_eps is null or array_length(p_eps, 1) is null then
-    return (select coins from md_profiles where id = auth.uid());
-  end if;
-
-  select coalesce((select bundle_cost from md_series where id = p_series),
-                  greatest(10, ceil(array_length(p_eps, 1) * 30 * 0.7 / 10)::integer * 10))
-    into v_cost;
-
-  update md_profiles
-     set coins = coins - v_cost
-   where id = auth.uid() and coins >= v_cost
-  returning coins into v_coins;
-
-  if v_coins is null then
-    raise exception 'insufficient_coins';
-  end if;
-
-  insert into md_unlocks (user_id, series_id, ep_index)
-  select auth.uid(), p_series, unnest(p_eps)
-  on conflict do nothing;
-
-  return v_coins;
-end;
-$$;
-
--- Цэнэглэлтийн хүсэлт үүсгэх (зөвхөн зөвшөөрөгдсөн багцаар)
-create or replace function public.md_request_topup(p_coins integer)
+-- Худалдан авах хүсэлт үүсгэх
+create or replace function public.md_request_purchase(p_series text)
 returns bigint
 language plpgsql
 security definer
@@ -231,54 +131,57 @@ begin
     raise exception 'not_signed_in';
   end if;
 
-  select price into v_price from md_packs where coins = p_coins;
+  select price into v_price from md_series where id = p_series;
   if v_price is null then
-    raise exception 'unknown_pack';
+    raise exception 'unknown_series';
+  end if;
+  if v_price <= 0 then
+    raise exception 'free_series';
   end if;
 
-  -- Нэг хэрэглэгч 5-аас олон хүлээгдэж буй хүсэлт үүсгэхгүй (спам хамгаалалт)
-  if (select count(*) from md_topups where user_id = auth.uid() and status = 'pending') >= 5 then
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and series_id = p_series and status = 'confirmed') then
+    raise exception 'already_owned';
+  end if;
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and series_id = p_series and status = 'pending') then
+    raise exception 'already_pending';
+  end if;
+  -- Спам хамгаалалт
+  if (select count(*) from md_purchases where user_id = auth.uid() and status = 'pending') >= 10 then
     raise exception 'too_many_pending';
   end if;
 
-  insert into md_topups (user_id, coins, price)
-  values (auth.uid(), p_coins, v_price)
+  insert into md_purchases (user_id, series_id, price)
+  values (auth.uid(), p_series, v_price)
   returning id into v_id;
 
   return v_id;
 end;
 $$;
 
--- АДМИН: хүсэлтийг баталгаажуулж coin нэмэх
-create or replace function public.md_confirm_topup(p_id bigint)
+-- АДМИН: хүсэлтийг баталгаажуулах (кино тухайн хэрэглэгчид бүрмөсөн нээгдэнэ)
+create or replace function public.md_confirm_purchase(p_id bigint)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
-declare
-  v_user uuid;
-  v_coins integer;
 begin
   if not public.md_is_admin() then
     raise exception 'not_admin';
   end if;
-
-  update md_topups
+  update md_purchases
      set status = 'confirmed', decided_at = now()
-   where id = p_id and status = 'pending'
-  returning user_id, coins into v_user, v_coins;
-
-  if v_user is null then
+   where id = p_id and status = 'pending';
+  if not found then
     raise exception 'not_pending';
   end if;
-
-  update md_profiles set coins = coins + v_coins where id = v_user;
 end;
 $$;
 
 -- АДМИН: хүсэлтийг татгалзах
-create or replace function public.md_reject_topup(p_id bigint)
+create or replace function public.md_reject_purchase(p_id bigint)
 returns void
 language plpgsql
 security definer
@@ -288,14 +191,17 @@ begin
   if not public.md_is_admin() then
     raise exception 'not_admin';
   end if;
-  update md_topups
+  update md_purchases
      set status = 'rejected', decided_at = now()
    where id = p_id and status = 'pending';
+  if not found then
+    raise exception 'not_pending';
+  end if;
 end;
 $$;
 
--- АДМИН: утсаар нь гараар coin нэмэх (дурын дүн, жишээ нь урамшуулал)
-create or replace function public.md_admin_credit(p_phone text, p_coins integer)
+-- АДМИН: утсаар нь киног гараар нээж өгөх (бэлнээр авсан, урамшуулал г.м)
+create or replace function public.md_admin_grant(p_phone text, p_series text)
 returns void
 language plpgsql
 security definer
@@ -311,25 +217,49 @@ begin
   if v_user is null then
     raise exception 'phone_not_found';
   end if;
-  update md_profiles set coins = coins + p_coins where id = v_user;
+  if not exists (select 1 from md_series where id = p_series) then
+    raise exception 'unknown_series';
+  end if;
+
+  -- Хүлээгдэж буй хүсэлт байвал түүнийг нь баталгаажуулна, үгүй бол шууд нээнэ
+  update md_purchases
+     set status = 'confirmed', decided_at = now()
+   where user_id = v_user and series_id = p_series and status = 'pending';
+  if not found then
+    insert into md_purchases (user_id, series_id, price, status, decided_at)
+    values (v_user, p_series, 0, 'confirmed', now())
+    on conflict do nothing;
+  end if;
 end;
 $$;
 
 -- Админ хуудасны жагсаалт: хүсэлт + утасны дугаар
-create or replace view public.md_topups_admin as
-  select t.id, t.coins, t.price, t.status, t.created_at, t.decided_at, p.phone
-    from public.md_topups t
+create or replace view public.md_purchases_admin as
+  select t.id, t.series_id, t.price, t.status, t.created_at, t.decided_at, p.phone
+    from public.md_purchases t
     join public.md_profiles p on p.id = t.user_id;
 
--- view нь дуудагчийн эрхээр ажиллана (RLS хэрэгжинэ)
-alter view public.md_topups_admin set (security_invoker = true);
+alter view public.md_purchases_admin set (security_invoker = true);
 
 grant execute on function
   public.md_is_admin(),
-  public.md_unlock_episode(text, integer),
-  public.md_unlock_bundle(text, integer[]),
-  public.md_request_topup(integer),
-  public.md_confirm_topup(bigint),
-  public.md_reject_topup(bigint),
-  public.md_admin_credit(text, integer)
+  public.md_request_purchase(text),
+  public.md_confirm_purchase(bigint),
+  public.md_reject_purchase(bigint),
+  public.md_admin_grant(text, text)
 to authenticated;
+
+-- ============================================================
+-- Coin эриний үлдэгдлийг цэвэрлэх (S2 → S2.5 шилжилт)
+-- ============================================================
+drop view if exists public.md_topups_admin;
+drop function if exists public.md_unlock_episode(text, integer);
+drop function if exists public.md_unlock_bundle(text, integer[]);
+drop function if exists public.md_request_topup(integer);
+drop function if exists public.md_confirm_topup(bigint);
+drop function if exists public.md_reject_topup(bigint);
+drop function if exists public.md_admin_credit(text, integer);
+drop table if exists public.md_topups;
+drop table if exists public.md_packs;
+drop table if exists public.md_unlocks;
+alter table public.md_profiles drop column if exists coins;

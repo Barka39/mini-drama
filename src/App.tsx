@@ -3,7 +3,7 @@ import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
 import { PlayerFeed } from "./pages/PlayerFeed";
 import { AdminPage } from "./pages/AdminPage";
-import { TopUpModal } from "./components/TopUpModal";
+import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
 
 // HashRouter: GitHub Pages зэрэг статик хостинг дээр сервер тохиргоогүйгээр ажиллана
@@ -16,7 +16,7 @@ export default function App() {
         <Route path="/watch/:seriesId/:epIndex" element={<PlayerFeed />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
-      <TopUpModal />
+      <PurchaseModal />
       <AuthModal />
     </HashRouter>
   );

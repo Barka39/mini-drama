@@ -1,8 +1,8 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getSeries } from "../data/catalog";
-import { isUnlocked, unlockBundle, useAppState } from "../lib/store";
-import { openAuth, openTopup } from "../lib/ui";
-import { CoinBadge } from "../components/CoinBadge";
+import { formatPrice, freeEpCount, getSeries } from "../data/catalog";
+import { buyStatus, canWatch, useAppState } from "../lib/store";
+import { openPurchase } from "../lib/ui";
+import { AccountBadge } from "../components/AccountBadge";
 
 export function SeriesPage() {
   const { seriesId } = useParams();
@@ -13,7 +13,7 @@ export function SeriesPage() {
   if (!series) {
     return (
       <div className="page center">
-        <p>Цуврал олдсонгүй.</p>
+        <p>Кино олдсонгүй.</p>
         <Link className="btn" to="/">
           Нүүр хуудас
         </Link>
@@ -21,9 +21,8 @@ export function SeriesPage() {
     );
   }
 
-  const lockedIndexes = series.episodes
-    .map((e) => e.index)
-    .filter((i) => !isUnlocked(s, series.id, i, series.freeCount));
+  const freeCount = freeEpCount(series);
+  const status = buyStatus(s, series.id);
   const continueEp = s.progress[series.id] ?? 1;
 
   return (
@@ -33,7 +32,7 @@ export function SeriesPage() {
           ←
         </Link>
         <div className="brand">{series.title}</div>
-        <CoinBadge />
+        <AccountBadge />
       </header>
 
       <section className="series-head">
@@ -42,27 +41,25 @@ export function SeriesPage() {
           <h2>{series.title}</h2>
           <p className="card-genre">{series.genre}</p>
           <p className="card-tagline">{series.tagline}</p>
+          {series.price > 0 && status !== "owned" && (
+            <p className="muted small">
+              Эхний {series.freeMinutes} минут үнэгүй · Бүтэн кино {formatPrice(series.price)}
+            </p>
+          )}
           <button
             className="btn btn-primary"
             onClick={() => navigate(`/watch/${series.id}/${continueEp}`)}
           >
             ▶ {continueEp > 1 ? `${continueEp}-р ангиас үргэлжлүүлэх` : "Үзэж эхлэх"}
           </button>
-          {lockedIndexes.length > 1 && (
-            <button
-              className="btn btn-outline"
-              onClick={() => {
-                if (!s.signedIn) {
-                  openAuth();
-                  return;
-                }
-                void unlockBundle(series.id, lockedIndexes).then((r) => {
-                  if (r === "insufficient") openTopup();
-                  else if (r === "auth") openAuth();
-                });
-              }}
-            >
-              🔓 Багцаар нээх — {series.bundleCost} 🪙 ({lockedIndexes.length} анги)
+          {series.price > 0 && status === "none" && (
+            <button className="btn btn-outline" onClick={() => openPurchase(series.id)}>
+              🎬 Худалдаж авах — {formatPrice(series.price)}
+            </button>
+          )}
+          {series.price > 0 && status === "pending" && (
+            <button className="btn btn-outline" onClick={() => openPurchase(series.id)}>
+              ⏳ Хүсэлт хүлээгдэж байна…
             </button>
           )}
         </div>
@@ -70,17 +67,17 @@ export function SeriesPage() {
 
       <section className="ep-grid">
         {series.episodes.map((ep) => {
-          const unlocked = isUnlocked(s, series.id, ep.index, series.freeCount);
+          const watchable = canWatch(s, series, ep.index);
           return (
             <button
               key={ep.index}
-              className={`ep-cell ${unlocked ? "" : "ep-locked"}`}
+              className={`ep-cell ${watchable ? "" : "ep-locked"}`}
               onClick={() => navigate(`/watch/${series.id}/${ep.index}`)}
             >
               <span className="ep-num">{ep.index}</span>
               <span className="ep-title">{ep.title}</span>
-              {!unlocked && <span className="ep-lock">🔒 {series.unlockCost} 🪙</span>}
-              {unlocked && ep.index <= series.freeCount && (
+              {!watchable && <span className="ep-lock">🔒</span>}
+              {watchable && series.price > 0 && status !== "owned" && ep.index <= freeCount && (
                 <span className="ep-free">Үнэгүй</span>
               )}
             </button>

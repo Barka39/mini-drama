@@ -9,27 +9,44 @@ param(
 $ErrorActionPreference = "Continue"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-Write-Host "1/4 Build хийж байна..."
+# Түлхүүрүүд .env-д (commit хийгддэггүй)
+foreach ($line in Get-Content ".env" | Where-Object { $_ -match '^\w+=' }) {
+    $k, $v = $line -split '=', 2
+    Set-Item -Path "env:$k" -Value $v.Trim()
+}
+
+Write-Host "1/5 Build хийж байна..."
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
 
-Write-Host "2/4 Git commit..."
+Write-Host "2/5 Кинонуудын үнийг сервертэй тааруулж байна..."
+if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
+    $cat = [System.IO.File]::ReadAllText("src\data\catalog.json") | ConvertFrom-Json
+    $rows = @($cat.series | ForEach-Object { "('$($_.id)', $([int]$_.price), $([double]$_.freeMinutes))" })
+    $sql = "insert into public.md_series (id, price, free_minutes) values " + ($rows -join ", ") +
+    " on conflict (id) do update set price = excluded.price, free_minutes = excluded.free_minutes;"
+    $body = @{ query = $sql } | ConvertTo-Json -Compress
+    try {
+        Invoke-RestMethod -Method Post `
+            -Uri "https://api.supabase.com/v1/projects/$($env:SUPABASE_PROJECT_REF)/database/query" `
+            -Headers @{ Authorization = "Bearer $($env:SUPABASE_ACCESS_TOKEN)"; 'Content-Type' = 'application/json' } `
+            -Body $body | Out-Null
+        Write-Host "   Үнэ сервер дээр шинэчлэгдлээ"
+    }
+    catch { Write-Warning "Үнэ тааруулж чадсангүй: $($_.Exception.Message) — сайт гарна, гэхдээ шинэ киноны худалдан авалт ажиллахгүй байж магадгүй" }
+}
+else { Write-Warning ".env дотор SUPABASE түлхүүр алга — үнийн тааруулалт алгасав" }
+
+Write-Host "3/5 Git commit..."
 git add -A
 git commit -m $Message
 if ($LASTEXITCODE -ne 0) { Write-Host "(өөрчлөлт байхгүй байж магадгүй)" }
 
-Write-Host "3/4 GitHub руу илгээж байна (нөөц хаяг)..."
+Write-Host "4/5 GitHub руу илгээж байна (нөөц хаяг)..."
 git push
 if ($LASTEXITCODE -ne 0) { Write-Error "Push амжилтгүй"; exit 1 }
 
-Write-Host "4/4 minidram.pages.dev руу гаргаж байна (үндсэн хаяг)..."
-# Түлхүүрүүд .env-д (commit хийгддэггүй)
-foreach ($line in Get-Content ".env" | Where-Object { $_ -match '^\w+=' }) {
-    $k, $v = $line -split '=', 2
-    if ($k -in @('CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID')) {
-        Set-Item -Path "env:$k" -Value $v.Trim()
-    }
-}
+Write-Host "5/5 minidram.pages.dev руу гаргаж байна (үндсэн хаяг)..."
 if (-not $env:CLOUDFLARE_API_TOKEN) { Write-Error ".env дотор CLOUDFLARE_API_TOKEN алга"; exit 1 }
 npx -y wrangler pages deploy docs --project-name=minidram --branch=main --commit-dirty=true
 if ($LASTEXITCODE -ne 0) { Write-Error "Cloudflare deploy амжилтгүй"; exit 1 }

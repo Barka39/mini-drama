@@ -28,11 +28,15 @@ if (-not $title) {
 }
 
 $tagline = Read-Host "3) Товч танилцуулга (хоосон орхиж болно)"
-$sec = Read-Host "4) Нэг ангийн урт секундээр (хоосон = 20)"
-if (-not $sec) { $sec = 20 }
+$sec = Read-Host "4) Нэг ангийн урт секундээр (хоосон = 120)"
+if (-not $sec) { $sec = 120 }
+$price = Read-Host "5) Киноны үнэ төгрөгөөр (хоосон = 3500, 0 = бүрэн үнэгүй)"
+if ($price -eq "") { $price = 3500 }
+$freeMin = Read-Host "6) Эхний хэдэн минут үнэгүй үзүүлэх вэ? (хоосон = 20)"
+if (-not $freeMin) { $freeMin = 20 }
 
 Write-Host ""
-& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -EpisodeSeconds ([int]$sec)
+& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -EpisodeSeconds ([int]$sec) -Price ([int]$price) -FreeMinutes ([double]$freeMin)
 if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
     Read-Host "Алдаа гарлаа. Enter дарж хаана уу"
     exit 1

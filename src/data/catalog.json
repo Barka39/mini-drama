@@ -1,4 +1,5 @@
 {
+    "videoBase":  "https://pub-257771f4de0f4bd7806042845d46735c.r2.dev/",
     "series":  [
                    {
                        "id":  "altan-zagas",
@@ -6,29 +7,32 @@
                        "tagline":  "Хөгшин загасчны хүсэл мөрөөдөл түүнийг хаана хүргэх бол…",
                        "genre":  "Үлгэр · Адал явдал",
                        "poster":  "posters/s1.jpg",
-                       "freeCount":  2,
-                       "unlockCost":  30,
-                       "bundleCost":  50,
+                       "price":  0,
+                       "freeMinutes":  20,
                        "episodes":  [
                                         {
                                             "index":  1,
                                             "video":  "videos/s1_e1.mp4",
-                                            "title":  "Далайн эрэг дээр"
+                                            "title":  "Далайн эрэг дээр",
+                                            "duration":  13.8
                                         },
                                         {
                                             "index":  2,
                                             "video":  "videos/s1_e2.mp4",
-                                            "title":  "Гайхамшигт агнуур"
+                                            "title":  "Гайхамшигт агнуур",
+                                            "duration":  13.8
                                         },
                                         {
                                             "index":  3,
                                             "video":  "videos/s1_e3.mp4",
-                                            "title":  "Гурван хүсэл"
+                                            "title":  "Гурван хүсэл",
+                                            "duration":  13.9
                                         },
                                         {
                                             "index":  4,
                                             "video":  "videos/s1_e4.mp4",
-                                            "title":  "Төгсгөлийн сургамж"
+                                            "title":  "Төгсгөлийн сургамж",
+                                            "duration":  13.8
                                         }
                                     ]
                    },
@@ -38,39 +42,44 @@
                        "tagline":  "Ээжийн долоон сургаал унаганд амьдралын зам заажээ — Монгол ардын үлгэр.",
                        "genre":  "Үлгэр · Сургаал",
                        "poster":  "posters/s2.jpg",
-                       "freeCount":  2,
-                       "unlockCost":  30,
-                       "bundleCost":  80,
+                       "price":  0,
+                       "freeMinutes":  20,
                        "episodes":  [
                                         {
                                             "index":  1,
                                             "video":  "videos/s2_e1.mp4",
-                                            "title":  "Өргөн бэлчээрийн сүрэг"
+                                            "title":  "Өргөн бэлчээрийн сүрэг",
+                                            "duration":  21.4
                                         },
                                         {
                                             "index":  2,
                                             "video":  "videos/s2_e2.mp4",
-                                            "title":  "Ган гачиг, урт аян"
+                                            "title":  "Ган гачиг, урт аян",
+                                            "duration":  21.4
                                         },
                                         {
                                             "index":  3,
                                             "video":  "videos/s2_e3.mp4",
-                                            "title":  "Эвдэрсэн өндөгнүүд"
+                                            "title":  "Эвдэрсэн өндөгнүүд",
+                                            "duration":  21.4
                                         },
                                         {
                                             "index":  4,
                                             "video":  "videos/s2_e4.mp4",
-                                            "title":  "Тэнгэрийн шувууны дайралт"
+                                            "title":  "Тэнгэрийн шувууны дайралт",
+                                            "duration":  21.4
                                         },
                                         {
                                             "index":  5,
                                             "video":  "videos/s2_e5.mp4",
-                                            "title":  "Ээжийн долоон сургаал"
+                                            "title":  "Ээжийн долоон сургаал",
+                                            "duration":  21.4
                                         },
                                         {
                                             "index":  6,
                                             "video":  "videos/s2_e6.mp4",
-                                            "title":  "Эзэн морио таних нь"
+                                            "title":  "Эзэн морио таних нь",
+                                            "duration":  21.4
                                         }
                                     ]
                    },
@@ -80,179 +89,212 @@
                        "tagline":  "",
                        "genre":  "Драм",
                        "poster":  "posters/series-260802-0128.jpg",
-                       "freeCount":  2,
-                       "unlockCost":  30,
-                       "bundleCost":  580,
+                       "price":  3500,
+                       "freeMinutes":  20,
                        "episodes":  [
                                         {
                                             "index":  1,
                                             "video":  "videos/series-260802-0128_e1.mp4",
-                                            "title":  "1-р анги"
+                                            "title":  "1-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  2,
                                             "video":  "videos/series-260802-0128_e2.mp4",
-                                            "title":  "2-р анги"
+                                            "title":  "2-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  3,
                                             "video":  "videos/series-260802-0128_e3.mp4",
-                                            "title":  "3-р анги"
+                                            "title":  "3-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  4,
                                             "video":  "videos/series-260802-0128_e4.mp4",
-                                            "title":  "4-р анги"
+                                            "title":  "4-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  5,
                                             "video":  "videos/series-260802-0128_e5.mp4",
-                                            "title":  "5-р анги"
+                                            "title":  "5-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  6,
                                             "video":  "videos/series-260802-0128_e6.mp4",
-                                            "title":  "6-р анги"
+                                            "title":  "6-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  7,
                                             "video":  "videos/series-260802-0128_e7.mp4",
-                                            "title":  "7-р анги"
+                                            "title":  "7-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  8,
                                             "video":  "videos/series-260802-0128_e8.mp4",
-                                            "title":  "8-р анги"
+                                            "title":  "8-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  9,
                                             "video":  "videos/series-260802-0128_e9.mp4",
-                                            "title":  "9-р анги"
+                                            "title":  "9-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  10,
                                             "video":  "videos/series-260802-0128_e10.mp4",
-                                            "title":  "10-р анги"
+                                            "title":  "10-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  11,
                                             "video":  "videos/series-260802-0128_e11.mp4",
-                                            "title":  "11-р анги"
+                                            "title":  "11-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  12,
                                             "video":  "videos/series-260802-0128_e12.mp4",
-                                            "title":  "12-р анги"
+                                            "title":  "12-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  13,
                                             "video":  "videos/series-260802-0128_e13.mp4",
-                                            "title":  "13-р анги"
+                                            "title":  "13-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  14,
                                             "video":  "videos/series-260802-0128_e14.mp4",
-                                            "title":  "14-р анги"
+                                            "title":  "14-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  15,
                                             "video":  "videos/series-260802-0128_e15.mp4",
-                                            "title":  "15-р анги"
+                                            "title":  "15-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  16,
                                             "video":  "videos/series-260802-0128_e16.mp4",
-                                            "title":  "16-р анги"
+                                            "title":  "16-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  17,
                                             "video":  "videos/series-260802-0128_e17.mp4",
-                                            "title":  "17-р анги"
+                                            "title":  "17-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  18,
                                             "video":  "videos/series-260802-0128_e18.mp4",
-                                            "title":  "18-р анги"
+                                            "title":  "18-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  19,
                                             "video":  "videos/series-260802-0128_e19.mp4",
-                                            "title":  "19-р анги"
+                                            "title":  "19-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  20,
                                             "video":  "videos/series-260802-0128_e20.mp4",
-                                            "title":  "20-р анги"
+                                            "title":  "20-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  21,
                                             "video":  "videos/series-260802-0128_e21.mp4",
-                                            "title":  "21-р анги"
+                                            "title":  "21-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  22,
                                             "video":  "videos/series-260802-0128_e22.mp4",
-                                            "title":  "22-р анги"
+                                            "title":  "22-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  23,
                                             "video":  "videos/series-260802-0128_e23.mp4",
-                                            "title":  "23-р анги"
+                                            "title":  "23-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  24,
                                             "video":  "videos/series-260802-0128_e24.mp4",
-                                            "title":  "24-р анги"
+                                            "title":  "24-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  25,
                                             "video":  "videos/series-260802-0128_e25.mp4",
-                                            "title":  "25-р анги"
+                                            "title":  "25-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  26,
                                             "video":  "videos/series-260802-0128_e26.mp4",
-                                            "title":  "26-р анги"
+                                            "title":  "26-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  27,
                                             "video":  "videos/series-260802-0128_e27.mp4",
-                                            "title":  "27-р анги"
+                                            "title":  "27-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  28,
                                             "video":  "videos/series-260802-0128_e28.mp4",
-                                            "title":  "28-р анги"
+                                            "title":  "28-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  29,
                                             "video":  "videos/series-260802-0128_e29.mp4",
-                                            "title":  "29-р анги"
+                                            "title":  "29-р анги",
+                                            "duration":  150.2
                                         },
                                         {
                                             "index":  30,
                                             "video":  "videos/series-260802-0128_e30.mp4",
-                                            "title":  "30-р анги"
+                                            "title":  "30-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  31,
                                             "video":  "videos/series-260802-0128_e31.mp4",
-                                            "title":  "31-р анги"
+                                            "title":  "31-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  32,
                                             "video":  "videos/series-260802-0128_e32.mp4",
-                                            "title":  "32-р анги"
+                                            "title":  "32-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  33,
                                             "video":  "videos/series-260802-0128_e33.mp4",
-                                            "title":  "33-р анги"
+                                            "title":  "33-р анги",
+                                            "duration":  150.1
                                         },
                                         {
                                             "index":  34,
                                             "video":  "videos/series-260802-0128_e34.mp4",
-                                            "title":  "34-р анги"
+                                            "title":  "34-р анги",
+                                            "duration":  66.4
                                         }
                                     ]
                    },
@@ -262,174 +304,206 @@
                        "tagline":  "",
                        "genre":  "Драм",
                        "poster":  "posters/series-260802-0147.jpg",
-                       "freeCount":  2,
-                       "unlockCost":  30,
-                       "bundleCost":  560,
+                       "price":  3500,
+                       "freeMinutes":  20,
                        "episodes":  [
                                         {
                                             "index":  1,
                                             "video":  "videos/series-260802-0147_e1.mp4",
-                                            "title":  "1-р анги"
+                                            "title":  "1-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  2,
                                             "video":  "videos/series-260802-0147_e2.mp4",
-                                            "title":  "2-р анги"
+                                            "title":  "2-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  3,
                                             "video":  "videos/series-260802-0147_e3.mp4",
-                                            "title":  "3-р анги"
+                                            "title":  "3-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  4,
                                             "video":  "videos/series-260802-0147_e4.mp4",
-                                            "title":  "4-р анги"
+                                            "title":  "4-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  5,
                                             "video":  "videos/series-260802-0147_e5.mp4",
-                                            "title":  "5-р анги"
+                                            "title":  "5-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  6,
                                             "video":  "videos/series-260802-0147_e6.mp4",
-                                            "title":  "6-р анги"
+                                            "title":  "6-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  7,
                                             "video":  "videos/series-260802-0147_e7.mp4",
-                                            "title":  "7-р анги"
+                                            "title":  "7-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  8,
                                             "video":  "videos/series-260802-0147_e8.mp4",
-                                            "title":  "8-р анги"
+                                            "title":  "8-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  9,
                                             "video":  "videos/series-260802-0147_e9.mp4",
-                                            "title":  "9-р анги"
+                                            "title":  "9-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  10,
                                             "video":  "videos/series-260802-0147_e10.mp4",
-                                            "title":  "10-р анги"
+                                            "title":  "10-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  11,
                                             "video":  "videos/series-260802-0147_e11.mp4",
-                                            "title":  "11-р анги"
+                                            "title":  "11-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  12,
                                             "video":  "videos/series-260802-0147_e12.mp4",
-                                            "title":  "12-р анги"
+                                            "title":  "12-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  13,
                                             "video":  "videos/series-260802-0147_e13.mp4",
-                                            "title":  "13-р анги"
+                                            "title":  "13-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  14,
                                             "video":  "videos/series-260802-0147_e14.mp4",
-                                            "title":  "14-р анги"
+                                            "title":  "14-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  15,
                                             "video":  "videos/series-260802-0147_e15.mp4",
-                                            "title":  "15-р анги"
+                                            "title":  "15-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  16,
                                             "video":  "videos/series-260802-0147_e16.mp4",
-                                            "title":  "16-р анги"
+                                            "title":  "16-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  17,
                                             "video":  "videos/series-260802-0147_e17.mp4",
-                                            "title":  "17-р анги"
+                                            "title":  "17-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  18,
                                             "video":  "videos/series-260802-0147_e18.mp4",
-                                            "title":  "18-р анги"
+                                            "title":  "18-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  19,
                                             "video":  "videos/series-260802-0147_e19.mp4",
-                                            "title":  "19-р анги"
+                                            "title":  "19-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  20,
                                             "video":  "videos/series-260802-0147_e20.mp4",
-                                            "title":  "20-р анги"
+                                            "title":  "20-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  21,
                                             "video":  "videos/series-260802-0147_e21.mp4",
-                                            "title":  "21-р анги"
+                                            "title":  "21-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  22,
                                             "video":  "videos/series-260802-0147_e22.mp4",
-                                            "title":  "22-р анги"
+                                            "title":  "22-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  23,
                                             "video":  "videos/series-260802-0147_e23.mp4",
-                                            "title":  "23-р анги"
+                                            "title":  "23-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  24,
                                             "video":  "videos/series-260802-0147_e24.mp4",
-                                            "title":  "24-р анги"
+                                            "title":  "24-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  25,
                                             "video":  "videos/series-260802-0147_e25.mp4",
-                                            "title":  "25-р анги"
+                                            "title":  "25-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  26,
                                             "video":  "videos/series-260802-0147_e26.mp4",
-                                            "title":  "26-р анги"
+                                            "title":  "26-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  27,
                                             "video":  "videos/series-260802-0147_e27.mp4",
-                                            "title":  "27-р анги"
+                                            "title":  "27-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  28,
                                             "video":  "videos/series-260802-0147_e28.mp4",
-                                            "title":  "28-р анги"
+                                            "title":  "28-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  29,
                                             "video":  "videos/series-260802-0147_e29.mp4",
-                                            "title":  "29-р анги"
+                                            "title":  "29-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  30,
                                             "video":  "videos/series-260802-0147_e30.mp4",
-                                            "title":  "30-р анги"
+                                            "title":  "30-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  31,
                                             "video":  "videos/series-260802-0147_e31.mp4",
-                                            "title":  "31-р анги"
+                                            "title":  "31-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  32,
                                             "video":  "videos/series-260802-0147_e32.mp4",
-                                            "title":  "32-р анги"
+                                            "title":  "32-р анги",
+                                            "duration":  120
                                         },
                                         {
                                             "index":  33,
                                             "video":  "videos/series-260802-0147_e33.mp4",
-                                            "title":  "33-р анги"
+                                            "title":  "33-р анги",
+                                            "duration":  83
                                         }
                                     ]
                    }
