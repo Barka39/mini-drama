@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supa } from "../lib/supa";
 import { CATALOG, formatPrice, getSeries } from "../data/catalog";
+import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
 import { useAppState } from "../lib/store";
 import { openAuth } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
@@ -26,6 +27,8 @@ export function AdminPage() {
   const [grantPhone, setGrantPhone] = useState("");
   const [grantSeries, setGrantSeries] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = useCallback(async () => {
     const [p, h] = await Promise.all([
@@ -48,9 +51,18 @@ export function AdminPage() {
   useEffect(() => {
     if (!s.isAdmin) return;
     void load();
+    void getSettings().then(setSettings);
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [s.isAdmin, load]);
+
+  async function persistSettings() {
+    if (!settings) return;
+    setSavingSettings(true);
+    const res = await saveSettings(settings);
+    setSavingSettings(false);
+    setMsg(res.ok ? "Данс хадгалагдлаа ✅" : "Алдаа: " + res.reason);
+  }
 
   if (!s.authReady) {
     return <div className="page center">Ачаалж байна…</div>;
@@ -132,6 +144,45 @@ export function AdminPage() {
           </div>
         </div>
       ))}
+
+      <h3 className="admin-h">Шилжүүлэг хүлээн авах данс</h3>
+      {settings ? (
+        <div className="settings-form">
+          <input
+            className="code-input"
+            placeholder="Банкны нэр (ж: Хаан банк)"
+            value={settings.bank_name}
+            onChange={(e) => setSettings({ ...settings, bank_name: e.target.value })}
+          />
+          <input
+            className="code-input"
+            placeholder="Дансны дугаар"
+            value={settings.account_number}
+            onChange={(e) => setSettings({ ...settings, account_number: e.target.value })}
+          />
+          <input
+            className="code-input"
+            placeholder="Данс эзэмшигчийн нэр"
+            value={settings.account_name}
+            onChange={(e) => setSettings({ ...settings, account_name: e.target.value })}
+          />
+          <input
+            className="code-input"
+            placeholder="Холбоо барих заавар (Facebook хуудас г.м)"
+            value={settings.contact}
+            onChange={(e) => setSettings({ ...settings, contact: e.target.value })}
+          />
+          <button className="btn btn-primary" disabled={savingSettings} onClick={persistSettings}>
+            {savingSettings ? "Хадгалж байна…" : "Данс хадгалах"}
+          </button>
+          <p className="muted small">
+            Энэ данс худалдан авалтын цонхонд хэрэглэгч бүрт харагдана. (QPay холболт дараагийн
+            шатанд — мерчант бүртгэлтэй болмогц автоматжина.)
+          </p>
+        </div>
+      ) : (
+        <p className="muted small">Ачаалж байна…</p>
+      )}
 
       <h3 className="admin-h">Гараар кино нээж өгөх</h3>
       <div className="code-row">

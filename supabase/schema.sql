@@ -58,7 +58,20 @@ on conflict (id) do update
   set price = excluded.price,
       free_minutes = excluded.free_minutes;
 
--- 3) Худалдан авалтууд (хүсэлт → админ баталгаажуулбал кино бүрмөсөн нээгдэнэ)
+-- 3) Сайтын тохиргоо (данс г.м) — админ хуудаснаас удирдана, ганц мөр
+create table if not exists public.md_settings (
+  id integer primary key default 1 check (id = 1),
+  bank_name text not null default '',
+  account_number text not null default '',
+  account_name text not null default '',
+  contact text not null default ''
+);
+
+insert into public.md_settings (id, bank_name, account_number, account_name, contact)
+values (1, 'Хаан банк', '', '', '')
+on conflict (id) do nothing;
+
+-- 4) Худалдан авалтууд (хүсэлт → админ баталгаажуулбал кино бүрмөсөн нээгдэнэ)
 create table if not exists public.md_purchases (
   id bigint generated always as identity primary key,
   user_id uuid not null references public.md_profiles (id) on delete cascade,
@@ -82,6 +95,7 @@ create unique index if not exists md_purchases_one_confirmed
 alter table public.md_profiles enable row level security;
 alter table public.md_series enable row level security;
 alter table public.md_purchases enable row level security;
+alter table public.md_settings enable row level security;
 
 create or replace function public.md_is_admin()
 returns boolean
@@ -111,6 +125,10 @@ create policy md_series_select on public.md_series
 drop policy if exists md_purchases_select on public.md_purchases;
 create policy md_purchases_select on public.md_purchases
   for select using (user_id = auth.uid() or public.md_is_admin());
+
+drop policy if exists md_settings_select on public.md_settings;
+create policy md_settings_select on public.md_settings
+  for select using (true);
 
 -- ============================================================
 -- Функцууд (бүх мөнгөн гүйлгээ зөвхөн эндээс — атомар, сервер талын үнээр)
@@ -233,6 +251,31 @@ begin
 end;
 $$;
 
+-- АДМИН: сайтын тохиргоог (данс) шинэчлэх
+create or replace function public.md_update_settings(
+  p_bank_name text,
+  p_account_number text,
+  p_account_name text,
+  p_contact text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  update md_settings
+     set bank_name = p_bank_name,
+         account_number = p_account_number,
+         account_name = p_account_name,
+         contact = p_contact
+   where id = 1;
+end;
+$$;
+
 -- Админ хуудасны жагсаалт: хүсэлт + утасны дугаар
 create or replace view public.md_purchases_admin as
   select t.id, t.series_id, t.price, t.status, t.created_at, t.decided_at, p.phone
@@ -246,7 +289,8 @@ grant execute on function
   public.md_request_purchase(text),
   public.md_confirm_purchase(bigint),
   public.md_reject_purchase(bigint),
-  public.md_admin_grant(text, text)
+  public.md_admin_grant(text, text),
+  public.md_update_settings(text, text, text, text)
 to authenticated;
 
 -- ============================================================

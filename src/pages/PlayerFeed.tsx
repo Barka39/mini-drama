@@ -88,6 +88,7 @@ export function PlayerFeed() {
                     else videoRefs.current.delete(ep.index);
                   }}
                   src={ep.video}
+                  poster={series.poster}
                   playsInline
                   loop
                   muted={muted}

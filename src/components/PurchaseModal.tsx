@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { CONFIG } from "../config";
+import { useEffect, useState } from "react";
 import { formatPrice, getSeries } from "../data/catalog";
+import { getSettings, type SiteSettings } from "../lib/settings";
 import { buyStatus, refreshAccount, requestPurchase, useAppState } from "../lib/store";
 import { closeModals, openAuth, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
 
@@ -10,6 +10,11 @@ export function PurchaseModal() {
   const s = useAppState();
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [bank, setBank] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    if (open) void getSettings().then(setBank);
+  }, [open]);
 
   const series = seriesId ? getSeries(seriesId) : undefined;
   if (!open || !series) return null;
@@ -73,10 +78,16 @@ export function PurchaseModal() {
 
             <div className="bank-box">
               <p className="bank-title">Шилжүүлэх данс:</p>
-              <p>
-                <strong>{CONFIG.bank.bankName}</strong> · {CONFIG.bank.accountNumber}
-              </p>
-              <p>Хүлээн авагч: {CONFIG.bank.accountName}</p>
+              {bank ? (
+                <>
+                  <p>
+                    <strong>{bank.bank_name}</strong> · {bank.account_number}
+                  </p>
+                  <p>Хүлээн авагч: {bank.account_name}</p>
+                </>
+              ) : (
+                <p className="muted small">Ачаалж байна…</p>
+              )}
               <p className="muted small">
                 Дүн: <strong>{formatPrice(series.price)}</strong> · Гүйлгээний утга:{" "}
                 <strong>{s.phone}</strong> (таны дугаар). Шилжүүлгийг админ баталгаажуулмагц кино

@@ -65,8 +65,8 @@ for ($i = 0; $i -lt $epCount; $i++) {
     $ss = $i * $EpisodeSeconds
     $outFile = Join-Path $videosDir "$($Id)_e$($i + 1).mp4"
     if ($isVertical) {
-        # Босоо видео: кодлолгүй хурдан хэрчинэ
-        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c copy $outFile
+        # Босоо видео: кодлолгүй хурдан хэрчинэ (faststart = шууд тоглож эхэлнэ)
+        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c copy -movflags +faststart $outFile
     }
     else {
         # Хэвтээ видео: голоос нь 9:16 болгож тайрна (дахин кодлоно)
