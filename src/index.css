@@ -129,6 +129,17 @@ a {
   color: var(--text-muted);
 }
 
+.badge-group {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-link {
+  text-decoration: none;
+  border-color: var(--accent);
+}
+
 .coin-badge {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
