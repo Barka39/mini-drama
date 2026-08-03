@@ -58,8 +58,10 @@ Write-Host "Үнэ: $Price₮ · Эхний $FreeMinutes минут үнэгүй
 # Ангиуд media\videos-д хадгалагдана (git-д ордоггүй локал нөөц) + R2 руу хуулагдана
 $videosDir = Join-Path $root "media\videos"
 $postersDir = Join-Path $root "public\posters"
+$thumbsDir = Join-Path $root "public\thumbs"
 New-Item -ItemType Directory -Force $videosDir | Out-Null
 New-Item -ItemType Directory -Force $postersDir | Out-Null
+New-Item -ItemType Directory -Force $thumbsDir | Out-Null
 
 $isVertical = $h -gt $w
 $episodes = @()
@@ -82,6 +84,10 @@ for ($i = 0; $i -lt $epCount; $i++) {
             & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 128k -movflags +faststart $outFile
         }
     }
+    # Ангийн бяцхан зураг (сайт дээр ангиудын сүлжээнд харагдана)
+    & $ff -v error -y -ss 3 -i $outFile -frames:v 1 -vf "scale=280:-2" -q:v 4 `
+        (Join-Path $thumbsDir "$($Id)_e$($i + 1).jpg")
+
     # Бодит урт (сүүлийн анги богино байдаг)
     $epDur = [math]::Round([double](& $ffp -v error -show_entries format=duration -of csv=p=0 $outFile), 1)
     $episodes += [pscustomobject]@{

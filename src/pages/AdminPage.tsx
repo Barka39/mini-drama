@@ -22,8 +22,17 @@ interface AdminPurchase {
   phone: string;
 }
 
+const FUNNEL_STEPS = [
+  { key: "open_series", label: "Киноны хуудас нээсэн" },
+  { key: "watch_start", label: "Үзэж эхэлсэн" },
+  { key: "paywall_hit", label: "Түгжээтэй ангид хүрсэн" },
+  { key: "buy_click", label: "«Худалдаж авах» дарсан" },
+  { key: "order_created", label: "Захиалга үүсгэсэн" },
+];
+
 export function AdminPage() {
   const s = useAppState();
+  const [funnel, setFunnel] = useState<Record<string, number>>({});
   const catalog = useCatalog();
   const [metas, setMetas] = useState<SeriesMeta[]>([]);
   const [editing, setEditing] = useState<SeriesMeta | null>(null);
@@ -60,6 +69,9 @@ export function AdminPage() {
     ]);
     setPending((p.data ?? []) as AdminPurchase[]);
     setHistory((h.data ?? []) as AdminPurchase[]);
+
+    const fn = await supa.rpc("md_funnel", { p_days: 7 });
+    if (fn.data) setFunnel(fn.data as Record<string, number>);
 
     const bm = await supa
       .from("md_bank_msgs")
@@ -183,6 +195,31 @@ export function AdminPage() {
           </div>
         </div>
       ))}
+
+      <h3 className="admin-h">Борлуулалтын юүлүүр (7 хоног)</h3>
+      <div className="funnel">
+        {FUNNEL_STEPS.map((f) => {
+          const n = Number(funnel[f.key] ?? 0);
+          const top = Number(funnel[FUNNEL_STEPS[0].key] ?? 0);
+          const pct = top > 0 ? Math.round((n / top) * 100) : 0;
+          return (
+            <div key={f.key} className="funnel-row">
+              <div className="funnel-label">
+                <span>{f.label}</span>
+                <strong>
+                  {n} {top > 0 && f.key !== FUNNEL_STEPS[0].key && `· ${pct}%`}
+                </strong>
+              </div>
+              <div className="funnel-bar">
+                <div className="funnel-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+        <p className="muted small">
+          Хүн тус бүрээр тоолсон. Хаана хамгийн их унтарч байгааг харвал юуг засахаа мэднэ.
+        </p>
+      </div>
 
       <h3 className="admin-h">Кинонууд ({metas.length})</h3>
       {metas.length === 0 && <p className="muted small">Ачаалж байна…</p>}

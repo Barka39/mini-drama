@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { formatPrice, getSeries } from "../data/catalog";
 import { getSettings, type SiteSettings } from "../lib/settings";
 import { buyStatus, refreshAccount, requestPurchase, useAppState } from "../lib/store";
+import { track } from "../lib/track";
 import { closeModals, openAuth, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
 
 // Хуулж болох мөр: шошго + утга + «Хуулах» товч
@@ -70,7 +71,8 @@ export function PurchaseModal() {
     setMsg(null);
     const res = await requestPurchase(series.id);
     setBusy(false);
-    if (!res.ok && res.code !== "pending") setMsg(res.reason);
+    if (res.ok) track("order_created", series.id);
+    else if (res.code !== "pending") setMsg(res.reason);
   }
 
   return (

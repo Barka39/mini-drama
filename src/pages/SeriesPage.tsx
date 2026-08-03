@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatPrice, freeEpCount } from "../data/catalog";
 import { buyStatus, canWatch, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
+import { track } from "../lib/track";
 import { openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
@@ -15,7 +16,10 @@ export function SeriesPage() {
   const series = useSeriesById(seriesId);
 
   useEffect(() => {
-    if (series) document.title = `${series.title} — Кино Мандал`;
+    if (series) {
+      document.title = `${series.title} — Кино Мандал`;
+      track("open_series", series.id);
+    }
     return () => {
       document.title = DEFAULT_TITLE;
     };
@@ -64,12 +68,12 @@ export function SeriesPage() {
             ▶ {continueEp > 1 ? `${continueEp}-р ангиас үргэлжлүүлэх` : "Үзэж эхлэх"}
           </button>
           {series.price > 0 && status === "none" && (
-            <button className="btn btn-outline" onClick={() => openPurchase(series.id)}>
+            <button className="btn btn-outline" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
               🎬 Худалдаж авах — {formatPrice(series.price)}
             </button>
           )}
           {series.price > 0 && status === "pending" && (
-            <button className="btn btn-outline" onClick={() => openPurchase(series.id)}>
+            <button className="btn btn-outline" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
               ⏳ Хүсэлт хүлээгдэж байна…
             </button>
           )}
@@ -95,9 +99,21 @@ export function SeriesPage() {
               className={`ep-cell ${watchable ? "" : "ep-locked"}`}
               onClick={() => navigate(`/watch/${series.id}/${ep.index}`)}
             >
-              <span className="ep-num">{ep.index}</span>
+              <span className="ep-thumb-wrap">
+                <img
+                  className="ep-thumb"
+                  src={ep.thumb}
+                  alt=""
+                  loading="lazy"
+                  onError={(e) => {
+                    // Бяцхан зураг байхгүй бол постероор орлуулна
+                    e.currentTarget.src = series.poster;
+                  }}
+                />
+                {!watchable && <span className="ep-lock-overlay">🔒</span>}
+                <span className="ep-num-badge">{ep.index}</span>
+              </span>
               <span className="ep-title">{ep.title}</span>
-              {!watchable && <span className="ep-lock">🔒</span>}
               {watchable && series.price > 0 && status !== "owned" && ep.index <= freeCount && (
                 <span className="ep-free">Үнэгүй</span>
               )}

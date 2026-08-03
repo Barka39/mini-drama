@@ -165,6 +165,61 @@ create table if not exists public.md_config (
 alter table public.md_config enable row level security;
 insert into public.md_config (id) values (1) on conflict (id) do nothing;
 
+-- ============================================================
+-- Борлуулалтын юүлүүрийн хэмжилт
+-- «Хэдэн хүн орсон» биш, «хаана унтарч байна» гэдгийг мэдэхийн тулд.
+-- Хувийн мэдээлэл хадгалдаггүй — зөвхөн санамсаргүй session дугаар.
+-- ============================================================
+create table if not exists public.md_events (
+  id bigint generated always as identity primary key,
+  sid text not null,
+  event text not null,
+  series_id text,
+  ep integer,
+  created_at timestamptz not null default now()
+);
+create index if not exists md_events_time on public.md_events (created_at desc);
+alter table public.md_events enable row level security;
+
+drop policy if exists md_events_insert on public.md_events;
+create policy md_events_insert on public.md_events
+  for insert to anon, authenticated
+  with check (
+    event in ('open_series', 'watch_start', 'paywall_hit', 'buy_click', 'order_created')
+    and length(sid) between 8 and 40
+    and (series_id is null or length(series_id) <= 40)
+  );
+
+drop policy if exists md_events_select on public.md_events;
+create policy md_events_select on public.md_events
+  for select using (public.md_is_admin());
+
+-- АДМИН: юүлүүрийн хураангуй (сүүлийн N хоног)
+create or replace function public.md_funnel(p_days integer default 7)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v jsonb;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  select jsonb_object_agg(event, c) into v
+  from (
+    select event, count(distinct sid) as c
+      from md_events
+     where created_at > now() - (p_days || ' days')::interval
+     group by event
+  ) t;
+  return coalesce(v, '{}'::jsonb);
+end;
+$$;
+
+grant execute on function public.md_funnel(integer) to authenticated;
+
 -- Нэг хэрэглэгч нэг киног давхардуулж хүсэх/авахгүй
 create unique index if not exists md_purchases_one_pending
   on public.md_purchases (user_id, series_id) where status = 'pending';

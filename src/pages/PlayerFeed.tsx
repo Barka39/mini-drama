@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatPrice, freeEpCount } from "../data/catalog";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
+import { track } from "../lib/track";
 import { openAuth, openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 import { EpisodeVideo } from "../components/EpisodeVideo";
@@ -56,6 +57,9 @@ export function PlayerFeed() {
     if (!series) return;
     setProgress(series.id, Math.min(active, series.episodes.length));
     setPct(0);
+    // Юүлүүрийн хэмжилт: үзэж эхэлсэн үү, түгжээнд хүрсэн үү
+    track("watch_start", series.id, active);
+    if (!canWatch(s, series, active)) track("paywall_hit", series.id, active);
     videoRefs.current.forEach((video, ep) => {
       if (ep === active) {
         video.muted = muted;
@@ -171,12 +175,12 @@ export function PlayerFeed() {
                   ) : pending ? (
                     <>
                       <p className="msg-ok">⏳ Хүсэлт хүлээгдэж байна</p>
-                      <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
+                      <button className="btn btn-primary" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
                         Шилжүүлгийн мэдээлэл харах
                       </button>
                     </>
                   ) : (
-                    <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
+                    <button className="btn btn-primary" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
                       🎬 Худалдаж авах — {formatPrice(series.price)}
                     </button>
                   )}

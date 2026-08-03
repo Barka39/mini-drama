@@ -471,6 +471,39 @@ a {
   transition: width 0.25s linear;
 }
 
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.funnel-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.funnel-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+}
+
+.funnel-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.funnel-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  min-width: 2px;
+}
+
 .bank-raw {
   word-break: break-word;
   opacity: 0.75;
@@ -700,7 +733,7 @@ a {
 
 .ep-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
   gap: 10px;
   margin-top: 22px;
 }
@@ -724,6 +757,48 @@ a {
   font-size: 20px;
   font-weight: 800;
   color: var(--accent);
+}
+
+/* Ангийн бяцхан зураг — дугаар нь зураг дээрээ, түгжээ давхарлана */
+.ep-thumb-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* Контент нь босоо тул бага зэрэг босоо харьцаа — хэт их тайрахгүй,
+     гэхдээ 30+ ангитай кинонд хэт урт сүлжээ болохоос сэргийлнэ */
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.ep-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ep-num-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ep-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 20px;
 }
 
 .ep-title {

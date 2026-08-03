@@ -7,6 +7,7 @@ export interface Episode {
   video: string;
   title: string;
   duration: number; // секунд
+  thumb: string; // ангийн бяцхан зураг
 }
 
 export interface Series {
@@ -28,7 +29,12 @@ const VIDEO_BASE = raw.videoBase || BASE;
 export const CATALOG: Series[] = [...raw.series].reverse().map((s) => ({
   ...s,
   poster: BASE + s.poster,
-  episodes: s.episodes.map((e) => ({ ...e, video: VIDEO_BASE + e.video })),
+  episodes: s.episodes.map((e) => ({
+    ...e,
+    video: VIDEO_BASE + e.video,
+    // Бяцхан зураг нэрийн дүрмээр байрлана: thumbs/<id>_e<N>.jpg
+    thumb: `${BASE}thumbs/${s.id}_e${e.index}.jpg`,
+  })),
 }));
 
 export function getSeries(id: string): Series | undefined {
