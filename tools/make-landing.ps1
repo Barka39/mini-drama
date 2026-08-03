@@ -6,7 +6,7 @@
 #   public/og/<id>.jpg  — 1200x630 хуваалцах зураг (бүдгэрсэн дэвсгэр + постер)
 # гаргана. deploy.ps1 build хийхээс өмнө автоматаар дуудна.
 param(
-    [string]$SiteUrl = "https://minidram.pages.dev"
+    [string]$SiteUrl = "https://kinomandal.com"
 )
 
 $ErrorActionPreference = "Stop"
