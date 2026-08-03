@@ -20,19 +20,25 @@ Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
 
-Write-Host "2/5 Кинонуудын үнийг сервертэй тааруулж байна..."
+Write-Host "2/5 Шинэ кинонуудыг сервэрт бүртгэж байна..."
 if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
     $cat = [System.IO.File]::ReadAllText("src\data\catalog.json") | ConvertFrom-Json
-    $rows = @($cat.series | ForEach-Object { "('$($_.id)', $([int]$_.price), $([double]$_.freeMinutes))" })
-    $sql = "insert into public.md_series (id, price, free_minutes) values " + ($rows -join ", ") +
-    " on conflict (id) do update set price = excluded.price, free_minutes = excluded.free_minutes;"
+    # ЗӨВХӨН ШИНЭ кино нэмнэ. Байгаа киноны мэдээллийг дарж бичихгүй —
+    # учир нь нэр/үнэ/ангиллыг одоо АДМИН ХУУДАСНААС засдаг, тэр нь эх сурвалж.
+    $esc = { param($s) if ($null -eq $s) { "" } else { $s -replace "'", "''" } }
+    $rows = @($cat.series | Where-Object { $_.id } | ForEach-Object {
+            "('$(& $esc $_.id)', $([int]$_.price), $([double]$_.freeMinutes), '$(& $esc $_.title)', '$(& $esc $_.tagline)', '$(& $esc $_.genre)')"
+        })
+    if ($rows.Count -eq 0) { Write-Error "catalog.json дотор кино алга"; exit 1 }
+    $sql = "insert into public.md_series (id, price, free_minutes, title, tagline, genre) values " +
+    ($rows -join ", ") + " on conflict (id) do nothing;"
     $body = @{ query = $sql } | ConvertTo-Json -Compress
     try {
         Invoke-RestMethod -Method Post `
             -Uri "https://api.supabase.com/v1/projects/$($env:SUPABASE_PROJECT_REF)/database/query" `
             -Headers @{ Authorization = "Bearer $($env:SUPABASE_ACCESS_TOKEN)"; 'Content-Type' = 'application/json' } `
             -Body $body | Out-Null
-        Write-Host "   Үнэ сервер дээр шинэчлэгдлээ"
+        Write-Host "   Шинэ кино бүртгэгдлээ (байгаа киноны тохиргоо хэвээр)"
     }
     catch {
         Write-Host ""

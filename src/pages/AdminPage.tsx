@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supa } from "../lib/supa";
-import { CATALOG, formatPrice, getSeries } from "../data/catalog";
+import { formatPrice } from "../data/catalog";
 import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
+import {
+  loadSeriesMeta,
+  saveSeriesMeta,
+  useCatalog,
+  type SeriesMeta,
+} from "../lib/seriesAdmin";
 import { useAppState } from "../lib/store";
 import { openAuth } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
@@ -16,12 +22,17 @@ interface AdminPurchase {
   phone: string;
 }
 
-function seriesTitle(id: string): string {
-  return getSeries(id)?.title ?? id;
-}
-
 export function AdminPage() {
   const s = useAppState();
+  const catalog = useCatalog();
+  const [metas, setMetas] = useState<SeriesMeta[]>([]);
+  const [editing, setEditing] = useState<SeriesMeta | null>(null);
+  const [savingSeries, setSavingSeries] = useState(false);
+
+  const seriesTitle = useCallback(
+    (id: string) => metas.find((m) => m.id === id)?.title || catalog.find((c) => c.id === id)?.title || id,
+    [metas, catalog],
+  );
   const [pending, setPending] = useState<AdminPurchase[]>([]);
   const [history, setHistory] = useState<AdminPurchase[]>([]);
   const [grantPhone, setGrantPhone] = useState("");
@@ -52,9 +63,27 @@ export function AdminPage() {
     if (!s.isAdmin) return;
     void load();
     void getSettings().then(setSettings);
+    void loadSeriesMeta(true).then((rows) =>
+      setMetas([...rows].sort((a, b) => b.sort_order - a.sort_order || a.id.localeCompare(b.id))),
+    );
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [s.isAdmin, load]);
+
+  async function persistSeries() {
+    if (!editing) return;
+    setSavingSeries(true);
+    const res = await saveSeriesMeta(editing);
+    setSavingSeries(false);
+    if (res.ok) {
+      setMsg(`«${editing.title}» хадгалагдлаа ✅`);
+      setEditing(null);
+      const rows = await loadSeriesMeta(true);
+      setMetas([...rows].sort((a, b) => b.sort_order - a.sort_order || a.id.localeCompare(b.id)));
+    } else {
+      setMsg("Алдаа: " + res.reason);
+    }
+  }
 
   async function persistSettings() {
     if (!settings) return;
@@ -111,7 +140,7 @@ export function AdminPage() {
     }
   }
 
-  const paidSeries = CATALOG.filter((c) => c.price > 0);
+  const paidSeries = catalog.filter((c) => c.price > 0);
 
   return (
     <div className="page">
@@ -144,6 +173,112 @@ export function AdminPage() {
           </div>
         </div>
       ))}
+
+      <h3 className="admin-h">Кинонууд ({metas.length})</h3>
+      {metas.length === 0 && <p className="muted small">Ачаалж байна…</p>}
+      {metas.map((m) =>
+        editing?.id === m.id ? (
+          <div key={m.id} className="series-edit">
+            <input
+              className="code-input"
+              placeholder="Киноны нэр"
+              value={editing.title}
+              onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+            />
+            <input
+              className="code-input"
+              placeholder="Товч танилцуулга"
+              value={editing.tagline}
+              onChange={(e) => setEditing({ ...editing, tagline: e.target.value })}
+            />
+            <input
+              className="code-input"
+              placeholder="Ангилал (олныг «·»-оор салгана: Драм · Романс)"
+              value={editing.genre}
+              onChange={(e) => setEditing({ ...editing, genre: e.target.value })}
+            />
+            <div className="series-edit-row">
+              <label className="series-field">
+                <span className="pay-label">Үнэ (₮, 0 = үнэгүй)</span>
+                <input
+                  className="code-input"
+                  inputMode="numeric"
+                  value={editing.price}
+                  onChange={(e) =>
+                    setEditing({ ...editing, price: Number(e.target.value.replace(/\D/g, "")) || 0 })
+                  }
+                />
+              </label>
+              <label className="series-field">
+                <span className="pay-label">Үнэгүй минут</span>
+                <input
+                  className="code-input"
+                  inputMode="numeric"
+                  value={editing.free_minutes}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      free_minutes: Number(e.target.value.replace(/[^\d.]/g, "")) || 0,
+                    })
+                  }
+                />
+              </label>
+              <label className="series-field">
+                <span className="pay-label">Эрэмбэ (их нь дээр)</span>
+                <input
+                  className="code-input"
+                  inputMode="numeric"
+                  value={editing.sort_order}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      sort_order: Number(e.target.value.replace(/[^\d-]/g, "")) || 0,
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <label className="series-check">
+              <input
+                type="checkbox"
+                checked={editing.hidden}
+                onChange={(e) => setEditing({ ...editing, hidden: e.target.checked })}
+              />
+              <span>Сайтаас нуух (хэрэглэгчид харагдахгүй)</span>
+            </label>
+            <div className="admin-actions">
+              <button className="btn btn-primary" disabled={savingSeries} onClick={persistSeries}>
+                {savingSeries ? "Хадгалж байна…" : "Хадгалах"}
+              </button>
+              <button className="btn btn-outline" onClick={() => setEditing(null)}>
+                Болих
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div key={m.id} className="admin-row">
+            <div>
+              <strong>{m.title || m.id}</strong>
+              {m.hidden && <span className="muted small"> · 🚫 нуусан</span>}
+              <div className="muted small">
+                {m.genre || "ангилалгүй"} ·{" "}
+                {m.price > 0 ? formatPrice(m.price) : "Үнэгүй"} · эхний {m.free_minutes} мин үнэгүй
+                {m.sort_order !== 0 && ` · эрэмбэ ${m.sort_order}`}
+              </div>
+            </div>
+            <div className="admin-actions">
+              <button className="btn btn-outline" onClick={() => setEditing({ ...m })}>
+                Засах
+              </button>
+            </div>
+          </div>
+        ),
+      )}
+      <p className="muted small">
+        Шинэ кино нэмэх бол Desktop дээрх «Мини Драм — Цуврал нэмэх» товчлуулыг ашиглана
+        (бичлэг хэрчих ажил компьютер дээр хийгддэг). Энд нэмсэн киноныхоо мэдээллийг
+        засварлана.
+      </p>
 
       <h3 className="admin-h">Шилжүүлэг хүлээн авах данс</h3>
       {settings ? (

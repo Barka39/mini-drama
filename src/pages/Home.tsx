@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { allCategories, CATALOG, formatPrice, seriesCategories } from "../data/catalog";
+import { allCategories, formatPrice, seriesCategories } from "../data/catalog";
 import { buyStatus, signOut, useAppState } from "../lib/store";
+import { useCatalog } from "../lib/seriesAdmin";
 import { AccountBadge } from "../components/AccountBadge";
 
 export function Home() {
   const s = useAppState();
+  const catalog = useCatalog();
   const [cat, setCat] = useState<string | null>(null);
 
-  const categories = useMemo(() => allCategories(CATALOG), []);
+  const categories = useMemo(() => allCategories(catalog), [catalog]);
   const shown = useMemo(
-    () => (cat ? CATALOG.filter((x) => seriesCategories(x).includes(cat)) : CATALOG),
-    [cat],
+    () => (cat ? catalog.filter((x) => seriesCategories(x).includes(cat)) : catalog),
+    [cat, catalog],
   );
 
   return (

@@ -35,6 +35,44 @@ export function getSeries(id: string): Series | undefined {
   return CATALOG.find((s) => s.id === id);
 }
 
+// Админ хуудаснаас хийсэн засварыг (нэр, ангилал, үнэ, эрэмбэ, нуух) хэрэглэнэ.
+// Сервер ачаалагдаагүй байхад catalog.json-ы утга шууд харагдана — хоосон дэлгэц гарахгүй.
+export interface SeriesOverride {
+  title: string;
+  tagline: string;
+  genre: string;
+  price: number;
+  free_minutes: number;
+  sort_order: number;
+  hidden: boolean;
+}
+
+export function applyOverrides(
+  list: Series[],
+  overrides: Record<string, SeriesOverride>,
+): Series[] {
+  if (!Object.keys(overrides).length) return list;
+  const merged = list
+    .map((s) => {
+      const o = overrides[s.id];
+      if (!o) return s;
+      return {
+        ...s,
+        title: o.title || s.title,
+        tagline: o.tagline,
+        genre: o.genre || s.genre,
+        price: o.price,
+        freeMinutes: o.free_minutes,
+      };
+    })
+    .filter((s) => !overrides[s.id]?.hidden);
+
+  // sort_order их нь дээр (0 бол catalog.json-ы дараалал хэвээр)
+  return merged.sort(
+    (a, b) => (overrides[b.id]?.sort_order ?? 0) - (overrides[a.id]?.sort_order ?? 0),
+  );
+}
+
 // Ангилал: genre талбарыг «·» эсвэл «,»-оор салгаж тус бүрийг ангилал болгоно
 export function seriesCategories(s: { genre: string }): string[] {
   return s.genre

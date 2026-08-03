@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { formatPrice, freeEpCount, getSeries } from "../data/catalog";
+import { formatPrice, freeEpCount } from "../data/catalog";
 import { buyStatus, canWatch, useAppState } from "../lib/store";
+import { useSeriesById } from "../lib/seriesAdmin";
 import { openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
@@ -11,7 +12,7 @@ export function SeriesPage() {
   const { seriesId } = useParams();
   const navigate = useNavigate();
   const s = useAppState();
-  const series = seriesId ? getSeries(seriesId) : undefined;
+  const series = useSeriesById(seriesId);
 
   useEffect(() => {
     if (series) document.title = `${series.title} — Мини Драм`;

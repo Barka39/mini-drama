@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { HashRouter, Route, Routes } from "react-router-dom";
+import { loadSeriesMeta } from "./lib/seriesAdmin";
 import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
 import { PlayerFeed } from "./pages/PlayerFeed";
@@ -8,6 +10,11 @@ import { AuthModal } from "./components/AuthModal";
 
 // HashRouter: GitHub Pages зэрэг статик хостинг дээр сервер тохиргоогүйгээр ажиллана
 export default function App() {
+  // Админы засварыг (нэр, ангилал, үнэ, эрэмбэ) ачаална
+  useEffect(() => {
+    void loadSeriesMeta();
+  }, []);
+
   return (
     <HashRouter>
       <Routes>

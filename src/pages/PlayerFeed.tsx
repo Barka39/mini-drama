@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { formatPrice, freeEpCount, getSeries } from "../data/catalog";
+import { formatPrice, freeEpCount } from "../data/catalog";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
+import { useSeriesById } from "../lib/seriesAdmin";
 import { openAuth, openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
 export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
   const s = useAppState();
-  const series = seriesId ? getSeries(seriesId) : undefined;
+  const series = useSeriesById(seriesId);
   const startIndex = Math.max(1, Number(epIndex) || 1);
 
   const containerRef = useRef<HTMLDivElement>(null);
