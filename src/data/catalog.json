@@ -506,6 +506,149 @@
                                             "duration":  83
                                         }
                                     ]
+                   },
+                   {
+                       "id":  "series-260803-1323",
+                       "title":  "Бирдийн сүүлчийн хүсэл",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260803-1323.jpg",
+                       "price":  3800,
+                       "freeMinutes":  25,
+                       "episodes":  [
+                                        {
+                                            "index":  1,
+                                            "video":  "videos/series-260803-1323_e1.mp4",
+                                            "title":  "1-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  2,
+                                            "video":  "videos/series-260803-1323_e2.mp4",
+                                            "title":  "2-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  3,
+                                            "video":  "videos/series-260803-1323_e3.mp4",
+                                            "title":  "3-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  4,
+                                            "video":  "videos/series-260803-1323_e4.mp4",
+                                            "title":  "4-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  5,
+                                            "video":  "videos/series-260803-1323_e5.mp4",
+                                            "title":  "5-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  6,
+                                            "video":  "videos/series-260803-1323_e6.mp4",
+                                            "title":  "6-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  7,
+                                            "video":  "videos/series-260803-1323_e7.mp4",
+                                            "title":  "7-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  8,
+                                            "video":  "videos/series-260803-1323_e8.mp4",
+                                            "title":  "8-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  9,
+                                            "video":  "videos/series-260803-1323_e9.mp4",
+                                            "title":  "9-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  10,
+                                            "video":  "videos/series-260803-1323_e10.mp4",
+                                            "title":  "10-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  11,
+                                            "video":  "videos/series-260803-1323_e11.mp4",
+                                            "title":  "11-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  12,
+                                            "video":  "videos/series-260803-1323_e12.mp4",
+                                            "title":  "12-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  13,
+                                            "video":  "videos/series-260803-1323_e13.mp4",
+                                            "title":  "13-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  14,
+                                            "video":  "videos/series-260803-1323_e14.mp4",
+                                            "title":  "14-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  15,
+                                            "video":  "videos/series-260803-1323_e15.mp4",
+                                            "title":  "15-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  16,
+                                            "video":  "videos/series-260803-1323_e16.mp4",
+                                            "title":  "16-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  17,
+                                            "video":  "videos/series-260803-1323_e17.mp4",
+                                            "title":  "17-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  18,
+                                            "video":  "videos/series-260803-1323_e18.mp4",
+                                            "title":  "18-р анги",
+                                            "duration":  210.2
+                                        },
+                                        {
+                                            "index":  19,
+                                            "video":  "videos/series-260803-1323_e19.mp4",
+                                            "title":  "19-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  20,
+                                            "video":  "videos/series-260803-1323_e20.mp4",
+                                            "title":  "20-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  21,
+                                            "video":  "videos/series-260803-1323_e21.mp4",
+                                            "title":  "21-р анги",
+                                            "duration":  210.1
+                                        },
+                                        {
+                                            "index":  22,
+                                            "video":  "videos/series-260803-1323_e22.mp4",
+                                            "title":  "22-р анги",
+                                            "duration":  16.3
+                                        }
+                                    ]
                    }
                ]
 }
