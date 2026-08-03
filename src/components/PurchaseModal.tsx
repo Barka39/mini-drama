@@ -41,6 +41,8 @@ export function PurchaseModal() {
 
   const series = seriesId ? getSeries(seriesId) : undefined;
   const status = series ? buyStatus(s, series.id) : "none";
+  // Сервер захиалга бүрд өвөрмөц дүн оноодог — түүгээр банкнаас автоматаар таньдаг
+  const payAmount = (series && s.payAmounts[series.id]) || series?.price || 0;
 
   useEffect(() => {
     if (open) void getSettings().then(setBank);
@@ -124,13 +126,13 @@ export function PurchaseModal() {
             <div className="pay-box">
               {bank ? (
                 <>
-                  <CopyRow label="Дүн" value={formatPrice(series.price)} big onCopy={copy} />
                   <CopyRow
-                    label="Гүйлгээний утга (заавал)"
-                    value={s.phone ?? ""}
+                    label="Төлөх дүн — яг энэ дүнгээр"
+                    value={formatPrice(payAmount)}
                     big
                     onCopy={copy}
                   />
+                  <CopyRow label="Гүйлгээний утга" value={s.phone ?? ""} onCopy={copy} />
                   <div className="pay-divider" />
                   <div className="pay-row">
                     <div className="pay-row-text">
@@ -155,9 +157,11 @@ export function PurchaseModal() {
             {copied && <p className="msg-ok">{copied} хуулагдлаа ✅</p>}
 
             <p className="muted small">
-              Гүйлгээний утгад <strong>утасны дугаараа</strong> заавал бичээрэй — үүгээр тань
-              таньж кино нээнэ. Шалгамагц энэ цонх өөрөө шинэчлэгдэнэ; хаачихсан бол дараа орж
-              ирэхэд нээлттэй байна.
+              Зарласан үнэ {formatPrice(series.price)} боловч захиалгыг тань таних{" "}
+              <strong>тусгай дүн</strong> оноогдсон тул {formatPrice(payAmount)} шилжүүлнэ — арай
+              бага. Гүйлгээний утганд утасны дугаараа бичвэл бүр найдвартай. Төлбөр орсноос хойш
+              хэдэн минутын дотор кино <strong>автоматаар</strong> нээгдэж, энэ цонх өөрөө
+              шинэчлэгдэнэ.
             </p>
             {bank?.contact && <p className="muted small">{bank.contact}</p>}
           </>

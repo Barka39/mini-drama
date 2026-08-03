@@ -40,6 +40,9 @@ export function AdminPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [bankMsgs, setBankMsgs] = useState<
+    { id: number; raw: string; amount: string | null; matched: boolean; created_at: string }[]
+  >([]);
 
   const load = useCallback(async () => {
     const [p, h] = await Promise.all([
@@ -57,6 +60,13 @@ export function AdminPage() {
     ]);
     setPending((p.data ?? []) as AdminPurchase[]);
     setHistory((h.data ?? []) as AdminPurchase[]);
+
+    const bm = await supa
+      .from("md_bank_msgs")
+      .select("id, raw, amount, matched, created_at")
+      .order("created_at", { ascending: false })
+      .limit(12);
+    setBankMsgs((bm.data ?? []) as typeof bankMsgs);
   }, []);
 
   useEffect(() => {
@@ -353,6 +363,23 @@ export function AdminPage() {
           Нээх
         </button>
       </div>
+
+      <h3 className="admin-h">Банкнаас ирсэн мэдэгдэл</h3>
+      {bankMsgs.length === 0 && (
+        <p className="muted small">Одоогоор мэдэгдэл алга (утасны холболт хийгдээгүй байж болно).</p>
+      )}
+      {bankMsgs.map((b) => (
+        <div key={b.id} className="admin-row">
+          <div>
+            <strong>
+              {b.matched ? "✅ таньсан" : "⚠️ таниагүй"} ·{" "}
+              {b.amount ? formatPrice(Number(b.amount)) : "—"}
+            </strong>
+            <div className="muted small bank-raw">{b.raw}</div>
+            <div className="muted small">{new Date(b.created_at).toLocaleString("mn-MN")}</div>
+          </div>
+        </div>
+      ))}
 
       <h3 className="admin-h">Сүүлийн шийдвэрүүд</h3>
       {history.map((t) => (

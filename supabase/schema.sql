@@ -135,6 +135,36 @@ create table if not exists public.md_purchases (
   decided_at timestamptz
 );
 
+-- Захиалга бүр ӨВӨРМӨЦ дүнтэй: банкнаас ирсэн мэдэгдлийг гүйлгээний утгагүйгээр
+-- таних боломж олгоно (хэрэглэгчид утгаа буруу бичдэг/мартдаг).
+alter table public.md_purchases add column if not exists amount integer;
+update public.md_purchases set amount = price where amount is null;
+create index if not exists md_purchases_amount_pending
+  on public.md_purchases (amount) where status = 'pending';
+
+-- Банкнаас ирсэн мэдэгдлийн бүртгэл (танигдсан ч, танигдаагүй ч бүгд энд)
+create table if not exists public.md_bank_msgs (
+  id bigint generated always as identity primary key,
+  raw text not null,
+  amount numeric,
+  purchase_id bigint references public.md_purchases (id) on delete set null,
+  matched boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table public.md_bank_msgs enable row level security;
+drop policy if exists md_bank_msgs_select on public.md_bank_msgs;
+create policy md_bank_msgs_select on public.md_bank_msgs
+  for select using (public.md_is_admin());
+
+-- Нууц тохиргоо. RLS асаалттай ба ямар ч policy байхгүй тул API-гаар ХЭН Ч уншиж
+-- чадахгүй; зөвхөн security definer функцууд дотроос хандана.
+create table if not exists public.md_config (
+  id integer primary key default 1 check (id = 1),
+  bank_secret text not null default ''
+);
+alter table public.md_config enable row level security;
+insert into public.md_config (id) values (1) on conflict (id) do nothing;
+
 -- Нэг хэрэглэгч нэг киног давхардуулж хүсэх/авахгүй
 create unique index if not exists md_purchases_one_pending
   on public.md_purchases (user_id, series_id) where status = 'pending';
@@ -222,13 +252,114 @@ begin
     raise exception 'too_many_pending';
   end if;
 
-  insert into md_purchases (user_id, series_id, price)
-  values (auth.uid(), p_series, v_price)
-  returning id into v_id;
+  -- Өвөрмөц дүн онооно: зарласан үнээс 1..N төгрөг ХАСНА (нэмэхгүй — хэрэглэгч
+  -- зарласнаас илүү төлөх ёсгүй). Хүлээгдэж буй бусад захиалгатай давхцахгүй.
+  declare
+    v_max_off integer := least(99, greatest(1, floor(v_price * 0.03)::integer));
+    v_amount integer := null;
+    v_off integer;
+  begin
+    for v_off in
+      select g from generate_series(1, v_max_off) g order by random()
+    loop
+      if not exists (
+        select 1 from md_purchases
+        where amount = v_price - v_off
+          and status = 'pending'
+          and created_at > now() - interval '48 hours'
+      ) then
+        v_amount := v_price - v_off;
+        exit;
+      end if;
+    end loop;
+    if v_amount is null then v_amount := v_price; end if;
+
+    insert into md_purchases (user_id, series_id, price, amount)
+    values (auth.uid(), p_series, v_price, v_amount)
+    returning id into v_id;
+  end;
 
   return v_id;
 end;
 $$;
+
+-- ============================================================
+-- Банкны мэдэгдлээр АВТОМАТ баталгаажуулах
+-- Ямар ч суваг (Legion-ий и-мэйл, Android-ийн SMS, гар) энд залгана.
+-- Нууц үгээр хамгаалагдсан тул нээлттэй дуудагдах боловч хуурах боломжгүй.
+-- ============================================================
+drop function if exists public.md_confirm_by_amount(text, numeric, text);
+
+create or replace function public.md_confirm_by_amount(
+  p_secret text,
+  p_amount numeric,
+  p_raw text,
+  p_utga text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ok boolean;
+  v_id bigint;
+  v_series text;
+  v_phone text;
+  v_how text;
+begin
+  select bank_secret = p_secret and length(bank_secret) > 10
+    into v_ok from md_config where id = 1;
+  if not coalesce(v_ok, false) then
+    raise exception 'bad_secret';
+  end if;
+
+  -- 1) ҮНДСЭН ЗАМ: яг тэр өвөрмөц дүнтэй хүлээгдэж буй захиалга
+  select p.id, p.series_id, u.phone
+    into v_id, v_series, v_phone
+    from md_purchases p
+    join md_profiles u on u.id = p.user_id
+   where p.amount = p_amount
+     and p.status = 'pending'
+     and p.created_at > now() - interval '48 hours'
+   order by p.created_at
+   limit 1;
+  if v_id is not null then v_how := 'amount'; end if;
+
+  -- 2) НӨӨЦ ЗАМ: гүйлгээний утганд хэрэглэгчийн утасны дугаар байвал.
+  --    Дүн нь киноны үнийг хангасан байх ёстой (дутуу төлбөрөөр нээхгүй).
+  if v_id is null and coalesce(p_utga, '') <> '' then
+    select p.id, p.series_id, u.phone
+      into v_id, v_series, v_phone
+      from md_purchases p
+      join md_profiles u on u.id = p.user_id
+     where p.status = 'pending'
+       and p.created_at > now() - interval '48 hours'
+       and length(u.phone) = 8
+       and regexp_replace(p_utga, '\D', '', 'g') like '%' || u.phone || '%'
+       and p_amount >= p.amount
+     order by p.created_at
+     limit 1;
+    if v_id is not null then v_how := 'utga'; end if;
+  end if;
+
+  if v_id is null then
+    insert into md_bank_msgs (raw, amount, matched) values (p_raw, p_amount, false);
+    return jsonb_build_object('matched', false);
+  end if;
+
+  update md_purchases set status = 'confirmed', decided_at = now() where id = v_id;
+  insert into md_bank_msgs (raw, amount, purchase_id, matched)
+  values (p_raw, p_amount, v_id, true);
+
+  return jsonb_build_object(
+    'matched', true, 'how', v_how,
+    'purchase_id', v_id, 'series_id', v_series, 'phone', v_phone
+  );
+end;
+$$;
+
+grant execute on function public.md_confirm_by_amount(text, numeric, text, text) to anon, authenticated;
 
 -- АДМИН: хүсэлтийг баталгаажуулах (кино тухайн хэрэглэгчид бүрмөсөн нээгдэнэ)
 create or replace function public.md_confirm_purchase(p_id bigint)

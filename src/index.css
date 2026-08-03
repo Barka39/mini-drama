@@ -313,6 +313,12 @@ a {
   transition: width 0.25s linear;
 }
 
+.bank-raw {
+  word-break: break-word;
+  opacity: 0.75;
+  max-width: 520px;
+}
+
 .series-edit {
   display: flex;
   flex-direction: column;

@@ -13,6 +13,8 @@ export interface AppState {
   isAdmin: boolean;
   purchased: string[]; // худалдаж авсан (баталгаажсан) кинонуудын id
   pendingBuys: string[]; // хүсэлт илгээгээд хүлээгдэж буй кинонуудын id
+  // seriesId -> яг төлөх өвөрмөц дүн (банкнаас таних тул зарласан үнээс бага)
+  payAmounts: Record<string, number>;
   progress: Record<string, number>; // seriesId -> хамгийн сүүлд үзсэн анги (локал)
 }
 
@@ -33,6 +35,7 @@ let state: AppState = {
   isAdmin: false,
   purchased: [],
   pendingBuys: [],
+  payAmounts: {},
   progress: loadProgress(),
 };
 
@@ -58,14 +61,18 @@ export function useAppState(): AppState {
 async function loadServerState(userId: string) {
   const [profRes, buyRes] = await Promise.all([
     supa.from("md_profiles").select("phone, is_admin").eq("id", userId).maybeSingle(),
-    supa.from("md_purchases").select("series_id, status").eq("user_id", userId),
+    supa.from("md_purchases").select("series_id, status, amount").eq("user_id", userId),
   ]);
 
   const purchased: string[] = [];
   const pendingBuys: string[] = [];
+  const payAmounts: Record<string, number> = {};
   for (const row of buyRes.data ?? []) {
     if (row.status === "confirmed") purchased.push(row.series_id);
-    else if (row.status === "pending") pendingBuys.push(row.series_id);
+    else if (row.status === "pending") {
+      pendingBuys.push(row.series_id);
+      if (row.amount) payAmounts[row.series_id] = row.amount;
+    }
   }
 
   if (profRes.data) {
@@ -76,6 +83,7 @@ async function loadServerState(userId: string) {
       isAdmin: profRes.data.is_admin,
       purchased,
       pendingBuys,
+      payAmounts,
     });
   } else {
     // Бүртгэл дутуу (профайл үүсээгүй) — гарган хаяна
@@ -94,6 +102,7 @@ supa.auth.onAuthStateChange((_event, session) => {
       isAdmin: false,
       purchased: [],
       pendingBuys: [],
+      payAmounts: {},
     });
   }
 });
@@ -178,6 +187,8 @@ export async function requestPurchase(seriesId: string): Promise<BuyResult> {
     if (/not_signed_in|JWT|jwt/.test(m)) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
     return { ok: false, code: "error", reason: m };
   }
+  // Сервер оноосон өвөрмөц дүнг авахын тулд дансаа шинэчилнэ
+  await refreshAccount();
   if (!state.pendingBuys.includes(seriesId)) {
     commit({ pendingBuys: [...state.pendingBuys, seriesId] });
   }
