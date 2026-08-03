@@ -76,6 +76,16 @@ export function SeriesPage() {
         </div>
       </section>
 
+      {series.price > 0 && status !== "owned" && (
+        <div className="series-trust">
+          <span>✅ Нэг удаа төлөөд бүх ангийг хязгааргүй үзнэ</span>
+          <span>⚡ Төлбөр ормогц автоматаар нээгдэнэ</span>
+          <Link className="link-btn" to="/help">
+            Хэрхэн ажилладаг вэ? →
+          </Link>
+        </div>
+      )}
+
       <section className="ep-grid">
         {series.episodes.map((ep) => {
           const watchable = canWatch(s, series, ep.index);

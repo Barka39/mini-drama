@@ -5,6 +5,7 @@ import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
 import { PlayerFeed } from "./pages/PlayerFeed";
 import { AdminPage } from "./pages/AdminPage";
+import { HelpPage } from "./pages/HelpPage";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
 
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/series/:seriesId" element={<SeriesPage />} />
         <Route path="/watch/:seriesId/:epIndex" element={<PlayerFeed />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/help" element={<HelpPage />} />
       </Routes>
       <PurchaseModal />
       <AuthModal />

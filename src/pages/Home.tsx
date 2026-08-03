@@ -16,6 +16,18 @@ export function Home() {
     [cat, catalog],
   );
 
+  // Эхэлсэн мөртлөө дуусгаагүй кинонууд — буцаж ирэх гол шалтгаан
+  const continueList = useMemo(
+    () =>
+      catalog
+        .filter((x) => {
+          const at = s.progress[x.id];
+          return at && at > 1 && at < x.episodes.length;
+        })
+        .slice(0, 6),
+    [catalog, s.progress],
+  );
+
   return (
     <div className="page">
       <header className="topbar">
@@ -29,6 +41,36 @@ export function Home() {
         <h1>Богино ангитай драм, монголоор</h1>
         <p>Эхний минутууд үнэгүй · Нэг удаа төлөөд дуустал үзнэ · Утсандаа шууд үз</p>
       </section>
+
+      {continueList.length > 0 && (
+        <section className="row-block">
+          <h2 className="row-title">▶ Үргэлжлүүлэн үзэх</h2>
+          <div className="row-scroll">
+            {continueList.map((series) => {
+              const at = s.progress[series.id];
+              return (
+                <Link
+                  key={series.id}
+                  to={`/watch/${series.id}/${at}`}
+                  className="row-card"
+                >
+                  <img src={series.poster} alt={series.title} loading="lazy" />
+                  <div className="row-card-bar">
+                    <div
+                      className="row-card-fill"
+                      style={{ width: `${(at / series.episodes.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="row-card-title">{series.title}</span>
+                  <span className="row-card-sub">
+                    {at}/{series.episodes.length} анги
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {categories.length > 1 && (
         <nav className="cat-bar">
@@ -74,6 +116,24 @@ export function Home() {
         })}
       </section>
 
+      <section className="trust-strip">
+        <div className="trust-item">
+          <span className="trust-icon">🎬</span>
+          <span>Эхний ~20 минут үнэгүй</span>
+        </div>
+        <div className="trust-item">
+          <span className="trust-icon">♾️</span>
+          <span>Нэг удаа төлөөд хязгааргүй үзнэ</span>
+        </div>
+        <div className="trust-item">
+          <span className="trust-icon">⚡</span>
+          <span>Төлбөр ормогц автоматаар нээгдэнэ</span>
+        </div>
+        <Link className="btn btn-outline" to="/help">
+          Хэрхэн ажилладаг вэ? →
+        </Link>
+      </section>
+
       <footer className="foot">
         {s.signedIn ? (
           <>
@@ -81,10 +141,14 @@ export function Home() {
             <button className="link-btn" onClick={() => void signOut()}>
               Гарах
             </button>
+            {" · "}
           </>
         ) : (
-          "Кино Мандал · Богино драм стриминг"
+          "Кино Мандал · "
         )}
+        <Link className="link-btn" to="/help">
+          Тусламж
+        </Link>
       </footer>
     </div>
   );
