@@ -129,6 +129,91 @@ a {
   color: var(--text-muted);
 }
 
+/* ---- Сарын эрх ---- */
+.vip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: calc(100% - 32px);
+  margin: 0 16px 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 45, 111, 0.45);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 45, 111, 0.18), rgba(134, 59, 255, 0.14));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.vip-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vip-banner-cta {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.plan-list {
+  display: flex;
+  gap: 10px;
+}
+
+.plan-card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.plan-best {
+  border-color: var(--accent);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.plan-label {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.plan-price {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.plan-per {
+  font-size: 11.5px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ---- Доод цэс ---- */
 .bottom-nav {
   position: fixed;

@@ -135,6 +135,37 @@ create table if not exists public.md_purchases (
   decided_at timestamptz
 );
 
+-- ============================================================
+-- САРЫН ЭРХ (VIP) — нэг удаагийн худалдаатай ижил механизмаар ажиллана:
+-- захиалга -> өвөрмөц дүн -> банкны мэдэгдэл -> автоматаар идэвхжинэ.
+-- ============================================================
+alter table public.md_profiles add column if not exists vip_until timestamptz;
+
+create table if not exists public.md_plans (
+  code text primary key,
+  label text not null,
+  days integer not null,
+  price integer not null,
+  sort_order integer not null default 0,
+  active boolean not null default true
+);
+
+insert into public.md_plans (code, label, days, price, sort_order) values
+  ('m1', '1 сарын эрх', 30, 8800, 1),
+  ('m3', '3 сарын эрх', 90, 15500, 2)
+on conflict (code) do update
+  set label = excluded.label, days = excluded.days, price = excluded.price;
+
+alter table public.md_plans enable row level security;
+drop policy if exists md_plans_select on public.md_plans;
+create policy md_plans_select on public.md_plans for select using (true);
+
+-- Захиалга нь кино эсвэл сарын эрх аль нь ч байж болно
+alter table public.md_purchases add column if not exists kind text not null default 'movie';
+alter table public.md_purchases add column if not exists plan_code text;
+alter table public.md_purchases add column if not exists plan_days integer;
+alter table public.md_purchases alter column series_id drop not null;
+
 -- Захиалга бүр ӨВӨРМӨЦ дүнтэй: банкнаас ирсэн мэдэгдлийг гүйлгээний утгагүйгээр
 -- таних боломж олгоно (хэрэглэгчид утгаа буруу бичдэг/мартдаг).
 alter table public.md_purchases add column if not exists amount integer;
@@ -338,6 +369,85 @@ begin
 end;
 $$;
 
+-- Сарын эрх захиалах (кино захиалахтай ижил өвөрмөц дүнгийн логик)
+create or replace function public.md_request_subscription(p_plan text)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_price integer;
+  v_days integer;
+  v_id bigint;
+  v_max_off integer;
+  v_amount integer := null;
+  v_off integer;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select price, days into v_price, v_days
+    from md_plans where code = p_plan and active;
+  if v_price is null then
+    raise exception 'unknown_plan';
+  end if;
+
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and kind = 'sub' and status = 'pending') then
+    raise exception 'already_pending';
+  end if;
+
+  v_max_off := least(99, greatest(1, floor(v_price * 0.03)::integer));
+  for v_off in select g from generate_series(1, v_max_off) g order by random() loop
+    if not exists (
+      select 1 from md_purchases
+      where amount = v_price - v_off
+        and status = 'pending'
+        and created_at > now() - interval '48 hours'
+    ) then
+      v_amount := v_price - v_off;
+      exit;
+    end if;
+  end loop;
+  if v_amount is null then v_amount := v_price; end if;
+
+  insert into md_purchases (user_id, series_id, price, amount, kind, plan_code, plan_days)
+  values (auth.uid(), null, v_price, v_amount, 'sub', p_plan, v_days)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.md_request_subscription(text) to authenticated;
+
+-- АДМИН: сарын эрхийг гараар нэмж өгөх
+create or replace function public.md_admin_grant_vip(p_phone text, p_days integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  select id into v_user from md_profiles where phone = p_phone;
+  if v_user is null then
+    raise exception 'phone_not_found';
+  end if;
+  update md_profiles
+     set vip_until = greatest(coalesce(vip_until, now()), now()) + (p_days || ' days')::interval
+   where id = v_user;
+end;
+$$;
+
+grant execute on function public.md_admin_grant_vip(text, integer) to authenticated;
+
 -- ============================================================
 -- Банкны мэдэгдлээр АВТОМАТ баталгаажуулах
 -- Ямар ч суваг (Legion-ий и-мэйл, Android-ийн SMS, гар) энд залгана.
@@ -404,6 +514,14 @@ begin
   end if;
 
   update md_purchases set status = 'confirmed', decided_at = now() where id = v_id;
+
+  -- Сарын эрх бол хугацааг нь сунгана (идэвхтэй байвал үргэлжлүүлж нэмнэ)
+  update md_profiles p
+     set vip_until = greatest(coalesce(p.vip_until, now()), now())
+                     + (b.plan_days || ' days')::interval
+    from md_purchases b
+   where b.id = v_id and b.kind = 'sub' and b.plan_days is not null and p.id = b.user_id;
+
   insert into md_bank_msgs (raw, amount, purchase_id, matched)
   values (p_raw, p_amount, v_id, true);
 

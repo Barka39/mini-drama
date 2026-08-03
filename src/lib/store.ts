@@ -15,6 +15,8 @@ export interface AppState {
   pendingBuys: string[]; // хүсэлт илгээгээд хүлээгдэж буй кинонуудын id
   // seriesId -> яг төлөх өвөрмөц дүн (банкнаас таних тул зарласан үнээс бага)
   payAmounts: Record<string, number>;
+  vipUntil: string | null; // сарын эрх дуусах хугацаа
+  subPending: boolean; // сарын эрхийн төлбөр хүлээгдэж байна
   progress: Record<string, number>; // seriesId -> хамгийн сүүлд үзсэн анги (локал)
 }
 
@@ -36,6 +38,8 @@ let state: AppState = {
   purchased: [],
   pendingBuys: [],
   payAmounts: {},
+  vipUntil: null,
+  subPending: false,
   progress: loadProgress(),
 };
 
@@ -60,14 +64,23 @@ export function useAppState(): AppState {
 
 async function loadServerState(userId: string) {
   const [profRes, buyRes] = await Promise.all([
-    supa.from("md_profiles").select("phone, is_admin, full_name").eq("id", userId).maybeSingle(),
-    supa.from("md_purchases").select("series_id, status, amount").eq("user_id", userId),
+    supa.from("md_profiles").select("phone, is_admin, full_name, vip_until").eq("id", userId).maybeSingle(),
+    supa.from("md_purchases").select("series_id, status, amount, kind, plan_days").eq("user_id", userId),
   ]);
 
   const purchased: string[] = [];
   const pendingBuys: string[] = [];
   const payAmounts: Record<string, number> = {};
+  let subPending = false;
   for (const row of buyRes.data ?? []) {
+    if (row.kind === "sub") {
+      // Сарын эрхийн захиалга — киноны id байхгүй тул тусад нь тэмдэглэнэ
+      if (row.status === "pending") {
+        subPending = true;
+        if (row.amount) payAmounts["__vip__"] = row.amount;
+      }
+      continue;
+    }
     if (row.status === "confirmed") purchased.push(row.series_id);
     else if (row.status === "pending") {
       pendingBuys.push(row.series_id);
@@ -84,6 +97,8 @@ async function loadServerState(userId: string) {
       purchased,
       pendingBuys,
       payAmounts,
+      vipUntil: profRes.data.vip_until ?? null,
+      subPending,
     });
   } else {
     // Бүртгэл дутуу (профайл үүсээгүй) — гарган хаяна
@@ -103,6 +118,8 @@ supa.auth.onAuthStateChange((_event, session) => {
       purchased: [],
       pendingBuys: [],
       payAmounts: {},
+      vipUntil: null,
+      subPending: false,
     });
   }
 });
@@ -199,10 +216,46 @@ export async function requestPurchase(seriesId: string): Promise<BuyResult> {
   return { ok: true };
 }
 
-// Анги үзэх эрхтэй юу: үнэгүй хэсэгт багтсан эсвэл киног худалдаж авсан
+/** Сарын эрх идэвхтэй эсэх */
+export function hasVip(s: AppState): boolean {
+  return !!s.vipUntil && new Date(s.vipUntil).getTime() > Date.now();
+}
+
+// Анги үзэх эрхтэй юу: үнэгүй хэсэг, сарын эрх, эсвэл тухайн киног авсан
 export function canWatch(s: AppState, series: Series, epIndex: number): boolean {
   if (epIndex <= freeEpCount(series)) return true;
+  if (hasVip(s)) return true;
   return s.purchased.includes(series.id);
+}
+
+// ---------- Сарын эрх ----------
+
+export interface Plan {
+  code: string;
+  label: string;
+  days: number;
+  price: number;
+}
+
+export async function loadPlans(): Promise<Plan[]> {
+  const { data } = await supa
+    .from("md_plans")
+    .select("code, label, days, price")
+    .eq("active", true)
+    .order("sort_order");
+  return (data ?? []) as Plan[];
+}
+
+export async function requestSubscription(code: string): Promise<BuyResult> {
+  if (!state.signedIn) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
+  const { error } = await supa.rpc("md_request_subscription", { p_plan: code });
+  if (error) {
+    if (/already_pending/.test(error.message))
+      return { ok: false, code: "pending", reason: "Хүсэлт аль хэдийн илгээгдсэн" };
+    return { ok: false, code: "error", reason: error.message };
+  }
+  await refreshAccount();
+  return { ok: true };
 }
 
 export function buyStatus(s: AppState, seriesId: string): "owned" | "pending" | "none" {

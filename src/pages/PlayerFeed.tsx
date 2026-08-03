@@ -4,7 +4,7 @@ import { formatPrice, freeEpCount } from "../data/catalog";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
-import { openAuth, openPurchase } from "../lib/ui";
+import { openAuth, openPurchase, openVip } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 import { EpisodeVideo } from "../components/EpisodeVideo";
 
@@ -180,9 +180,20 @@ export function PlayerFeed() {
                       </button>
                     </>
                   ) : (
-                    <button className="btn btn-primary" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
-                      🎬 Худалдаж авах — {formatPrice(series.price)}
-                    </button>
+                    <>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          track("buy_click", series.id);
+                          openPurchase(series.id);
+                        }}
+                      >
+                        🎬 Энэ киног авах — {formatPrice(series.price)}
+                      </button>
+                      <button className="btn btn-outline" onClick={openVip}>
+                        ⭐ Сарын эрх — бүх кино 8,800₮
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

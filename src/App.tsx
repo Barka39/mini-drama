@@ -11,6 +11,7 @@ import { MyMoviesPage } from "./pages/MyMoviesPage";
 import { BottomNav } from "./components/BottomNav";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
+import { VipModal } from "./components/VipModal";
 
 // HashRouter: GitHub Pages зэрэг статик хостинг дээр сервер тохиргоогүйгээр ажиллана
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
       <BottomNav />
       <PurchaseModal />
       <AuthModal />
+      <VipModal />
     </HashRouter>
   );
 }

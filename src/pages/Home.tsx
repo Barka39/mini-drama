@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { allCategories, formatPrice, seriesCategories } from "../data/catalog";
-import { buyStatus, signOut, useAppState } from "../lib/store";
+import { buyStatus, hasVip, signOut, useAppState } from "../lib/store";
+import { openVip } from "../lib/ui";
 import { useCatalog } from "../lib/seriesAdmin";
 import { AccountBadge } from "../components/AccountBadge";
 
@@ -41,6 +42,18 @@ export function Home() {
         <h1>Богино ангитай драм, монголоор</h1>
         <p>Эхний минутууд үнэгүй · Нэг удаа төлөөд дуустал үзнэ · Утсандаа шууд үз</p>
       </section>
+
+      <button className="vip-banner" onClick={openVip}>
+        <span className="vip-banner-text">
+          <strong>⭐ Сарын эрх — бүх кино хязгааргүй</strong>
+          <span className="muted small">
+            {hasVip(s)
+              ? `Идэвхтэй · ${new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл`
+              : "1 сар 8,800₮ · 3 сар 15,500₮"}
+          </span>
+        </span>
+        <span className="vip-banner-cta">{hasVip(s) ? "Харах" : "Авах →"}</span>
+      </button>
 
       {continueList.length > 0 && (
         <section className="row-block">

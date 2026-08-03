@@ -48,20 +48,32 @@ export async function onRequestGet({ request, env }) {
   const price = Number(meta.price ?? 0);
   const isFree = price <= 0 || ep <= freeEps;
 
-  // 2) Төлбөртэй анги бол худалдан авалтыг шалгана
+  // 2) Төлбөртэй анги бол эрхийг шалгана: сарын эрх ЭСВЭЛ тухайн киног авсан эсэх
   if (!isFree) {
     const auth = request.headers.get("authorization") || "";
     if (!auth.startsWith("Bearer ")) return json({ error: "auth_required" }, 401);
 
     // Хэрэглэгчийн өөрийнх нь эрхээр асууна — RLS зөвхөн түүний мөрийг буцаана
-    const buyRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&select=id`,
-      { headers: { apikey: SUPABASE_ANON, Authorization: auth } },
-    );
-    if (!buyRes.ok) return json({ error: "auth_failed" }, 401);
-    const buys = await buyRes.json();
-    if (!Array.isArray(buys) || buys.length === 0) {
-      return json({ error: "not_purchased" }, 403);
+    const [subRes, buyRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until`, {
+        headers: { apikey: SUPABASE_ANON, Authorization: auth },
+      }),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&select=id`,
+        { headers: { apikey: SUPABASE_ANON, Authorization: auth } },
+      ),
+    ]);
+    if (!subRes.ok || !buyRes.ok) return json({ error: "auth_failed" }, 401);
+
+    const profs = await subRes.json();
+    const vipUntil = Array.isArray(profs) && profs[0] ? profs[0].vip_until : null;
+    const hasVip = vipUntil && new Date(vipUntil).getTime() > Date.now();
+
+    if (!hasVip) {
+      const buys = await buyRes.json();
+      if (!Array.isArray(buys) || buys.length === 0) {
+        return json({ error: "not_purchased" }, 403);
+      }
     }
   }
 
