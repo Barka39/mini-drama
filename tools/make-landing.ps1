@@ -54,11 +54,11 @@ foreach ($s in $catalog.series) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>$title — Мини Драм</title>
+    <title>$title — Кино Мандал</title>
     <meta name="description" content="$descE" />
     <meta property="og:type" content="video.other" />
-    <meta property="og:site_name" content="Мини Драм" />
-    <meta property="og:title" content="$title — Мини Драм" />
+    <meta property="og:site_name" content="Кино Мандал" />
+    <meta property="og:title" content="$title — Кино Мандал" />
     <meta property="og:description" content="$descE" />
     <meta property="og:url" content="$SiteUrl/k/$id" />
     <meta property="og:image" content="$SiteUrl/og/$id.jpg" />

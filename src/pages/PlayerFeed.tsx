@@ -28,9 +28,9 @@ export function PlayerFeed() {
   }
 
   useEffect(() => {
-    if (series) document.title = `${series.title} — Мини Драм`;
+    if (series) document.title = `${series.title} — Кино Мандал`;
     return () => {
-      document.title = "Мини Драм — богино драм монголоор";
+      document.title = "Кино Мандал — богино драм монголоор";
     };
   }, [series]);
 

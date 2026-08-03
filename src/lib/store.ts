@@ -60,7 +60,7 @@ export function useAppState(): AppState {
 
 async function loadServerState(userId: string) {
   const [profRes, buyRes] = await Promise.all([
-    supa.from("md_profiles").select("phone, is_admin").eq("id", userId).maybeSingle(),
+    supa.from("md_profiles").select("phone, is_admin, full_name").eq("id", userId).maybeSingle(),
     supa.from("md_purchases").select("series_id, status, amount").eq("user_id", userId),
   ]);
 
@@ -124,7 +124,11 @@ function mapAuthError(message: string): string {
   return message;
 }
 
-export async function signUp(phone: string, password: string): Promise<AuthResult> {
+export async function signUp(
+  phone: string,
+  password: string,
+  fullName = "",
+): Promise<AuthResult> {
   const digits = phone.replace(/\D/g, "");
   if (digits.length !== 8) return { ok: false, reason: "Утасны дугаар 8 оронтой байх ёстой" };
   const email = `${digits}@minidram.app`;
@@ -137,7 +141,7 @@ export async function signUp(phone: string, password: string): Promise<AuthResul
 
   const { error: profErr } = await supa
     .from("md_profiles")
-    .insert({ id: data.session.user.id, phone: digits });
+    .insert({ id: data.session.user.id, phone: digits, full_name: fullName.trim() });
   if (profErr && !/duplicate/i.test(profErr.message)) {
     return { ok: false, reason: "Профайл үүсгэхэд алдаа: " + profErr.message };
   }

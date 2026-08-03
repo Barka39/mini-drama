@@ -6,7 +6,7 @@ import { useSeriesById } from "../lib/seriesAdmin";
 import { openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
-const DEFAULT_TITLE = "Мини Драм — богино драм монголоор";
+const DEFAULT_TITLE = "Кино Мандал — богино драм монголоор";
 
 export function SeriesPage() {
   const { seriesId } = useParams();
@@ -15,7 +15,7 @@ export function SeriesPage() {
   const series = useSeriesById(seriesId);
 
   useEffect(() => {
-    if (series) document.title = `${series.title} — Мини Драм`;
+    if (series) document.title = `${series.title} — Кино Мандал`;
     return () => {
       document.title = DEFAULT_TITLE;
     };

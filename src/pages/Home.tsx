@@ -20,7 +20,7 @@ export function Home() {
     <div className="page">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">▶</span> Мини Драм
+          <span className="brand-mark">▶</span> Кино Мандал
         </div>
         <AccountBadge />
       </header>
@@ -83,7 +83,7 @@ export function Home() {
             </button>
           </>
         ) : (
-          "Мини Драм · Богино драм стриминг"
+          "Кино Мандал · Богино драм стриминг"
         )}
       </footer>
     </div>
