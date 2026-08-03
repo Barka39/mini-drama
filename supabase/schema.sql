@@ -98,14 +98,8 @@ alter table public.md_series drop column if exists free_count;
 alter table public.md_series drop column if exists unlock_cost;
 alter table public.md_series drop column if exists bundle_cost;
 
-insert into public.md_series (id, price, free_minutes) values
-  ('altan-zagas', 0, 20),
-  ('tsuutiin-guu', 0, 20),
-  ('series-260802-0128', 3500, 20),
-  ('series-260802-0147', 3500, 20)
-on conflict (id) do update
-  set price = excluded.price,
-      free_minutes = excluded.free_minutes;
+-- Кинонуудыг ЭНД БҮРТГЭХГҮЙ. Тэднийг «Сайт шинэчлэх» товчлуул catalog.json-оос
+-- уншиж бүртгэдэг. Энд жагсаавал устгасан кино схем ажиллах бүрд амилдаг.
 
 -- 3) Сайтын тохиргоо (данс г.м) — админ хуудаснаас удирдана, ганц мөр
 create table if not exists public.md_settings (
