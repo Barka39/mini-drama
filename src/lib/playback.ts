@@ -23,15 +23,21 @@ async function request(seriesId: string, ep: number, file: string): Promise<stri
   const { data } = await supa.auth.getSession();
   const token = data.session?.access_token;
 
-  const res = await fetch(
-    `/api/play?series=${encodeURIComponent(seriesId)}&ep=${ep}&file=${encodeURIComponent(file)}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-  );
-  if (!res.ok) return null;
-  const body = (await res.json()) as { url?: string; exp?: number };
-  if (!body.url || !body.exp) return null;
-  cache.set(file, { url: body.url, exp: body.exp });
-  return body.url;
+  // Сүлжээ тасрах, хариу гажих зэрэг ямар ч тохиолдолд мөнхөд хүлээхгүй —
+  // null буцаавал хэрэглэгчид ойлгомжтой мессеж харагдана.
+  try {
+    const res = await fetch(
+      `/api/play?series=${encodeURIComponent(seriesId)}&ep=${ep}&file=${encodeURIComponent(file)}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as { url?: string; exp?: number };
+    if (!body.url || !body.exp) return null;
+    cache.set(file, { url: body.url, exp: body.exp });
+    return body.url;
+  } catch {
+    return null;
+  }
 }
 
 /** Тухайн ангийг тоглуулах хаяг авна. Эрхгүй бол null. */

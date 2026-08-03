@@ -123,6 +123,7 @@ export function PlayerFeed() {
                     }}
                     onProgress={setPct}
                     onEnded={() => advanceFrom(ep.index)}
+                    onUnmute={() => setMuted(false)}
                   />
                   {ep.index === active && (
                     <div className="ep-progress">
