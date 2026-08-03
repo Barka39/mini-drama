@@ -169,6 +169,12 @@ export async function requestPurchase(seriesId: string): Promise<BuyResult> {
       return { ok: false, code: "pending", reason: "Хүсэлт аль хэдийн илгээгдсэн — баталгаажилтыг хүлээнэ үү" };
     if (/too_many_pending/.test(m))
       return { ok: false, code: "limit", reason: "Хүлээгдэж буй хүсэлт олон байна" };
+    if (/unknown_series/.test(m))
+      return {
+        ok: false,
+        code: "unknown",
+        reason: "Энэ кино худалдаанд бэлэн болоогүй байна. Түр хүлээгээд дахин оролдоно уу.",
+      };
     if (/not_signed_in|JWT|jwt/.test(m)) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
     return { ok: false, code: "error", reason: m };
   }

@@ -37,6 +37,8 @@ create trigger md_owner_admin
 
 -- 2) Кинонуудын үнэ (сервер талын үнэн — client үнэ илгээдэггүй)
 --    price = 0 бол бүх анги үнэгүй; free_minutes = эхний хэдэн минут үнэгүй
+-- Киноны бүх засварлах мэдээлэл ЭНД байна (админ хуудаснаас удирдана).
+-- catalog.json нь зөвхөн ангиудын файлын жагсаалтыг агуулна.
 create table if not exists public.md_series (
   id text primary key,
   price integer not null default 3500,
@@ -45,6 +47,11 @@ create table if not exists public.md_series (
 
 alter table public.md_series add column if not exists price integer not null default 3500;
 alter table public.md_series add column if not exists free_minutes numeric not null default 20;
+alter table public.md_series add column if not exists title text not null default '';
+alter table public.md_series add column if not exists tagline text not null default '';
+alter table public.md_series add column if not exists genre text not null default '';
+alter table public.md_series add column if not exists sort_order integer not null default 0;
+alter table public.md_series add column if not exists hidden boolean not null default false;
 alter table public.md_series drop column if exists free_count;
 alter table public.md_series drop column if exists unlock_cost;
 alter table public.md_series drop column if exists bundle_cost;
@@ -283,6 +290,44 @@ begin
 end;
 $$;
 
+-- АДМИН: киноны мэдээллийг засах (нэр, ангилал, үнэ, эрэмбэ, нуух)
+create or replace function public.md_update_series(
+  p_id text,
+  p_title text,
+  p_tagline text,
+  p_genre text,
+  p_price integer,
+  p_free_minutes numeric,
+  p_sort_order integer,
+  p_hidden boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_price < 0 then
+    raise exception 'bad_price';
+  end if;
+  update md_series
+     set title = p_title,
+         tagline = p_tagline,
+         genre = p_genre,
+         price = p_price,
+         free_minutes = greatest(0, p_free_minutes),
+         sort_order = p_sort_order,
+         hidden = p_hidden
+   where id = p_id;
+  if not found then
+    raise exception 'unknown_series';
+  end if;
+end;
+$$;
+
 -- Админ хуудасны жагсаалт: хүсэлт + утасны дугаар
 create or replace view public.md_purchases_admin as
   select t.id, t.series_id, t.price, t.status, t.created_at, t.decided_at, p.phone
@@ -297,7 +342,8 @@ grant execute on function
   public.md_confirm_purchase(bigint),
   public.md_reject_purchase(bigint),
   public.md_admin_grant(text, text),
-  public.md_update_settings(text, text, text, text, text)
+  public.md_update_settings(text, text, text, text, text),
+  public.md_update_series(text, text, text, text, integer, numeric, integer, boolean)
 to authenticated;
 
 -- ============================================================

@@ -1,10 +1,18 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATALOG, formatPrice } from "../data/catalog";
+import { allCategories, CATALOG, formatPrice, seriesCategories } from "../data/catalog";
 import { buyStatus, signOut, useAppState } from "../lib/store";
 import { AccountBadge } from "../components/AccountBadge";
 
 export function Home() {
   const s = useAppState();
+  const [cat, setCat] = useState<string | null>(null);
+
+  const categories = useMemo(() => allCategories(CATALOG), []);
+  const shown = useMemo(
+    () => (cat ? CATALOG.filter((x) => seriesCategories(x).includes(cat)) : CATALOG),
+    [cat],
+  );
 
   return (
     <div className="page">
@@ -20,8 +28,28 @@ export function Home() {
         <p>Эхний минутууд үнэгүй · Нэг удаа төлөөд дуустал үзнэ · Утсандаа шууд үз</p>
       </section>
 
+      {categories.length > 1 && (
+        <nav className="cat-bar">
+          <button
+            className={`cat-chip ${cat === null ? "cat-chip-on" : ""}`}
+            onClick={() => setCat(null)}
+          >
+            Бүгд
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c}
+              className={`cat-chip ${cat === c ? "cat-chip-on" : ""}`}
+              onClick={() => setCat(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </nav>
+      )}
+
       <section className="grid">
-        {CATALOG.map((series) => {
+        {shown.map((series) => {
           const last = s.progress[series.id];
           const owned = buyStatus(s, series.id) === "owned";
           return (

@@ -34,9 +34,22 @@ if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
             -Body $body | Out-Null
         Write-Host "   Үнэ сервер дээр шинэчлэгдлээ"
     }
-    catch { Write-Warning "Үнэ тааруулж чадсангүй: $($_.Exception.Message) — сайт гарна, гэхдээ шинэ киноны худалдан авалт ажиллахгүй байж магадгүй" }
+    catch {
+        Write-Host ""
+        Write-Error @"
+Үнэ тааруулж чадсангүй: $($_.Exception.Message)
+
+САЙТ ГАРГАСАНГҮЙ. Учир нь энэ алхам амжилтгүй болвол шинэ кино сайт дээр
+харагдах ч ХУДАЛДАГДАХГҮЙ (сервер үнийг нь мэдэхгүй тул худалдан авалт алдаа өгнө).
+
+Ихэнхдээ Supabase-ийн токен хүчингүй болсон байдаг:
+supabase.com/dashboard/account/tokens -> шинэ токен -> .env доторх
+SUPABASE_ACCESS_TOKEN-ийг солино.
+"@
+        exit 1
+    }
 }
-else { Write-Warning ".env дотор SUPABASE түлхүүр алга — үнийн тааруулалт алгасав" }
+else { Write-Error ".env дотор SUPABASE түлхүүр алга — сайт гаргасангүй (шинэ кино худалдагдахгүй байх эрсдэлтэй)"; exit 1 }
 
 Write-Host "3/5 Git commit..."
 git add -A

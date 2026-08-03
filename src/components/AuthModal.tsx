@@ -46,11 +46,18 @@ export function AuthModal() {
         <input
           className="code-input"
           type="password"
-          placeholder="Нууц үг (6+ тэмдэгт)"
+          placeholder={mode === "up" ? "Нууц үг зохионо уу (6+ орон)" : "Нууц үг"}
           value={pass}
           onChange={(e) => setPass(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !busy && submit()}
         />
+
+        {mode === "up" && (
+          <p className="hint-box">
+            💡 Нууц үгээ <strong>өөрөө зохионо</strong> — сануулгын мессеж илгээхгүй. Дараа
+            нэвтрэхэд энэ нууц үг хэрэгтэй тул санаж аваарай.
+          </p>
+        )}
 
         {err && <p className="msg-err">{err}</p>}
 
