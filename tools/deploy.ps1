@@ -38,10 +38,12 @@ if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
     ($rows -join ", ") + " on conflict (id) do update set ep_durations = excluded.ep_durations;"
     $body = @{ query = $sql } | ConvertTo-Json -Compress
     try {
+        # ЧУХАЛ: биетийг БАЙТААР илгээнэ. Тэгэхгүй бол PowerShell кирилл
+        # үсгийг «?» болгож гажуудуулдаг (киноны нэр, ангилал алдагдана).
         Invoke-RestMethod -Method Post `
             -Uri "https://api.supabase.com/v1/projects/$($env:SUPABASE_PROJECT_REF)/database/query" `
-            -Headers @{ Authorization = "Bearer $($env:SUPABASE_ACCESS_TOKEN)"; 'Content-Type' = 'application/json' } `
-            -Body $body | Out-Null
+            -Headers @{ Authorization = "Bearer $($env:SUPABASE_ACCESS_TOKEN)"; 'Content-Type' = 'application/json; charset=utf-8' } `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) | Out-Null
         Write-Host "   Шинэ кино бүртгэгдлээ (байгаа киноны тохиргоо хэвээр)"
     }
     catch {
