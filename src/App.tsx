@@ -6,6 +6,9 @@ import { SeriesPage } from "./pages/SeriesPage";
 import { PlayerFeed } from "./pages/PlayerFeed";
 import { AdminPage } from "./pages/AdminPage";
 import { HelpPage } from "./pages/HelpPage";
+import { SearchPage } from "./pages/SearchPage";
+import { MyMoviesPage } from "./pages/MyMoviesPage";
+import { BottomNav } from "./components/BottomNav";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
 
@@ -24,7 +27,10 @@ export default function App() {
         <Route path="/watch/:seriesId/:epIndex" element={<PlayerFeed />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/my" element={<MyMoviesPage />} />
       </Routes>
+      <BottomNav />
       <PurchaseModal />
       <AuthModal />
     </HashRouter>

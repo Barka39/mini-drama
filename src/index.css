@@ -129,6 +129,120 @@ a {
   color: var(--text-muted);
 }
 
+/* ---- Доод цэс ---- */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  background: rgba(16, 16, 24, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 50;
+}
+
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 7px;
+  text-decoration: none;
+  color: var(--text-muted);
+}
+
+.bn-on {
+  color: var(--accent);
+}
+
+.bn-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.bn-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Доод цэс агуулгыг халхлахгүй байх зай */
+.page {
+  padding-bottom: 74px;
+}
+
+/* ---- Хайлт ---- */
+.search-wrap {
+  padding: 4px 16px 10px;
+}
+
+.search-input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.search-count {
+  padding: 0 16px 6px;
+}
+
+.center-text {
+  text-align: center;
+  padding: 30px 16px;
+  line-height: 1.7;
+}
+
+/* ---- Миний кинонууд ---- */
+.my-block {
+  padding: 0 16px 14px;
+}
+
+.my-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 8px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.my-row img {
+  width: 52px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.my-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
 /* ---- Хэвтээ эгнээ (Үргэлжлүүлэн үзэх) ---- */
 .row-block {
   padding: 0 16px 6px;
