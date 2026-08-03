@@ -27,11 +27,15 @@ if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
     # учир нь нэр/үнэ/ангиллыг одоо АДМИН ХУУДАСНААС засдаг, тэр нь эх сурвалж.
     $esc = { param($s) if ($null -eq $s) { "" } else { $s -replace "'", "''" } }
     $rows = @($cat.series | Where-Object { $_.id } | ForEach-Object {
-            "('$(& $esc $_.id)', $([int]$_.price), $([double]$_.freeMinutes), '$(& $esc $_.title)', '$(& $esc $_.tagline)', '$(& $esc $_.genre)')"
+            $durs = (@($_.episodes | ForEach-Object { [double]$_.duration }) -join ',')
+            "('$(& $esc $_.id)', $([int]$_.price), $([double]$_.freeMinutes), '$(& $esc $_.title)', '$(& $esc $_.tagline)', '$(& $esc $_.genre)', ARRAY[$durs]::numeric[])"
         })
     if ($rows.Count -eq 0) { Write-Error "catalog.json дотор кино алга"; exit 1 }
-    $sql = "insert into public.md_series (id, price, free_minutes, title, tagline, genre) values " +
-    ($rows -join ", ") + " on conflict (id) do nothing;"
+    # Ангиудын урт бол catalog.json-ы үнэн (бичлэг хэрчихэд тодорхойлогддог) тул
+    # үргэлж шинэчилнэ — үүгээр сервер аль анги үнэгүйг мэднэ.
+    # Нэр/үнэ/ангилал зэрэг нь админ хуудасны эзэмшилд тул хөндөхгүй.
+    $sql = "insert into public.md_series (id, price, free_minutes, title, tagline, genre, ep_durations) values " +
+    ($rows -join ", ") + " on conflict (id) do update set ep_durations = excluded.ep_durations;"
     $body = @{ query = $sql } | ConvertTo-Json -Compress
     try {
         Invoke-RestMethod -Method Post `

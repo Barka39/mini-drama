@@ -52,6 +52,48 @@ alter table public.md_series add column if not exists tagline text not null defa
 alter table public.md_series add column if not exists genre text not null default '';
 alter table public.md_series add column if not exists sort_order integer not null default 0;
 alter table public.md_series add column if not exists hidden boolean not null default false;
+-- Ангиудын урт (секунд) ба түүнээс тооцсон үнэгүй ангийн тоо.
+-- Бичлэг дамжуулагч (Cloudflare Function) энэ тоог хараад эрхийг шийддэг тул
+-- үнэгүй хязгаарыг клиент талаас хуурах боломжгүй.
+alter table public.md_series add column if not exists ep_durations numeric[] not null default '{}';
+alter table public.md_series add column if not exists free_eps integer not null default 0;
+
+-- Эхний free_minutes минутад ЭХЭЛДЭГ ангиудыг үнэгүй гэж тооцно
+create or replace function public.md_free_eps_from(p_durations numeric[], p_free_min numeric)
+returns integer
+language plpgsql
+immutable
+as $$
+declare
+  v_limit numeric := coalesce(p_free_min, 0) * 60;
+  v_acc numeric := 0;
+  v_cnt integer := 0;
+  d numeric;
+begin
+  if p_durations is null then return 0; end if;
+  foreach d in array p_durations loop
+    exit when v_acc >= v_limit;
+    v_cnt := v_cnt + 1;
+    v_acc := v_acc + coalesce(d, 0);
+  end loop;
+  return v_cnt;
+end;
+$$;
+
+create or replace function public.md_series_sync_free_eps()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.free_eps := public.md_free_eps_from(new.ep_durations, new.free_minutes);
+  return new;
+end;
+$$;
+
+drop trigger if exists md_series_free_eps on public.md_series;
+create trigger md_series_free_eps
+  before insert or update on public.md_series
+  for each row execute function public.md_series_sync_free_eps();
 alter table public.md_series drop column if exists free_count;
 alter table public.md_series drop column if exists unlock_cost;
 alter table public.md_series drop column if exists bundle_cost;

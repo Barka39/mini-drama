@@ -5,6 +5,7 @@ import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { openAuth, openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
+import { EpisodeVideo } from "../components/EpisodeVideo";
 
 export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
@@ -104,26 +105,19 @@ export function PlayerFeed() {
             {watchable ? (
               mountVideo ? (
                 <>
-                  <video
-                    ref={(el) => {
+                  <EpisodeVideo
+                    seriesId={series.id}
+                    epIndex={ep.index}
+                    videoPath={ep.video}
+                    poster={series.poster}
+                    muted={muted}
+                    preloadAuto={Math.abs(ep.index - active) <= 1}
+                    isActive={ep.index === active}
+                    registerRef={(el) => {
                       if (el) videoRefs.current.set(ep.index, el);
                       else videoRefs.current.delete(ep.index);
                     }}
-                    src={ep.video}
-                    poster={series.poster}
-                    playsInline
-                    muted={muted}
-                    preload={Math.abs(ep.index - active) <= 1 ? "auto" : "metadata"}
-                    onClick={(e) => {
-                      const v = e.currentTarget;
-                      if (v.paused) v.play();
-                      else v.pause();
-                    }}
-                    onTimeUpdate={(e) => {
-                      if (ep.index !== active) return;
-                      const v = e.currentTarget;
-                      if (v.duration > 0) setPct((v.currentTime / v.duration) * 100);
-                    }}
+                    onProgress={setPct}
                     onEnded={() => advanceFrom(ep.index)}
                   />
                   {ep.index === active && (

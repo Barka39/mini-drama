@@ -593,6 +593,16 @@ a {
   overflow: hidden;
 }
 
+.video-loading {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .slide video {
   width: 100%;
   height: 100%;
