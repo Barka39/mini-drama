@@ -567,6 +567,53 @@
                                             "duration":  16.3
                                         }
                                     ]
+                   },
+                   {
+                       "id":  "series-260804-0210",
+                       "title":  "A Bittersweet Life",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260804-0210.jpg",
+                       "price":  4800,
+                       "freeMinutes":  20,
+                       "episodes":  [
+                                        {
+                                            "index":  1,
+                                            "video":  "videos/series-260804-0210_e1.mp4",
+                                            "title":  "1-р анги",
+                                            "duration":  1200
+                                        },
+                                        {
+                                            "index":  2,
+                                            "video":  "videos/series-260804-0210_e2.mp4",
+                                            "title":  "2-р анги",
+                                            "duration":  1200
+                                        },
+                                        {
+                                            "index":  3,
+                                            "video":  "videos/series-260804-0210_e3.mp4",
+                                            "title":  "3-р анги",
+                                            "duration":  1200
+                                        },
+                                        {
+                                            "index":  4,
+                                            "video":  "videos/series-260804-0210_e4.mp4",
+                                            "title":  "4-р анги",
+                                            "duration":  1200
+                                        },
+                                        {
+                                            "index":  5,
+                                            "video":  "videos/series-260804-0210_e5.mp4",
+                                            "title":  "5-р анги",
+                                            "duration":  1200
+                                        },
+                                        {
+                                            "index":  6,
+                                            "video":  "videos/series-260804-0210_e6.mp4",
+                                            "title":  "6-р анги",
+                                            "duration":  1161.2
+                                        }
+                                    ]
                    }
                ]
 }
