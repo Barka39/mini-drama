@@ -670,6 +670,28 @@ a {
   transition: width 0.25s linear;
 }
 
+.admin-sub {
+  font-size: 14px;
+  margin: 4px 0 8px;
+  color: var(--text-muted);
+}
+
+.src-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.src-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
 .funnel {
   display: flex;
   flex-direction: column;

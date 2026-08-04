@@ -12,6 +12,24 @@ export type TrackEvent =
   | "order_created"; // захиалга үүсгэсэн
 
 const SID_KEY = "md-sid";
+const SRC_KEY = "md-src";
+
+/** Хаанаас ирснийг тэмдэглэнэ: ?src=fb гэх мэт. Session-д хадгална. */
+function source(): string {
+  try {
+    const stored = sessionStorage.getItem(SRC_KEY);
+    if (stored) return stored;
+    // Хаяг нь #/... хэлбэртэй тул query нь хашийн өмнө ч, хойно ч байж болно
+    const fromSearch = new URLSearchParams(location.search).get("src");
+    const hashQ = location.hash.includes("?") ? location.hash.split("?")[1] : "";
+    const fromHash = new URLSearchParams(hashQ).get("src");
+    const src = (fromSearch || fromHash || "").slice(0, 20);
+    if (src) sessionStorage.setItem(SRC_KEY, src);
+    return src;
+  } catch {
+    return "";
+  }
+}
 
 function sessionId(): string {
   try {
@@ -36,7 +54,13 @@ export function track(event: TrackEvent, seriesId?: string, ep?: number) {
 
   void supa
     .from("md_events")
-    .insert({ sid: sessionId(), event, series_id: seriesId ?? null, ep: ep ?? null })
+    .insert({
+      sid: sessionId(),
+      event,
+      series_id: seriesId ?? null,
+      ep: ep ?? null,
+      src: source(),
+    })
     .then(() => {
       /* хэмжилт бүтэлгүйтвэл хэрэглэгчид нөлөөлөхгүй */
     });

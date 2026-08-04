@@ -40,6 +40,7 @@ const FUNNEL_STEPS = [
 export function AdminPage() {
   const s = useAppState();
   const [funnel, setFunnel] = useState<Record<string, number>>({});
+  const [bySrc, setBySrc] = useState<Record<string, Record<string, number>>>({});
   const catalog = useCatalog();
   const [metas, setMetas] = useState<SeriesMeta[]>([]);
   const [editing, setEditing] = useState<SeriesMeta | null>(null);
@@ -105,6 +106,9 @@ export function AdminPage() {
 
     const fn = await supa.rpc("md_funnel", { p_days: 7 });
     if (fn.data) setFunnel(fn.data as Record<string, number>);
+
+    const fs = await supa.rpc("md_funnel_src", { p_days: 7 });
+    if (fs.data) setBySrc(fs.data as Record<string, Record<string, number>>);
 
     const bm = await supa
       .from("md_bank_msgs")
@@ -253,6 +257,23 @@ export function AdminPage() {
           Хүн тус бүрээр тоолсон. Хаана хамгийн их унтарч байгааг харвал юуг засахаа мэднэ.
         </p>
       </div>
+
+      {Object.keys(bySrc).length > 0 && (
+        <>
+          <h4 className="admin-sub">Суваг тус бүрээр</h4>
+          <div className="src-table">
+            {Object.entries(bySrc).map(([src, ev]) => (
+              <div key={src} className="src-row">
+                <strong>{src}</strong>
+                <span className="muted small">
+                  {Number(ev.open_series ?? 0)} орсон · {Number(ev.buy_click ?? 0)} авах дарсан ·{" "}
+                  {Number(ev.order_created ?? 0)} захиалсан
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h3 className="admin-h">Кинонууд ({metas.length})</h3>
       {metas.length === 0 && <p className="muted small">Ачаалж байна…</p>}

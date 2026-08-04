@@ -73,8 +73,9 @@ foreach ($s in $catalog.series) {
       a { color:#ff2d6f; }
     </style>
     <script>
-      // Зар дээр дарсан хүнийг шууд киноны хуудас руу оруулна
-      location.replace("../#/series/$id");
+      // Зар дээр дарсан хүнийг шууд киноны хуудас руу оруулна.
+      // ?src=fb гэх мэт тэмдэглэгээг дамжуулна — аль сувгаас ирснийг хэмжинэ.
+      location.replace("../#/series/$id" + location.search);
     </script>
   </head>
   <body>
