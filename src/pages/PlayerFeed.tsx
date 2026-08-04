@@ -204,13 +204,20 @@ export function PlayerFeed() {
         );
       })}
 
+      {/* Төгсгөлийн дэлгэц — линкээр орсон хүнийг сайт руу татах гол цэг */}
       <section className="slide end-slide" data-ep={series.episodes.length + 1}>
         <div className="lock-panel">
           <h3>Кино дууслаа 🎬</h3>
-          <p className="muted">Өөр кино үзэх үү?</p>
+          <p className="muted">
+            Ийм олон кино <strong>kinomandal.com</strong> дээр байна — монгол хадмалтай,
+            утсандаа шууд.
+          </p>
           <Link className="btn btn-primary" to="/">
-            Каталог руу буцах
+            Бусад кино үзэх →
           </Link>
+          <button className="btn btn-outline" onClick={openVip}>
+            ⭐ Сарын эрх — бүх кино хязгааргүй
+          </button>
         </div>
       </section>
     </div>

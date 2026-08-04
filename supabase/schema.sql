@@ -245,6 +245,139 @@ $$;
 
 grant execute on function public.md_funnel(integer) to authenticated;
 
+-- ============================================================
+-- НЭВТРЭХ ЛИНК — бүртгүүлж чаддаггүй хэрэглэгчдэд зориулав.
+-- Эзэн линк үүсгэж чатаар илгээнэ; хэрэглэгч дарахад бүртгэлгүйгээр
+-- кино нээгдэнэ. Линк нь тодорхой тооны төхөөрөмжид л ажиллана тул
+-- олноор тарааж болохгүй.
+-- ============================================================
+alter table public.md_profiles alter column phone drop not null;
+
+create table if not exists public.md_access_links (
+  token text primary key,
+  series_id text,               -- нэг кино (эсвэл null бол сарын эрх)
+  plan_days integer,            -- сарын эрх олгох бол хоногийн тоо
+  max_claims integer not null default 1,
+  claims integer not null default 0,
+  note text not null default '',
+  revoked boolean not null default false,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.md_access_links enable row level security;
+drop policy if exists md_links_select on public.md_access_links;
+create policy md_links_select on public.md_access_links
+  for select using (public.md_is_admin());
+
+-- Линкийг ашиглах: нэвтэрсэн (нэргүй ч болно) хэрэглэгчид эрх олгоно
+create or replace function public.md_claim_access(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_link md_access_links%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select * into v_link from md_access_links where token = p_token for update;
+  if v_link.token is null then raise exception 'bad_link'; end if;
+  if v_link.revoked then raise exception 'revoked'; end if;
+  if v_link.expires_at is not null and v_link.expires_at < now() then
+    raise exception 'expired';
+  end if;
+
+  -- Профайл байхгүй бол үүсгэнэ (утасны дугааргүй байж болно)
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
+  -- Аль хэдийн энэ эрхтэй бол дахин тоолохгүй (нэг хүн дахин нээхэд)
+  if v_link.series_id is not null
+     and exists (select 1 from md_purchases
+                 where user_id = auth.uid() and series_id = v_link.series_id
+                   and status = 'confirmed') then
+    return jsonb_build_object('ok', true, 'series_id', v_link.series_id, 'repeat', true);
+  end if;
+
+  if v_link.claims >= v_link.max_claims then
+    raise exception 'used_up';
+  end if;
+
+  if v_link.series_id is not null then
+    insert into md_purchases (user_id, series_id, price, amount, status, decided_at)
+    values (auth.uid(), v_link.series_id, 0, 0, 'confirmed', now())
+    on conflict do nothing;
+  end if;
+
+  if v_link.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_link.plan_days || ' days')::interval
+     where id = auth.uid();
+  end if;
+
+  update md_access_links set claims = claims + 1 where token = p_token;
+
+  return jsonb_build_object('ok', true, 'series_id', v_link.series_id,
+                            'plan_days', v_link.plan_days);
+end;
+$$;
+
+grant execute on function public.md_claim_access(text) to authenticated, anon;
+
+-- АДМИН: линк үүсгэх
+create or replace function public.md_create_links(
+  p_series text,
+  p_count integer default 1,
+  p_max_claims integer default 1,
+  p_note text default ''
+)
+returns setof text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  i integer;
+  v_token text;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_count < 1 or p_count > 50 then
+    raise exception 'bad_count';
+  end if;
+  for i in 1..p_count loop
+    -- pgcrypto өөр схемд байдаг тул суурь функцээр богино санамсаргүй токен үүсгэнэ
+    v_token := substr(md5(random()::text || clock_timestamp()::text || i::text), 1, 10);
+    insert into md_access_links (token, series_id, max_claims, note)
+    values (v_token, p_series, greatest(1, p_max_claims), p_note);
+    return next v_token;
+  end loop;
+end;
+$$;
+
+grant execute on function public.md_create_links(text, integer, integer, text) to authenticated;
+
+-- АДМИН: линкийг хүчингүй болгох
+create or replace function public.md_revoke_link(p_token text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  update md_access_links set revoked = true where token = p_token;
+end;
+$$;
+
+grant execute on function public.md_revoke_link(text) to authenticated;
+
 -- Нэг хэрэглэгч нэг киног давхардуулж хүсэх/авахгүй
 create unique index if not exists md_purchases_one_pending
   on public.md_purchases (user_id, series_id) where status = 'pending';

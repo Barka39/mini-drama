@@ -228,6 +228,44 @@ export function canWatch(s: AppState, series: Series, epIndex: number): boolean 
   return s.purchased.includes(series.id);
 }
 
+// ---------- Нэвтрэх линк (бүртгэлгүй хандалт) ----------
+
+export interface ClaimResult {
+  ok: boolean;
+  seriesId?: string;
+  reason?: string;
+}
+
+const CLAIM_ERRORS: Record<string, string> = {
+  bad_link: "Ийм линк олдсонгүй. Хаягаа бүрэн хуулсан эсэхээ шалгана уу.",
+  revoked: "Энэ линк хүчингүй болсон байна.",
+  expired: "Энэ линкийн хугацаа дууссан байна.",
+  used_up: "Энэ линкийг аль хэдийн ашигласан байна. Шинэ линк хүсээрэй.",
+};
+
+/** Линкээр эрх авах. Бүртгэлгүй бол нэргүй хэрэглэгчээр нэвтэрнэ. */
+export async function claimAccess(token: string): Promise<ClaimResult> {
+  try {
+    const { data: sess } = await supa.auth.getSession();
+    if (!sess.session) {
+      const { error } = await supa.auth.signInAnonymously();
+      if (error) return { ok: false, reason: "Холболт үүсгэж чадсангүй: " + error.message };
+    }
+
+    const { data, error } = await supa.rpc("md_claim_access", { p_token: token });
+    if (error) {
+      const key = Object.keys(CLAIM_ERRORS).find((k) => error.message.includes(k));
+      return { ok: false, reason: key ? CLAIM_ERRORS[key] : error.message };
+    }
+
+    await refreshAccount();
+    const res = data as { series_id?: string };
+    return { ok: true, seriesId: res?.series_id ?? undefined };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : "Алдаа гарлаа" };
+  }
+}
+
 // ---------- Сарын эрх ----------
 
 export interface Plan {

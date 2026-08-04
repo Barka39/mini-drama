@@ -703,6 +703,58 @@ a {
   min-width: 2px;
 }
 
+.link-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 460px;
+  margin-bottom: 12px;
+}
+
+.link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 9px 12px;
+}
+
+.link-dead {
+  opacity: 0.45;
+}
+
+.link-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.link-url {
+  font-size: 12.5px;
+  word-break: break-all;
+  color: var(--accent);
+}
+
+.claim-page {
+  gap: 14px;
+}
+
+.claim-spinner {
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+}
+
 .bank-raw {
   word-break: break-word;
   opacity: 0.75;

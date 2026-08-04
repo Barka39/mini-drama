@@ -2,6 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supa } from "../lib/supa";
 import { formatPrice } from "../data/catalog";
+import {
+  createLinks,
+  linkUrl,
+  listLinks,
+  revokeLink,
+  type AccessLink,
+} from "../lib/accessLinks";
 import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
 import {
   loadSeriesMeta,
@@ -52,6 +59,30 @@ export function AdminPage() {
   const [bankMsgs, setBankMsgs] = useState<
     { id: number; raw: string; amount: string | null; matched: boolean; created_at: string }[]
   >([]);
+  const [links, setLinks] = useState<AccessLink[]>([]);
+  const [linkSeries, setLinkSeries] = useState("");
+  const [linkCount, setLinkCount] = useState("5");
+  const [linkDevices, setLinkDevices] = useState("1");
+  const [linkNote, setLinkNote] = useState("");
+  const [makingLinks, setMakingLinks] = useState(false);
+
+  async function makeLinks() {
+    setMakingLinks(true);
+    const res = await createLinks(
+      linkSeries,
+      Math.min(50, Math.max(1, Number(linkCount) || 1)),
+      Math.max(1, Number(linkDevices) || 1),
+      linkNote,
+    );
+    setMakingLinks(false);
+    if (res.ok) {
+      setMsg(`${res.tokens?.length ?? 0} линк үүслээ ✅`);
+      setLinkNote("");
+      setLinks(await listLinks());
+    } else {
+      setMsg("Алдаа: " + res.reason);
+    }
+  }
 
   const load = useCallback(async () => {
     const [p, h] = await Promise.all([
@@ -69,6 +100,8 @@ export function AdminPage() {
     ]);
     setPending((p.data ?? []) as AdminPurchase[]);
     setHistory((h.data ?? []) as AdminPurchase[]);
+
+    setLinks(await listLinks());
 
     const fn = await supa.rpc("md_funnel", { p_days: 7 });
     if (fn.data) setFunnel(fn.data as Record<string, number>);
@@ -326,6 +359,100 @@ export function AdminPage() {
         (бичлэг хэрчих ажил компьютер дээр хийгддэг). Энд нэмсэн киноныхоо мэдээллийг
         засварлана.
       </p>
+
+      <h3 className="admin-h">Нэвтрэх линк (бүртгэлгүй хүнд)</h3>
+      <p className="muted small">
+        Бүртгүүлж чаддаггүй хүнд зориулав. Линк дээр дарахад л <strong>тухайн кино</strong>{" "}
+        нээгдэнэ — утас, нууц үг шаардахгүй. Линк бүр зөвхөн сонгосон кинонд хүчинтэй.
+      </p>
+      <div className="link-form">
+        <select
+          className="code-input"
+          value={linkSeries}
+          onChange={(e) => setLinkSeries(e.target.value)}
+        >
+          <option value="">Кино сонгох…</option>
+          {catalog.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+        <div className="series-edit-row">
+          <label className="series-field">
+            <span className="pay-label">Хэдэн линк</span>
+            <input
+              className="code-input"
+              inputMode="numeric"
+              value={linkCount}
+              onChange={(e) => setLinkCount(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+          <label className="series-field">
+            <span className="pay-label">Хэдэн төхөөрөмж</span>
+            <input
+              className="code-input"
+              inputMode="numeric"
+              value={linkDevices}
+              onChange={(e) => setLinkDevices(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+        </div>
+        <input
+          className="code-input"
+          placeholder="Тэмдэглэл (жишээ: FB группын гишүүд)"
+          value={linkNote}
+          onChange={(e) => setLinkNote(e.target.value)}
+        />
+        <button
+          className="btn btn-primary"
+          disabled={!linkSeries || makingLinks}
+          onClick={makeLinks}
+        >
+          {makingLinks ? "Үүсгэж байна…" : "Линк үүсгэх"}
+        </button>
+      </div>
+
+      {links.length > 0 && (
+        <div className="link-list">
+          {links.map((l) => (
+            <div key={l.token} className={`link-row ${l.revoked ? "link-dead" : ""}`}>
+              <div className="link-main">
+                <code className="link-url">{linkUrl(l.token)}</code>
+                <span className="muted small">
+                  {seriesTitle(l.series_id ?? "")} · {l.claims}/{l.max_claims} ашигласан
+                  {l.note && ` · ${l.note}`}
+                  {l.revoked && " · 🚫 хүчингүй"}
+                </span>
+              </div>
+              <div className="admin-actions">
+                <button
+                  className="copy-btn"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(linkUrl(l.token));
+                    setMsg("Линк хуулагдлаа ✅");
+                  }}
+                >
+                  Хуулах
+                </button>
+                {!l.revoked && (
+                  <button
+                    className="copy-btn"
+                    onClick={async () => {
+                      if (await revokeLink(l.token)) {
+                        setLinks(await listLinks());
+                        setMsg("Линк хүчингүй боллоо");
+                      }
+                    }}
+                  >
+                    Хаах
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <h3 className="admin-h">Шилжүүлэг хүлээн авах данс</h3>
       {settings ? (
