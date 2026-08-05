@@ -15,6 +15,28 @@ foreach ($line in Get-Content ".env" | Where-Object { $_ -match '^\w+=' }) {
     Set-Item -Path "env:$k" -Value $v.Trim()
 }
 
+# Эзэн утаснаасаа солисон постеруудыг татаж авна.
+# Сайт дээр тэдгээр нь шууд солигддог (R2-оос), харин FACEBOOK-ийн зарын зураг
+# энд, компьютер дээр үүсдэг. Тиймээс зарын карт хоцрохгүйн тулд эхлээд
+# сүүлийн постеруудыг татаж, локал файлуудыг шинэчилнэ.
+Write-Host "0/5 Утаснаас солисон постеруудыг татаж байна..."
+try {
+    $supaUrl = "https://uloxtmssvloffbwfwzki.supabase.co"
+    $anon = "sb_publishable_uDORytsT_NzUAqnBXnq6Bw_Fk9o0LQ1"
+    $rows = Invoke-RestMethod -Method Get -Uri "$supaUrl/rest/v1/md_series?select=id,poster_url&poster_url=not.is.null" -Headers @{ apikey = $anon }
+    foreach ($r in @($rows)) {
+        $name = Split-Path $r.poster_url -Leaf
+        $dest = Join-Path (Get-Location) "public\posters\$($r.id).jpg"
+        Invoke-WebRequest -Uri "https://kinomandal.com/p/$name" -OutFile $dest -UseBasicParsing
+        Write-Host "   постер шинэчлэгдлээ: $($r.id)"
+    }
+    if (@($rows).Count -eq 0) { Write-Host "   (утаснаас солисон постер алга)" }
+}
+catch {
+    # Энэ алхам бүтэхгүй бол сайт гарахад саад болохгүй — зөвхөн зарын зураг хоцорно
+    Write-Host "   (постер татаж чадсангүй: $($_.Exception.Message))"
+}
+
 Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
 & (Join-Path $PSScriptRoot "make-landing.ps1")
 npm run build
