@@ -33,9 +33,19 @@ foreach ($s in $catalog.series) {
     # 1200x630 хуваалцах зураг: бүдгэрсэн өргөн дэвсгэр дээр босоо постер
     $posterPath = Join-Path $root "public\$($s.poster -replace '/', '\')"
     $ogPath = Join-Path $ogDir "$id.jpg"
+    # Хэрэв тухайн кинод ЗОРИУЛСАН өргөн (хэвтээ) зураг байвал түүнийг шууд
+    # ашиглана — босоо постероос хайчилж хийхэд гарчиг нь тасардаг байсан.
+    # Зам: brand\og-src\<id>.jpg (эзэн өөрөө хийсэн зарын зураг).
+    # public\ доор биш — эс бөгөөс эх зураг сайттай хамт дэмий нийтлэгдэнэ.
+    $wideSrc = Join-Path $root "brand\og-src\$id.jpg"
+    if (Test-Path -LiteralPath $wideSrc) {
+        & $ff -v error -y -i $wideSrc -vf `
+            "scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630" `
+            -frames:v 1 -q:v 3 $ogPath
+    }
     # Эх бичлэгийн шатсан хадмал ихэвчлэн доод талд байдаг тул урд талын
     # постерын доод 36%-ийг таслана (зарын карт цэвэрхэн харагдана)
-    if (Test-Path $posterPath) {
+    elseif (Test-Path $posterPath) {
         & $ff -v error -y -i $posterPath -filter_complex `
             "[0:v]scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630,boxblur=20:2[bg];[0:v]crop=iw:ih*0.64:0:0,scale=-2:630[fg];[bg][fg]overlay=(W-w)/2:0" `
             -frames:v 1 -q:v 3 $ogPath
