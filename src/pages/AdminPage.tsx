@@ -13,6 +13,7 @@ import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
 import {
   loadSeriesMeta,
   saveSeriesMeta,
+  uploadPoster,
   useCatalog,
   type SeriesMeta,
 } from "../lib/seriesAdmin";
@@ -45,6 +46,7 @@ export function AdminPage() {
   const [metas, setMetas] = useState<SeriesMeta[]>([]);
   const [editing, setEditing] = useState<SeriesMeta | null>(null);
   const [savingSeries, setSavingSeries] = useState(false);
+  const [posterBusy, setPosterBusy] = useState<string | null>(null);
 
   const seriesTitle = useCallback(
     (id: string) => metas.find((m) => m.id === id)?.title || catalog.find((c) => c.id === id)?.title || id,
@@ -128,6 +130,21 @@ export function AdminPage() {
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [s.isAdmin, load]);
+
+  async function changePoster(m: SeriesMeta, file: File | undefined) {
+    if (!file) return;
+    setPosterBusy(m.id);
+    const res = await uploadPoster(m.id, file);
+    setPosterBusy(null);
+    if (res.ok) {
+      setMsg(`«${m.title || m.id}» постер солигдлоо ✅`);
+      if (editing?.id === m.id) setEditing({ ...editing, poster_url: res.url ?? null });
+      const rows = await loadSeriesMeta(true);
+      setMetas([...rows].sort((a, b) => b.sort_order - a.sort_order || a.id.localeCompare(b.id)));
+    } else {
+      setMsg("Постер солигдсонгүй: " + res.reason);
+    }
+  }
 
   async function persistSeries() {
     if (!editing) return;
@@ -280,6 +297,31 @@ export function AdminPage() {
       {metas.map((m) =>
         editing?.id === m.id ? (
           <div key={m.id} className="series-edit">
+            <div className="poster-edit">
+              <img
+                className="poster-edit-img"
+                src={editing.poster_url || catalog.find((c) => c.id === m.id)?.poster}
+                alt=""
+              />
+              <div className="poster-edit-side">
+                <span className="pay-label">Постер (нүүрэнд харагдах зураг)</span>
+                <label className="btn btn-outline poster-pick">
+                  {posterBusy === m.id ? "Оруулж байна…" : "Зураг сонгох"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    disabled={posterBusy === m.id}
+                    onChange={(e) => {
+                      changePoster(m, e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <span className="muted small">
+                  Босоо зураг тохирно. Сонгомогц шууд солигдоно — сайт шинэчлэх хэрэггүй.
+                </span>
+              </div>
+            </div>
             <input
               className="code-input"
               placeholder="Киноны нэр"
@@ -358,6 +400,11 @@ export function AdminPage() {
           </div>
         ) : (
           <div key={m.id} className="admin-row">
+            <img
+              className="admin-poster-mini"
+              src={m.poster_url || catalog.find((c) => c.id === m.id)?.poster}
+              alt=""
+            />
             <div>
               <strong>{m.title || m.id}</strong>
               {m.hidden && <span className="muted small"> · 🚫 нуусан</span>}

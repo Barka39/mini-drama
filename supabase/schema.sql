@@ -833,3 +833,34 @@ drop table if exists public.md_topups;
 drop table if exists public.md_packs;
 drop table if exists public.md_unlocks;
 alter table public.md_profiles drop column if exists coins;
+
+-- ============================================================
+-- Постерын зураг (2026-08-05) — эзэн админ хуудаснаас сольдог
+-- ============================================================
+-- Постер нь өмнө нь сайттай хамт (public/posters/) гардаг байсан тул солихын
+-- тулд компьютер дээрээс дахин «Сайт шинэчлэх» ажиллуулах шаардлагатай байв.
+-- Одоо зураг R2 санд ордог ба хаяг нь энд хадгалагдана — утаснаасаа шууд солино.
+alter table public.md_series add column if not exists poster_url text;
+
+create or replace function public.md_set_poster(p_id text, p_url text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_url is not null and p_url !~ '^/p/[A-Za-z0-9._-]+$' then
+    raise exception 'bad_url';
+  end if;
+  update md_series set poster_url = p_url where id = p_id;
+  if not found then
+    raise exception 'unknown_series';
+  end if;
+end;
+$$;
+
+revoke all on function public.md_set_poster(text, text) from public, anon;
+grant execute on function public.md_set_poster(text, text) to authenticated;

@@ -51,6 +51,8 @@ export interface SeriesOverride {
   free_minutes: number;
   sort_order: number;
   hidden: boolean;
+  // Админ хуудаснаас солисон постер (R2 дээр). Хоосон бол catalog.json-ы зураг.
+  poster_url?: string | null;
 }
 
 export function applyOverrides(
@@ -69,6 +71,7 @@ export function applyOverrides(
         genre: o.genre || s.genre,
         price: o.price,
         freeMinutes: o.free_minutes,
+        poster: o.poster_url || s.poster,
       };
     })
     .filter((s) => !overrides[s.id]?.hidden);

@@ -1546,6 +1546,60 @@ a {
   flex-shrink: 0;
 }
 
+/* Киноны жагсаалтад постерын бяцхан хувилбар — аль кино ямар зурагтайг шууд харна */
+.admin-poster-mini {
+  width: 38px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--bg-elev);
+}
+
+.admin-poster-mini + div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Постер солих хэсэг (засварлах горимд) */
+.poster-edit {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.poster-edit-img {
+  width: 84px;
+  height: 116px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  flex-shrink: 0;
+}
+
+.poster-edit-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Файл сонгогчийг товч шиг харагдуулна (жинхэнэ input нуугдана) */
+.poster-pick {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  cursor: pointer;
+}
+
+.poster-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .admin-coins-input {
   flex: 0 0 90px;
 }
