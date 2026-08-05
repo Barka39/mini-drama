@@ -74,7 +74,9 @@ $targetK = if (($w * $h) -gt 1000000) { 2000 } else { 1400 }
 $needCompress = (-not $NoCompress) -and ($srcKbps -gt [int]($targetK * 1.3))
 if ($needCompress) {
     Write-Host "Чанар: $srcKbps kbps — хэрэгцээнээс өндөр тул $targetK kbps болгож шахна (хэмжээ ~2 дахин багасна, чанар мэдэгдэхүйц буурахгүй)."
-    Write-Host "  Ойролцоогоор $([math]::Ceiling($duration / 4 / 60)) минут үргэлжилнэ."
+    # Хэмжсэн хурд: бодит хугацаанаас ~1.9 дахин хурдан (720x1280, preset fast).
+    # Богино дээж дээр 4x гардаг ч бүтэн кинон дээр хөдөлгөөнтэй хэсгүүд удаашруулдаг.
+    Write-Host "  Ойролцоогоор $([math]::Ceiling($duration / 1.9 / 60)) минут үргэлжилнэ."
 }
 else {
     Write-Host "Чанар: $srcKbps kbps — аль хэдийн зохистой тул дахин кодлохгүй (хурдан хэрчинэ, чанар 100% хэвээр)."
@@ -162,8 +164,16 @@ Write-Host "Видеонуудыг R2 сан руу хуулж байна ($epCo
 Set-Location $root
 for ($i = 1; $i -le $epCount; $i++) {
     $f = Join-Path $videosDir "$($Id)_e$i.mp4"
-    npx -y wrangler r2 object put "minidram/videos/$($Id)_e$i.mp4" --file $f --remote 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Error "R2 хуулалт амжилтгүй: анги $i"; exit 1 }
+    # Cloudflare заримдаа түр зуурын 503 өгдөг (нэг удаа 21-р анги дээр бүх
+    # хуулалт тасарсан). Тиймээс шууд бууж өгөхгүй — 4 удаа дахин оролдоно.
+    $ok = $false
+    for ($try = 1; $try -le 4; $try++) {
+        npx -y wrangler r2 object put "minidram/videos/$($Id)_e$i.mp4" --file $f --remote 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+        Write-Host "  (анги $i хуулагдсангүй — $try дахь оролдлого амжилтгүй, дахин оролдоно…)"
+        Start-Sleep -Seconds (5 * $try)
+    }
+    if (-not $ok) { Write-Error "R2 хуулалт амжилтгүй: анги $i (4 удаа оролдов)"; exit 1 }
     Write-Host "  хуулагдлаа $i/$epCount"
 }
 
