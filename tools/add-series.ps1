@@ -17,7 +17,9 @@ param(
     [double]$FreeMinutes = 20,
     # Анхдагчаар бичлэгийн хэлбэрийг ХЭВЭЭР нь хадгална (16:9, 4:3, босоо бүгд болно).
     # Зөвхөн энэ сонголтыг өгвөл хэвтээ бичлэгийг голоос нь босоо болгож тайрна.
-    [switch]$Crop9x16
+    [switch]$Crop9x16,
+    # Шахалтыг бүрмөсөн болиулах (эх бичлэг аль хэдийн сайн шахагдсан гэдэгт итгэлтэй бол)
+    [switch]$NoCompress
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,7 +40,11 @@ $ff = Join-Path $root "..\tale2film\tools\ffmpeg\ffmpeg.exe"
 $ffp = Join-Path $root "..\tale2film\tools\ffmpeg\ffprobe.exe"
 if (-not (Test-Path $ff)) { $ff = "ffmpeg"; $ffp = "ffprobe" }
 
-if (-not (Test-Path $Video)) { Write-Error "Видео олдсонгүй: $Video"; exit 1 }
+# -LiteralPath: файлын нэрэн дэх [ ] хаалт нь Test-Path-д «загвар» болж уншигддаг
+# (yt-dlp «нэр [id].mp4» гэж хадгалдаг) — тэгэхээр байгаа файлыг «олдсонгүй» гэдэг.
+if (-not (Test-Path -LiteralPath $Video)) { Write-Error "Видео олдсонгүй: $Video"; exit 1 }
+# ffmpeg/ffprobe-д бүтэн зам өгнө (харьцангуй зам Set-Location-ийн дараа алдагдана)
+$Video = (Resolve-Path -LiteralPath $Video).ProviderPath
 
 if ($Id -eq "") {
     # Латин ID автоматаар: кирилл үсгийг орхиод цаг хугацааны тэмдэг ашиглана
@@ -55,6 +61,25 @@ $epCount = [math]::Ceiling($duration / $EpisodeSeconds)
 Write-Host "Видео: ${w}x${h}, $([math]::Round($duration,1)) сек -> $epCount анги ($EpisodeSeconds сек тутам)"
 Write-Host "Үнэ: $Price₮ · Эхний $FreeMinutes минут үнэгүй"
 
+# --- Автомат шахалт (нотолгоонд суурилсан: хэрэгтэй үед НЬ Л шахна) ---
+#
+# Заримдаа эх бичлэг хэрэгцээнээс хамаагүй өндөр чанартай ирдэг. Тэгвэл:
+# утсан дээр удаан нээгддэг, хэрэглэгчийн дата их иддэг, R2 сан хурдан дүүрдэг.
+# Харин аль хэдийн сайн шахагдсан бичлэгийг дахин шахвал ЗӨВХӨН чанар алддаг.
+# Тиймээс эхлээд bitrate-ийг хэмжээд, зөвхөн хэт өндөр байвал дахин кодлоно.
+$srcKbps = [int]([double]((Get-Item -LiteralPath $Video).Length) * 8 / $duration / 1000)
+# Зорилтот bitrate дэлгэцийн хэмжээнээс: утасны босоо (~720p) бичлэгт 1400k хангалттай.
+$targetK = if (($w * $h) -gt 1000000) { 2000 } else { 1400 }
+# 1.3 дахин илүү байж байж шахна — 1600 kbps-ийг 1400 болгох нь ашиггүй чанарын алдагдал.
+$needCompress = (-not $NoCompress) -and ($srcKbps -gt [int]($targetK * 1.3))
+if ($needCompress) {
+    Write-Host "Чанар: $srcKbps kbps — хэрэгцээнээс өндөр тул $targetK kbps болгож шахна (хэмжээ ~2 дахин багасна, чанар мэдэгдэхүйц буурахгүй)."
+    Write-Host "  Ойролцоогоор $([math]::Ceiling($duration / 4 / 60)) минут үргэлжилнэ."
+}
+else {
+    Write-Host "Чанар: $srcKbps kbps — аль хэдийн зохистой тул дахин кодлохгүй (хурдан хэрчинэ, чанар 100% хэвээр)."
+}
+
 # Ангиуд media\videos-д хадгалагдана (git-д ордоггүй локал нөөц) + R2 руу хуулагдана
 $videosDir = Join-Path $root "media\videos"
 $postersDir = Join-Path $root "public\posters"
@@ -66,6 +91,15 @@ New-Item -ItemType Directory -Force $thumbsDir | Out-Null
 $isVertical = $h -gt $w
 $episodes = @()
 
+# Дахин кодлох үеийн стандарт тохиргоо: crf 24 = нүдэнд мэдэгдэхгүй алдагдал,
+# maxrate = хамгийн хүнд хэсэгт ч тааз тавина (утсан дээр гацахгүй),
+# +faststart = moov файлын эхэнд ороод шууд тоглож эхэлнэ.
+$encode = @(
+    "-c:v", "libx264", "-crf", "24", "-preset", "fast",
+    "-maxrate", "${targetK}k", "-bufsize", "$($targetK * 2)k",
+    "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart"
+)
+
 for ($i = 0; $i -lt $epCount; $i++) {
     $ss = $i * $EpisodeSeconds
     $outFile = Join-Path $videosDir "$($Id)_e$($i + 1).mp4"
@@ -73,7 +107,11 @@ for ($i = 0; $i -lt $epCount; $i++) {
         # Зөвхөн хүсэлтээр: хэвтээ бичлэгийг голоос нь 9:16 болгож тайрна (дахин кодлоно)
         $cropW = [int]($h * 9 / 16); if ($cropW % 2 -ne 0) { $cropW-- }
         $cropX = [int](($w - $cropW) / 2)
-        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -vf "crop=${cropW}:${h}:${cropX}:0" -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 128k -movflags +faststart $outFile
+        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -vf "crop=${cropW}:${h}:${cropX}:0" @encode $outFile
+    }
+    elseif ($needCompress) {
+        # Чанар хэрэгцээнээс өндөр байсан тул хэрчихийн зэрэгцээ шахна
+        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video @encode $outFile
     }
     else {
         # Хэлбэрийг хэвээр нь: кодлолгүй хурдан хэрчинэ (faststart = шууд тоглож эхэлнэ)
@@ -81,9 +119,10 @@ for ($i = 0; $i -lt $epCount; $i++) {
         if ($LASTEXITCODE -ne 0) {
             # mkv/avi зэрэг mp4-д шууд ордоггүй формат бол дахин кодлоно
             Write-Host "  (формат тохирохгүй тул дахин кодолж байна…)"
-            & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -c:v libx264 -crf 23 -preset fast -c:a aac -b:a 128k -movflags +faststart $outFile
+            & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video @encode $outFile
         }
     }
+    if ($LASTEXITCODE -ne 0) { Write-Error "Анги $($i + 1) бэлтгэж чадсангүй"; exit 1 }
     # Ангийн бяцхан зураг (сайт дээр ангиудын сүлжээнд харагдана)
     & $ff -v error -y -ss 3 -i $outFile -frames:v 1 -vf "scale=280:-2" -q:v 4 `
         (Join-Path $thumbsDir "$($Id)_e$($i + 1).jpg")
@@ -115,7 +154,10 @@ else {
 }
 
 # R2 руу хуулах
+$outSize = (Get-ChildItem $videosDir -Filter "$($Id)_e*.mp4" | Measure-Object Length -Sum).Sum
+$srcSize = (Get-Item -LiteralPath $Video).Length
 Write-Host ""
+Write-Host ("Ангиудын нийт хэмжээ: {0:N0} MB (эх бичлэг {1:N0} MB)" -f ($outSize / 1MB), ($srcSize / 1MB))
 Write-Host "Видеонуудыг R2 сан руу хуулж байна ($epCount файл)..."
 Set-Location $root
 for ($i = 1; $i -le $epCount; $i++) {

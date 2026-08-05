@@ -12,8 +12,10 @@ Write-Host "Зөвлөгөө: бичлэгийн файлаа энэ цонх р
 Write-Host ""
 
 $video = Read-Host "1) Бичлэгийн файл"
-$video = $video.Trim().Trim('"')
-if (-not (Test-Path $video)) {
+$video = $video.Trim().Trim('"').Trim("'")
+# ЧУХАЛ: -LiteralPath. Энгийн Test-Path нь [ ] тэмдгийг «загвар» гэж ойлгодог тул
+# yt-dlp-ийн «нэр [id].mp4» маягийн файлыг «олдсонгүй» гэж буруу хэлдэг байсан.
+if (-not (Test-Path -LiteralPath $video)) {
     Write-Host ""
     Write-Host "Файл олдсонгүй: $video" -ForegroundColor Red
     Read-Host "Enter дарж хаана уу"
