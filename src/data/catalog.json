@@ -1265,6 +1265,239 @@
                                             "duration":  58.1
                                         }
                                     ]
+                   },
+                   {
+                       "id":  "series-260807-0153",
+                       "title":  "Аавын түшиг болсон охин",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260807-0153.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+                                        {
+                                            "index":  1,
+                                            "video":  "videos/series-260807-0153_e1.mp4",
+                                            "title":  "1-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  2,
+                                            "video":  "videos/series-260807-0153_e2.mp4",
+                                            "title":  "2-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  3,
+                                            "video":  "videos/series-260807-0153_e3.mp4",
+                                            "title":  "3-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  4,
+                                            "video":  "videos/series-260807-0153_e4.mp4",
+                                            "title":  "4-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  5,
+                                            "video":  "videos/series-260807-0153_e5.mp4",
+                                            "title":  "5-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  6,
+                                            "video":  "videos/series-260807-0153_e6.mp4",
+                                            "title":  "6-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  7,
+                                            "video":  "videos/series-260807-0153_e7.mp4",
+                                            "title":  "7-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  8,
+                                            "video":  "videos/series-260807-0153_e8.mp4",
+                                            "title":  "8-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  9,
+                                            "video":  "videos/series-260807-0153_e9.mp4",
+                                            "title":  "9-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  10,
+                                            "video":  "videos/series-260807-0153_e10.mp4",
+                                            "title":  "10-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  11,
+                                            "video":  "videos/series-260807-0153_e11.mp4",
+                                            "title":  "11-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  12,
+                                            "video":  "videos/series-260807-0153_e12.mp4",
+                                            "title":  "12-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  13,
+                                            "video":  "videos/series-260807-0153_e13.mp4",
+                                            "title":  "13-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  14,
+                                            "video":  "videos/series-260807-0153_e14.mp4",
+                                            "title":  "14-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  15,
+                                            "video":  "videos/series-260807-0153_e15.mp4",
+                                            "title":  "15-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  16,
+                                            "video":  "videos/series-260807-0153_e16.mp4",
+                                            "title":  "16-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  17,
+                                            "video":  "videos/series-260807-0153_e17.mp4",
+                                            "title":  "17-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  18,
+                                            "video":  "videos/series-260807-0153_e18.mp4",
+                                            "title":  "18-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  19,
+                                            "video":  "videos/series-260807-0153_e19.mp4",
+                                            "title":  "19-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  20,
+                                            "video":  "videos/series-260807-0153_e20.mp4",
+                                            "title":  "20-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  21,
+                                            "video":  "videos/series-260807-0153_e21.mp4",
+                                            "title":  "21-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  22,
+                                            "video":  "videos/series-260807-0153_e22.mp4",
+                                            "title":  "22-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  23,
+                                            "video":  "videos/series-260807-0153_e23.mp4",
+                                            "title":  "23-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  24,
+                                            "video":  "videos/series-260807-0153_e24.mp4",
+                                            "title":  "24-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  25,
+                                            "video":  "videos/series-260807-0153_e25.mp4",
+                                            "title":  "25-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  26,
+                                            "video":  "videos/series-260807-0153_e26.mp4",
+                                            "title":  "26-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  27,
+                                            "video":  "videos/series-260807-0153_e27.mp4",
+                                            "title":  "27-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  28,
+                                            "video":  "videos/series-260807-0153_e28.mp4",
+                                            "title":  "28-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  29,
+                                            "video":  "videos/series-260807-0153_e29.mp4",
+                                            "title":  "29-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  30,
+                                            "video":  "videos/series-260807-0153_e30.mp4",
+                                            "title":  "30-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  31,
+                                            "video":  "videos/series-260807-0153_e31.mp4",
+                                            "title":  "31-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  32,
+                                            "video":  "videos/series-260807-0153_e32.mp4",
+                                            "title":  "32-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  33,
+                                            "video":  "videos/series-260807-0153_e33.mp4",
+                                            "title":  "33-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  34,
+                                            "video":  "videos/series-260807-0153_e34.mp4",
+                                            "title":  "34-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  35,
+                                            "video":  "videos/series-260807-0153_e35.mp4",
+                                            "title":  "35-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  36,
+                                            "video":  "videos/series-260807-0153_e36.mp4",
+                                            "title":  "36-р анги",
+                                            "duration":  210
+                                        },
+                                        {
+                                            "index":  37,
+                                            "video":  "videos/series-260807-0153_e37.mp4",
+                                            "title":  "37-р анги",
+                                            "duration":  181.2
+                                        }
+                                    ]
                    }
                ]
 }

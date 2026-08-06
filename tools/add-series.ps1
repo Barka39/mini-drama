@@ -68,11 +68,23 @@ Write-Host "Үнэ: $Price₮ · Эхний $FreeMinutes минут үнэгүй
 # Харин аль хэдийн сайн шахагдсан бичлэгийг дахин шахвал ЗӨВХӨН чанар алддаг.
 # Тиймээс эхлээд bitrate-ийг хэмжээд, зөвхөн хэт өндөр байвал дахин кодлоно.
 $srcKbps = [int]([double]((Get-Item -LiteralPath $Video).Length) * 8 / $duration / 1000)
-# Зорилтот bitrate дэлгэцийн хэмжээнээс: утасны босоо (~720p) бичлэгт 1400k хангалттай.
-$targetK = if (($w * $h) -gt 1000000) { 2000 } else { 1400 }
+
+# Хэмжээний тааз: гар утсанд 720p хангалттай. 1080x1920 бичлэг сайтын бусад
+# кинонуудаас 6 дахин хүнд болдог (нэг кино R2 сангийн талыг идсэн туршлага),
+# хэрэглэгчийн дата ч их зарцуулагдана. Тиймээс богино талыг 720-д барина.
+$maxShort = 720
+$shortSide = [math]::Min($w, $h)
+$downscale = (-not $NoCompress) -and ($shortSide -gt $maxShort)
+$scaleFilter = if ($w -le $h) { "scale=${maxShort}:-2:flags=lanczos" } else { "scale=-2:${maxShort}:flags=lanczos" }
+
+# Зорилтот bitrate: 720p босоо бичлэгт 1400k хангалттай.
+$targetK = 1400
 # 1.3 дахин илүү байж байж шахна — 1600 kbps-ийг 1400 болгох нь ашиггүй чанарын алдагдал.
-$needCompress = (-not $NoCompress) -and ($srcKbps -gt [int]($targetK * 1.3))
+$needCompress = (-not $NoCompress) -and (($srcKbps -gt [int]($targetK * 1.3)) -or $downscale)
 if ($needCompress) {
+    if ($downscale) {
+        Write-Host "Хэмжээ: ${w}x${h} — утсанд шаардлагагүй том тул богино талыг $maxShort болгож буулгана."
+    }
     Write-Host "Чанар: $srcKbps kbps — хэрэгцээнээс өндөр тул $targetK kbps болгож шахна (хэмжээ ~2 дахин багасна, чанар мэдэгдэхүйц буурахгүй)."
     # Хэмжсэн хурд: бодит хугацаанаас ~1.9 дахин хурдан (720x1280, preset fast).
     # Богино дээж дээр 4x гардаг ч бүтэн кинон дээр хөдөлгөөнтэй хэсгүүд удаашруулдаг.
@@ -112,8 +124,13 @@ for ($i = 0; $i -lt $epCount; $i++) {
         & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -vf "crop=${cropW}:${h}:${cropX}:0" @encode $outFile
     }
     elseif ($needCompress) {
-        # Чанар хэрэгцээнээс өндөр байсан тул хэрчихийн зэрэгцээ шахна
-        & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video @encode $outFile
+        # Чанар/хэмжээ хэрэгцээнээс өндөр байсан тул хэрчихийн зэрэгцээ шахна
+        if ($downscale) {
+            & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video -vf $scaleFilter @encode $outFile
+        }
+        else {
+            & $ff -v error -y -ss $ss -t $EpisodeSeconds -i $Video @encode $outFile
+        }
     }
     else {
         # Хэлбэрийг хэвээр нь: кодлолгүй хурдан хэрчинэ (faststart = шууд тоглож эхэлнэ)
