@@ -10,6 +10,7 @@ import {
   revokeLink,
   type AccessLink,
 } from "../lib/accessLinks";
+import { agoText, bankHookUrl, loadBankStatus, type BankStatus } from "../lib/bankHook";
 import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
 import {
   loadSeriesMeta,
@@ -59,6 +60,7 @@ export function AdminPage() {
   const [grantSeries, setGrantSeries] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [bank, setBank] = useState<BankStatus | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [bankMsgs, setBankMsgs] = useState<
     { id: number; raw: string; amount: string | null; matched: boolean; created_at: string }[]
@@ -122,6 +124,8 @@ export function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(12);
     setBankMsgs((bm.data ?? []) as typeof bankMsgs);
+
+    setBank(await loadBankStatus());
   }, []);
 
   useEffect(() => {
@@ -622,7 +626,42 @@ export function AdminPage() {
         </button>
       </div>
 
-      <h3 className="admin-h">Банкнаас ирсэн мэдэгдэл</h3>
+      <h3 className="admin-h">Төлбөр автоматаар нээх</h3>
+      {bank && (
+        <div className={`bank-status ${bank.total > 0 ? "bank-ok" : "bank-off"}`}>
+          <strong>
+            {bank.total > 0
+              ? `✅ Ажиллаж байна — сүүлийн мэдэгдэл ${agoText(bank.last_at)}`
+              : "⚠️ Ажиллахгүй байна — мэдэгдэл хэзээ ч ирээгүй"}
+          </strong>
+          <div className="muted small">
+            {bank.total > 0 ? (
+              <>
+                {bank.matched}/{bank.total} мэдэгдэл захиалгатай таарсан.
+              </>
+            ) : (
+              <>
+                Захиалга бүрийг та гараар баталгаажуулж байна. Худалдан авагч
+                дунджаар <strong>{bank.avg_minutes ?? "?"} минут</strong> хүлээж байна — тэр
+                хугацаанд олон хүн буцаж явдаг.
+              </>
+            )}
+          </div>
+          <div className="muted small">
+            Утасны дамжуулагч програмд оруулах хаяг (нууц, хэнд ч бүү өг):
+          </div>
+          <code className="link-url">{bankHookUrl(bank.secret)}</code>
+          <button
+            className="copy-btn"
+            onClick={() => {
+              void navigator.clipboard?.writeText(bankHookUrl(bank.secret));
+              setMsg("Хаяг хуулагдлаа ✅");
+            }}
+          >
+            Хаягийг хуулах
+          </button>
+        </div>
+      )}
       {bankMsgs.length === 0 && (
         <p className="muted small">Одоогоор мэдэгдэл алга (утасны холболт хийгдээгүй байж болно).</p>
       )}

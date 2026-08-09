@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { formatPrice, getSeries } from "../data/catalog";
 import { getSettings, type SiteSettings } from "../lib/settings";
-import { buyStatus, refreshAccount, requestPurchase, useAppState } from "../lib/store";
+import {
+  buyStatus,
+  loadPlans,
+  refreshAccount,
+  requestPurchase,
+  useAppState,
+  type Plan,
+} from "../lib/store";
+import { useCatalog } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
-import { closeModals, openAuth, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
+import { closeModals, openAuth, openVip, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
 
 // Хуулж болох мөр: шошго + утга + «Хуулах» товч
 function CopyRow({
@@ -39,6 +47,11 @@ export function PurchaseModal() {
   const [busy, setBusy] = useState(false);
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const catalog = useCatalog();
+  // Хамгийн хямд (ихэвчлэн 1 сарын) багц — оролт болгож харуулна
+  const vipPlan = plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
+  const catalogCount = catalog.length;
 
   const series = seriesId ? getSeries(seriesId) : undefined;
   const status = series ? buyStatus(s, series.id) : "none";
@@ -46,7 +59,9 @@ export function PurchaseModal() {
   const payAmount = (series && s.payAmounts[series.id]) || series?.price || 0;
 
   useEffect(() => {
-    if (open) void getSettings().then(setBank);
+    if (!open) return;
+    void getSettings().then(setBank);
+    void loadPlans().then(setPlans);
   }, [open]);
 
   // Хүлээгдэж байгаа үед баталгаажилтыг өөрөө шалгана — хэрэглэгч юу ч дарах шаардлагагүй
@@ -117,6 +132,23 @@ export function PurchaseModal() {
               {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
             </button>
             <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
+
+            {/* Сарын эрхийн санал. Түгжээ бол хүн худалдан авах бодолтой байгаа
+                ганц мөч — сайт дээр 9 кинотой болсон тул нэг кино авахаас
+                сарын эрх авах нь хамаагүй ашигтайг ЭНД хэлэх ёстой. Өмнө нь
+                зөвхөн нүүр хуудсанд бичээстэй байсан тул ихэнх нь хардаггүй. */}
+            {vipPlan && catalogCount > 2 && (
+              <div className="pay-vip">
+                <div className="pay-divider" />
+                <p className="pay-vip-line">
+                  Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
+                  <strong>бүх {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
+                </p>
+                <button className="btn btn-outline" onClick={openVip}>
+                  ⭐ Сарын эрх авах
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>

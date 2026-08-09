@@ -654,6 +654,48 @@ a {
   white-space: nowrap;
 }
 
+/* Түгжээн дээрх сарын эрхийн санал */
+.pay-vip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.pay-vip-line {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Автомат баталгаажуулалтын төлөв — унтарсан бол нүдэнд тусах ёстой */
+.bank-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+}
+
+.bank-status.bank-off {
+  border-color: #d64545;
+  background: rgba(214, 69, 69, 0.08);
+}
+
+.bank-status.bank-ok {
+  border-color: #3fa34d;
+}
+
+.bank-status code {
+  word-break: break-all;
+  font-size: 12px;
+}
+
 /* Эргэшгүй үйлдэл — хуулах товчтой адилхан харагдах ёсгүй */
 .danger-btn {
   border-color: #d64545;

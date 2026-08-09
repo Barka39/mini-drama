@@ -929,3 +929,45 @@ $$;
 
 revoke all on function public.md_restore_link(text, integer) from public, anon;
 grant execute on function public.md_restore_link(text, integer) to authenticated;
+
+-- ============================================================
+-- Автомат баталгаажуулалтын эрүүл мэндийн самбар (2026-08-09)
+-- ============================================================
+-- Банкны мессеж дамжуулагч ажиллаж байгаа эсэхийг ХАРАХ арга байгаагүй тул
+-- ер ажиллаагүй хэвээр 8 хоног өнгөрч, захиалга бүр гараар баталгаажиж,
+-- худалдан авагчид дунджаар 3.5 цаг хүлээсэн. Одоо админ хуудсанд харагдана.
+create or replace function public.md_bank_status()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v jsonb;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  select jsonb_build_object(
+    'secret', (select bank_secret from md_config where id = 1),
+    'total', (select count(*) from md_bank_msgs),
+    'matched', (select count(*) from md_bank_msgs where matched),
+    'last_at', (select max(created_at) from md_bank_msgs),
+    'recent', coalesce((
+      select jsonb_agg(x) from (
+        select amount, matched, purchase_id, created_at
+          from md_bank_msgs order by id desc limit 5
+      ) x), '[]'::jsonb),
+    'avg_minutes', (
+      select round(avg(extract(epoch from (decided_at - created_at)) / 60))
+        from md_purchases
+       where status = 'confirmed' and amount > 0
+         and created_at > now() - interval '30 days'),
+    'pending', (select count(*) from md_purchases where status = 'pending')
+  ) into v;
+  return v;
+end;
+$$;
+
+revoke all on function public.md_bank_status() from public, anon;
+grant execute on function public.md_bank_status() to authenticated;
