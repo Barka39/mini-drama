@@ -864,3 +864,37 @@ $$;
 
 revoke all on function public.md_set_poster(text, text) from public, anon;
 grant execute on function public.md_set_poster(text, text) to authenticated;
+
+-- ============================================================
+-- ЗАСВАР 2026-08-09: гараар баталгаажуулахад САРЫН ЭРХ олгогддоггүй байсан
+-- ============================================================
+-- Эрх олгох код зөвхөн банкны мессежээр автомат баталгаажуулах замд байсан.
+-- Эзэн админ хуудаснаас гараар «Баталгаажуулах» дарахад төлбөр нь бүртгэгдэх ч
+-- vip_until талбар хоосон хэвээр үлдэж, төлсөн хүн юу ч үзэж чаддаггүй байв
+-- (7 захиалга, 67,889₮ ийнхүү хүчингүй болсон).
+create or replace function public.md_confirm_purchase(p_id bigint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  update md_purchases
+     set status = 'confirmed', decided_at = now()
+   where id = p_id and status = 'pending';
+  if not found then
+    raise exception 'not_pending';
+  end if;
+
+  -- Сарын эрх бол хугацааг нь сунгана (автомат замтай яг ижил логик).
+  -- Идэвхтэй эрх байвал үргэлжлүүлж нэмнэ, дууссан бол өнөөдрөөс эхэлнэ.
+  update md_profiles p
+     set vip_until = greatest(coalesce(p.vip_until, now()), now())
+                     + (b.plan_days || ' days')::interval
+    from md_purchases b
+   where b.id = p_id and b.kind = 'sub' and b.plan_days is not null and p.id = b.user_id;
+end;
+$$;
