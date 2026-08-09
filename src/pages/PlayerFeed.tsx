@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatPrice, freeEpCount } from "../data/catalog";
+import { siteHost } from "../lib/accessLinks";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
@@ -209,7 +210,8 @@ export function PlayerFeed() {
         <div className="lock-panel">
           <h3>Кино дууслаа 🎬</h3>
           <p className="muted">
-            Ийм олон кино <strong>kinomandal.com</strong> дээр байна — монгол хадмалтай,
+            {/* Домэйн солигдвол энэ бичиг худал болохгүйн тулд одоогийн хаягаас авна */}
+            Ийм олон кино <strong>{siteHost()}</strong> дээр байна — монгол хадмалтай,
             утсандаа шууд.
           </p>
           <Link className="btn btn-primary" to="/">

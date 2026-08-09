@@ -25,6 +25,11 @@ foreach ($line in Get-Content (Join-Path $root ".env") | Where-Object { $_ -matc
 # Сайт дээр тэдгээр нь шууд солигддог (R2-оос), харин FACEBOOK-ийн зарын зураг
 # энд, компьютер дээр үүсдэг. Тиймээс зарын карт хоцрохгүйн тулд эхлээд
 # сүүлийн постеруудыг татаж, локал файлуудыг шинэчилнэ.
+# Домэйн ЗӨВХӨН .env дотор бичигдэнэ (SITE_URL). Хаагдаж шинэ домэйн авбал
+# тэр нэг мөрийг сольж, энэ скриптийг ажиллуулахад бүх зүйл шинэ хаягаар гарна.
+$siteUrl = if ($env:SITE_URL) { $env:SITE_URL.TrimEnd('/') } else { "https://kinomandal.com" }
+Write-Host "Сайтын хаяг: $siteUrl"
+
 Write-Host "0/5 Утаснаас солисон постеруудыг татаж байна..."
 try {
     $supaUrl = "https://uloxtmssvloffbwfwzki.supabase.co"
@@ -33,7 +38,7 @@ try {
     foreach ($r in @($rows)) {
         $name = Split-Path $r.poster_url -Leaf
         $dest = Join-Path $root "public\posters\$($r.id).jpg"
-        Invoke-WebRequest -Uri "https://kinomandal.com/p/$name" -OutFile $dest -UseBasicParsing
+        Invoke-WebRequest -Uri "$siteUrl/p/$name" -OutFile $dest -UseBasicParsing
         Write-Host "   постер шинэчлэгдлээ: $($r.id)"
     }
     if (@($rows).Count -eq 0) { Write-Host "   (утаснаас солисон постер алга)" }
@@ -44,7 +49,7 @@ catch {
 }
 
 Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
-& (Join-Path $PSScriptRoot "make-landing.ps1")
+& (Join-Path $PSScriptRoot "make-landing.ps1") -SiteUrl $siteUrl
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
 

@@ -12,10 +12,22 @@ export interface AccessLink {
   created_at: string;
 }
 
-export const SITE = "https://kinomandal.com";
+// Сайтын хаяг: ОДОО НЭЭЖ БАЙГАА хаягаас автоматаар авна.
+// Ингэснээр домэйн солигдвол (хаагдсан, эсвэл шинийг авсан) админ хуудаснаас
+// үүсгэсэн линк, банкны хаяг бүгд шинэ домэйнээр автоматаар гарна — код засах
+// шаардлагагүй. Сервер талд (build) VITE_SITE_URL-ээс, эс бөгөөс одоогийн хаяг.
+export const SITE =
+  typeof window !== "undefined" && window.location?.origin
+    ? window.location.origin
+    : (import.meta.env.VITE_SITE_URL ?? "https://kinomandal.com");
 
 export function linkUrl(token: string): string {
   return `${SITE}/#/u/${token}`;
+}
+
+/** Хаягийг хүнд харуулах хэлбэр: «kinomandal.com» */
+export function siteHost(): string {
+  return SITE.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
 export async function createLinks(

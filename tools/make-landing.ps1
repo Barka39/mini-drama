@@ -6,7 +6,8 @@
 #   public/og/<id>.jpg  — 1200x630 хуваалцах зураг (бүдгэрсэн дэвсгэр + постер)
 # гаргана. deploy.ps1 build хийхээс өмнө автоматаар дуудна.
 param(
-    [string]$SiteUrl = "https://kinomandal.com"
+    # Анхдагчийг .env-ийн SITE_URL-ээс авна — домэйн нэг л газар бичигдэнэ
+    [string]$SiteUrl = $(if ($env:SITE_URL) { $env:SITE_URL.TrimEnd('/') } else { "https://kinomandal.com" })
 )
 
 $ErrorActionPreference = "Stop"
