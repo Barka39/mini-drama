@@ -654,6 +654,13 @@ a {
   white-space: nowrap;
 }
 
+/* Эргэшгүй үйлдэл — хуулах товчтой адилхан харагдах ёсгүй */
+.danger-btn {
+  border-color: #d64545;
+  color: #d64545;
+  font-weight: 500;
+}
+
 .ep-progress {
   position: absolute;
   left: 0;

@@ -6,6 +6,7 @@ import {
   createLinks,
   linkUrl,
   listLinks,
+  restoreLink,
   revokeLink,
   type AccessLink,
 } from "../lib/accessLinks";
@@ -65,7 +66,10 @@ export function AdminPage() {
   const [links, setLinks] = useState<AccessLink[]>([]);
   const [linkSeries, setLinkSeries] = useState("");
   const [linkCount, setLinkCount] = useState("5");
-  const [linkDevices, setLinkDevices] = useState("1");
+  // 1 биш 3: нэг хүн линкээ мессенжерийн дотоод хөтчөөр нэг, дараа нь Chrome-оор
+  // дахин нээхэд өөр төхөөрөмж мэт тоологддог. 1 байвал линк шууд дүүрч, хүн нь
+  // «бүртгүүлнэ үү» гэсэн хаалттай дэлгэц рүү унадаг.
+  const [linkDevices, setLinkDevices] = useState("3");
   const [linkNote, setLinkNote] = useState("");
   const [makingLinks, setMakingLinks] = useState(false);
 
@@ -503,17 +507,39 @@ export function AdminPage() {
                 >
                   Хуулах
                 </button>
-                {!l.revoked && (
+                {l.revoked || l.claims >= l.max_claims ? (
+                  // Үхсэн эсвэл дүүрсэн линкийг сэргээх — өмнө нь буцаах арга байгаагүй
                   <button
                     className="copy-btn"
                     onClick={async () => {
+                      const add = l.claims >= l.max_claims ? 3 : 0;
+                      if (await restoreLink(l.token, add)) {
+                        setLinks(await listLinks());
+                        setMsg(
+                          add > 0
+                            ? "Линк дахин ажиллана (+3 төхөөрөмж) ✅"
+                            : "Линк дахин ажиллана ✅",
+                        );
+                      }
+                    }}
+                  >
+                    Дахин нээх
+                  </button>
+                ) : (
+                  <button
+                    className="copy-btn danger-btn"
+                    onClick={async () => {
+                      // ЧУХАЛ: энэ товч линкийг үүрд үхүүлдэг. Урьд нь «Хаах» гэсэн
+                      // нэртэй, «Хуулах»-тай яг ижил харагддаг байсан тул эзэн
+                      // санамсаргүй дарж өөрийнхөө линкүүдийг үхүүлж байсан.
+                      if (!confirm("Энэ линкийг үүрд хүчингүй болгох уу?\n\nДараа нь «Дахин нээх» товчоор буцааж болно.")) return;
                       if (await revokeLink(l.token)) {
                         setLinks(await listLinks());
                         setMsg("Линк хүчингүй боллоо");
                       }
                     }}
                   >
-                    Хаах
+                    Хүчингүй болгох
                   </button>
                 )}
               </div>

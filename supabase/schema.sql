@@ -898,3 +898,34 @@ begin
    where b.id = p_id and b.kind = 'sub' and b.plan_days is not null and p.id = b.user_id;
 end;
 $$;
+
+-- ============================================================
+-- ЗАСВАР 2026-08-09: хүчингүй болгосон линкийг сэргээх / төхөөрөмж нэмэх
+-- ============================================================
+-- Админ дээр «Хуулах» ба «Хаах» товч яг ижил харагддаг байсан тул эзэн санамсаргүй
+-- дарж 9 линкийн 6-г нь үхүүлсэн бөгөөд буцаах арга байгаагүй. Одоо буцаана.
+create or replace function public.md_restore_link(p_token text, p_add_claims integer default 0)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_add_claims < 0 or p_add_claims > 50 then
+    raise exception 'bad_claims';
+  end if;
+  update md_access_links
+     set revoked = false,
+         max_claims = max_claims + p_add_claims
+   where token = p_token;
+  if not found then
+    raise exception 'bad_link';
+  end if;
+end;
+$$;
+
+revoke all on function public.md_restore_link(text, integer) from public, anon;
+grant execute on function public.md_restore_link(text, integer) to authenticated;

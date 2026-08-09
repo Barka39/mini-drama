@@ -53,3 +53,12 @@ export async function revokeLink(token: string): Promise<boolean> {
   const { error } = await supa.rpc("md_revoke_link", { p_token: token });
   return !error;
 }
+
+/** Хүчингүй болгосон линкийг буцааж нээх, эсвэл дүүрсэн линкэд төхөөрөмж нэмэх. */
+export async function restoreLink(token: string, addClaims = 0): Promise<boolean> {
+  const { error } = await supa.rpc("md_restore_link", {
+    p_token: token,
+    p_add_claims: addClaims,
+  });
+  return !error;
+}
