@@ -7,10 +7,16 @@ param(
 # git нь энгийн мэдээллээ stderr-т бичдэг тул Stop горим ашиглахгүй —
 # алдааг $LASTEXITCODE-оор шалгана
 $ErrorActionPreference = "Continue"
-Set-Location (Join-Path $PSScriptRoot "..")
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).ProviderPath
+Set-Location $root
+# ЧУХАЛ: Set-Location нь PowerShell-ийн байрлалыг л өөрчилдөг, .NET-ийнхийг ӨӨРЧЛӨХГҮЙ.
+# Тиймээс [System.IO.File]-д харьцангуй зам өгвөл програмыг АСААСАН хавтаснаас
+# хайдаг — Desktop дээрх товчлуураас ажиллуулбал «Desktop\src\data\catalog.json»
+# гэж хайгаад «кино алга» гэж уначихдаг байв (2026-08-09).
+[System.Environment]::CurrentDirectory = $root
 
 # Түлхүүрүүд .env-д (commit хийгддэггүй)
-foreach ($line in Get-Content ".env" | Where-Object { $_ -match '^\w+=' }) {
+foreach ($line in Get-Content (Join-Path $root ".env") | Where-Object { $_ -match '^\w+=' }) {
     $k, $v = $line -split '=', 2
     Set-Item -Path "env:$k" -Value $v.Trim()
 }
@@ -26,7 +32,7 @@ try {
     $rows = Invoke-RestMethod -Method Get -Uri "$supaUrl/rest/v1/md_series?select=id,poster_url&poster_url=not.is.null" -Headers @{ apikey = $anon }
     foreach ($r in @($rows)) {
         $name = Split-Path $r.poster_url -Leaf
-        $dest = Join-Path (Get-Location) "public\posters\$($r.id).jpg"
+        $dest = Join-Path $root "public\posters\$($r.id).jpg"
         Invoke-WebRequest -Uri "https://kinomandal.com/p/$name" -OutFile $dest -UseBasicParsing
         Write-Host "   постер шинэчлэгдлээ: $($r.id)"
     }
@@ -44,7 +50,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх 
 
 Write-Host "2/5 Шинэ кинонуудыг сервэрт бүртгэж байна..."
 if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
-    $cat = [System.IO.File]::ReadAllText("src\data\catalog.json") | ConvertFrom-Json
+    $cat = [System.IO.File]::ReadAllText((Join-Path $root "src\data\catalog.json")) | ConvertFrom-Json
     # ЗӨВХӨН ШИНЭ кино нэмнэ. Байгаа киноны мэдээллийг дарж бичихгүй —
     # учир нь нэр/үнэ/ангиллыг одоо АДМИН ХУУДАСНААС засдаг, тэр нь эх сурвалж.
     $esc = { param($s) if ($null -eq $s) { "" } else { $s -replace "'", "''" } }
