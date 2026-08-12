@@ -1719,6 +1719,509 @@
                                             "duration":  142.8
                                         }
                                     ]
+                   },
+                   {
+                       "id":  "series-260812-1814",
+                       "title":  "Сэргэлэн охин",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260812-1814.jpg",
+                       "price":  3800,
+                       "freeMinutes":  210,
+                       "episodes":  [
+                                        {
+                                            "index":  1,
+                                            "video":  "videos/series-260812-1814_e1.mp4",
+                                            "title":  "1-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  2,
+                                            "video":  "videos/series-260812-1814_e2.mp4",
+                                            "title":  "2-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "video":  "videos/series-260812-1814_e3.mp4",
+                                            "title":  "3-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  4,
+                                            "video":  "videos/series-260812-1814_e4.mp4",
+                                            "title":  "4-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "video":  "videos/series-260812-1814_e5.mp4",
+                                            "title":  "5-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  6,
+                                            "video":  "videos/series-260812-1814_e6.mp4",
+                                            "title":  "6-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  7,
+                                            "video":  "videos/series-260812-1814_e7.mp4",
+                                            "title":  "7-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  8,
+                                            "video":  "videos/series-260812-1814_e8.mp4",
+                                            "title":  "8-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  9,
+                                            "video":  "videos/series-260812-1814_e9.mp4",
+                                            "title":  "9-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  10,
+                                            "video":  "videos/series-260812-1814_e10.mp4",
+                                            "title":  "10-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  11,
+                                            "video":  "videos/series-260812-1814_e11.mp4",
+                                            "title":  "11-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  12,
+                                            "video":  "videos/series-260812-1814_e12.mp4",
+                                            "title":  "12-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  13,
+                                            "video":  "videos/series-260812-1814_e13.mp4",
+                                            "title":  "13-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  14,
+                                            "video":  "videos/series-260812-1814_e14.mp4",
+                                            "title":  "14-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  15,
+                                            "video":  "videos/series-260812-1814_e15.mp4",
+                                            "title":  "15-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  16,
+                                            "video":  "videos/series-260812-1814_e16.mp4",
+                                            "title":  "16-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  17,
+                                            "video":  "videos/series-260812-1814_e17.mp4",
+                                            "title":  "17-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  18,
+                                            "video":  "videos/series-260812-1814_e18.mp4",
+                                            "title":  "18-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  19,
+                                            "video":  "videos/series-260812-1814_e19.mp4",
+                                            "title":  "19-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  20,
+                                            "video":  "videos/series-260812-1814_e20.mp4",
+                                            "title":  "20-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  21,
+                                            "video":  "videos/series-260812-1814_e21.mp4",
+                                            "title":  "21-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  22,
+                                            "video":  "videos/series-260812-1814_e22.mp4",
+                                            "title":  "22-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  23,
+                                            "video":  "videos/series-260812-1814_e23.mp4",
+                                            "title":  "23-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  24,
+                                            "video":  "videos/series-260812-1814_e24.mp4",
+                                            "title":  "24-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  25,
+                                            "video":  "videos/series-260812-1814_e25.mp4",
+                                            "title":  "25-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  26,
+                                            "video":  "videos/series-260812-1814_e26.mp4",
+                                            "title":  "26-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  27,
+                                            "video":  "videos/series-260812-1814_e27.mp4",
+                                            "title":  "27-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  28,
+                                            "video":  "videos/series-260812-1814_e28.mp4",
+                                            "title":  "28-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  29,
+                                            "video":  "videos/series-260812-1814_e29.mp4",
+                                            "title":  "29-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  30,
+                                            "video":  "videos/series-260812-1814_e30.mp4",
+                                            "title":  "30-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  31,
+                                            "video":  "videos/series-260812-1814_e31.mp4",
+                                            "title":  "31-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  32,
+                                            "video":  "videos/series-260812-1814_e32.mp4",
+                                            "title":  "32-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  33,
+                                            "video":  "videos/series-260812-1814_e33.mp4",
+                                            "title":  "33-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  34,
+                                            "video":  "videos/series-260812-1814_e34.mp4",
+                                            "title":  "34-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  35,
+                                            "video":  "videos/series-260812-1814_e35.mp4",
+                                            "title":  "35-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  36,
+                                            "video":  "videos/series-260812-1814_e36.mp4",
+                                            "title":  "36-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  37,
+                                            "video":  "videos/series-260812-1814_e37.mp4",
+                                            "title":  "37-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  38,
+                                            "video":  "videos/series-260812-1814_e38.mp4",
+                                            "title":  "38-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  39,
+                                            "video":  "videos/series-260812-1814_e39.mp4",
+                                            "title":  "39-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  40,
+                                            "video":  "videos/series-260812-1814_e40.mp4",
+                                            "title":  "40-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  41,
+                                            "video":  "videos/series-260812-1814_e41.mp4",
+                                            "title":  "41-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  42,
+                                            "video":  "videos/series-260812-1814_e42.mp4",
+                                            "title":  "42-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  43,
+                                            "video":  "videos/series-260812-1814_e43.mp4",
+                                            "title":  "43-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  44,
+                                            "video":  "videos/series-260812-1814_e44.mp4",
+                                            "title":  "44-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  45,
+                                            "video":  "videos/series-260812-1814_e45.mp4",
+                                            "title":  "45-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  46,
+                                            "video":  "videos/series-260812-1814_e46.mp4",
+                                            "title":  "46-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  47,
+                                            "video":  "videos/series-260812-1814_e47.mp4",
+                                            "title":  "47-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  48,
+                                            "video":  "videos/series-260812-1814_e48.mp4",
+                                            "title":  "48-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  49,
+                                            "video":  "videos/series-260812-1814_e49.mp4",
+                                            "title":  "49-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  50,
+                                            "video":  "videos/series-260812-1814_e50.mp4",
+                                            "title":  "50-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  51,
+                                            "video":  "videos/series-260812-1814_e51.mp4",
+                                            "title":  "51-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  52,
+                                            "video":  "videos/series-260812-1814_e52.mp4",
+                                            "title":  "52-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  53,
+                                            "video":  "videos/series-260812-1814_e53.mp4",
+                                            "title":  "53-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  54,
+                                            "video":  "videos/series-260812-1814_e54.mp4",
+                                            "title":  "54-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  55,
+                                            "video":  "videos/series-260812-1814_e55.mp4",
+                                            "title":  "55-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  56,
+                                            "video":  "videos/series-260812-1814_e56.mp4",
+                                            "title":  "56-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  57,
+                                            "video":  "videos/series-260812-1814_e57.mp4",
+                                            "title":  "57-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  58,
+                                            "video":  "videos/series-260812-1814_e58.mp4",
+                                            "title":  "58-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  59,
+                                            "video":  "videos/series-260812-1814_e59.mp4",
+                                            "title":  "59-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  60,
+                                            "video":  "videos/series-260812-1814_e60.mp4",
+                                            "title":  "60-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  61,
+                                            "video":  "videos/series-260812-1814_e61.mp4",
+                                            "title":  "61-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  62,
+                                            "video":  "videos/series-260812-1814_e62.mp4",
+                                            "title":  "62-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  63,
+                                            "video":  "videos/series-260812-1814_e63.mp4",
+                                            "title":  "63-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  64,
+                                            "video":  "videos/series-260812-1814_e64.mp4",
+                                            "title":  "64-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  65,
+                                            "video":  "videos/series-260812-1814_e65.mp4",
+                                            "title":  "65-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  66,
+                                            "video":  "videos/series-260812-1814_e66.mp4",
+                                            "title":  "66-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  67,
+                                            "video":  "videos/series-260812-1814_e67.mp4",
+                                            "title":  "67-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  68,
+                                            "video":  "videos/series-260812-1814_e68.mp4",
+                                            "title":  "68-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  69,
+                                            "video":  "videos/series-260812-1814_e69.mp4",
+                                            "title":  "69-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  70,
+                                            "video":  "videos/series-260812-1814_e70.mp4",
+                                            "title":  "70-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  71,
+                                            "video":  "videos/series-260812-1814_e71.mp4",
+                                            "title":  "71-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  72,
+                                            "video":  "videos/series-260812-1814_e72.mp4",
+                                            "title":  "72-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  73,
+                                            "video":  "videos/series-260812-1814_e73.mp4",
+                                            "title":  "73-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  74,
+                                            "video":  "videos/series-260812-1814_e74.mp4",
+                                            "title":  "74-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  75,
+                                            "video":  "videos/series-260812-1814_e75.mp4",
+                                            "title":  "75-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  76,
+                                            "video":  "videos/series-260812-1814_e76.mp4",
+                                            "title":  "76-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  77,
+                                            "video":  "videos/series-260812-1814_e77.mp4",
+                                            "title":  "77-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  78,
+                                            "video":  "videos/series-260812-1814_e78.mp4",
+                                            "title":  "78-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  79,
+                                            "video":  "videos/series-260812-1814_e79.mp4",
+                                            "title":  "79-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  80,
+                                            "video":  "videos/series-260812-1814_e80.mp4",
+                                            "title":  "80-р анги",
+                                            "duration":  120.2
+                                        },
+                                        {
+                                            "index":  81,
+                                            "video":  "videos/series-260812-1814_e81.mp4",
+                                            "title":  "81-р анги",
+                                            "duration":  120.1
+                                        },
+                                        {
+                                            "index":  82,
+                                            "video":  "videos/series-260812-1814_e82.mp4",
+                                            "title":  "82-р анги",
+                                            "duration":  86.2
+                                        }
+                                    ]
                    }
                ]
 }
