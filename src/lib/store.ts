@@ -62,7 +62,7 @@ export function useAppState(): AppState {
 
 // ---------- Серверээс дансаа ачаалах ----------
 
-async function loadServerState(userId: string) {
+async function loadServerState(userId: string, anonymous = false) {
   const [profRes, buyRes] = await Promise.all([
     supa.from("md_profiles").select("phone, is_admin, full_name, vip_until").eq("id", userId).maybeSingle(),
     supa.from("md_purchases").select("series_id, status, amount, kind, plan_days").eq("user_id", userId),
@@ -100,15 +100,34 @@ async function loadServerState(userId: string) {
       vipUntil: profRes.data.vip_until ?? null,
       subPending,
     });
+  } else if (anonymous) {
+    // Линкээр орсон хүн: профайлыг нь СЕРВЕР талын md_claim_access үүсгэдэг.
+    // Нэвтрэлт болмогц энэ функц зэрэгцээ дуудагддаг тул профайл хараахан
+    // үүсээгүй байх мөч ЗАЙЛШГҮЙ бий — тэр агшинд гаргаж хаявал линкээр орсон
+    // хүний сесс устаж, эрх нь санд үлдээд өөрөө нь «бүртгүүлнэ үү» гэсэн
+    // түгжээтэй дэлгэц рүү унадаг байв (2026-08-28-нд илэрсэн уралдаан).
+    // Тиймээс нэргүй хэрэглэгчийг хөөхгүй — нэхэмжлэл дуусмагц
+    // refreshAccount() дахин ачаалж, эрхийг нь бүрэн харуулна.
+    commit({
+      authReady: true,
+      signedIn: true,
+      phone: null,
+      isAdmin: false,
+      purchased,
+      pendingBuys,
+      payAmounts,
+      vipUntil: null,
+      subPending,
+    });
   } else {
-    // Бүртгэл дутуу (профайл үүсээгүй) — гарган хаяна
+    // Утсаар бүртгүүлсэн атлаа профайл дутуу — жинхэнэ эвдрэл, гарган хаяна
     await supa.auth.signOut();
   }
 }
 
 supa.auth.onAuthStateChange((_event, session) => {
   if (session?.user) {
-    void loadServerState(session.user.id);
+    void loadServerState(session.user.id, session.user.is_anonymous === true);
   } else {
     commit({
       authReady: true,
@@ -126,7 +145,9 @@ supa.auth.onAuthStateChange((_event, session) => {
 
 export async function refreshAccount() {
   const { data } = await supa.auth.getSession();
-  if (data.session?.user) await loadServerState(data.session.user.id);
+  if (data.session?.user) {
+    await loadServerState(data.session.user.id, data.session.user.is_anonymous === true);
+  }
 }
 
 // ---------- Нэвтрэлт ----------
