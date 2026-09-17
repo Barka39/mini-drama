@@ -29,8 +29,15 @@ export async function onRequestGet({ request, env }) {
   const file = url.searchParams.get("file") || "";
 
   if (!seriesId || !ep || !file) return json({ error: "bad_request" }, 400);
-  // Файлын нэр тухайн цувралынх мөн эсэх (өөр киног гуйхаас сэргийлнэ)
-  if (!file.startsWith(`${seriesId}_e`) || !/^[\w.-]+\.mp4$/.test(file)) {
+  if (!Number.isInteger(ep) || ep < 1 || !/^[\w-]+$/.test(seriesId)) {
+    return json({ error: "bad_request" }, 400);
+  }
+  // Файлын нэр нь ЯГ ЭНЭ ангийнх байх ёстой.
+  // Урьд нь зөвхөн «энэ цувралынх уу» гэж шалгадаг байсан тул ангийн дугаар ба
+  // файлын нэрийг зөрүүлж болдог байв: «ep=1» (үнэгүй) гэж хэлээд
+  // «file=..._e20.mp4» (төлбөртэй) гуйхад сервер гарын үсэгтэй холбоос өгдөг —
+  // төлбөргүйгээр бүх киног үзэх цоорхой (2026-09-17-нд илрүүлж хаасан).
+  if (file !== `${seriesId}_e${ep}.mp4`) {
     return json({ error: "bad_file" }, 400);
   }
 
