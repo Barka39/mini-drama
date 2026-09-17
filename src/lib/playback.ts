@@ -60,3 +60,36 @@ export function getPlayUrl(seriesId: string, ep: number, video: string): Promise
 export function clearPlayCache() {
   cache.clear();
 }
+
+// ---------- Нэг бүтэн кино (HLS) ----------
+
+export interface MovieStream {
+  url: string;
+  entitled: boolean;
+  // Төлөөгүй бол энэ секундэд төлбөрийн санал гарна; төлсөн бол null
+  previewSeconds: number | null;
+}
+
+/**
+ * Бүтэн киноны дамжуулах хаяг. Нэвтрээгүй зочинд ч хаяг өгнө — ялгаа нь хаягт
+ * суулгасан эрх (төлөөгүй бол зөвхөн танилцуулгын хэсгүүд нээгдэнэ, сервер талд).
+ */
+export async function getMovieStream(seriesId: string): Promise<MovieStream | null> {
+  const { data } = await supa.auth.getSession();
+  const token = data.session?.access_token;
+  try {
+    const res = await fetch(`/api/play?kind=hls&series=${encodeURIComponent(seriesId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as Partial<MovieStream>;
+    if (!body.url) return null;
+    return {
+      url: body.url,
+      entitled: !!body.entitled,
+      previewSeconds: body.previewSeconds ?? null,
+    };
+  } catch {
+    return null;
+  }
+}

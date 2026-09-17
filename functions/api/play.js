@@ -6,7 +6,7 @@
 //
 // Ингэснээр: шууд файлын хаяг гэж байхгүй болно; хуваалцсан холбоос хэдэн
 // минутын дараа үхнэ; төлөөгүй хүн төлбөртэй ангийн холбоосыг ер авч чадахгүй.
-import { signPlaybackToken } from "../_lib/sign.js";
+import { signHlsToken, signPlaybackToken } from "../_lib/sign.js";
 
 const SUPABASE_URL = "https://uloxtmssvloffbwfwzki.supabase.co";
 const SUPABASE_ANON = "sb_publishable_uDORytsT_NzUAqnBXnq6Bw_Fk9o0LQ1";
@@ -22,9 +22,72 @@ function json(data, status = 200) {
   });
 }
 
+// Бүтэн кино 2 цаг хүртэл үргэлжилдэг + түр зогсоох хугацаа
+const HLS_TTL = 60 * 60 * 6;
+
+/** Хэрэглэгч энэ киног бүтнээр үзэх эрхтэй юу (сарын эрх ЭСВЭЛ худалдаж авсан) */
+async function isEntitled(request, seriesId) {
+  const auth = request.headers.get("authorization") || "";
+  if (!auth.startsWith("Bearer ")) return false;
+  // Хэрэглэгчийн өөрийнх нь эрхээр асууна — RLS зөвхөн түүний мөрийг буцаана
+  const [subRes, buyRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: auth },
+    }),
+    fetch(
+      `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&select=id`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: auth } },
+    ),
+  ]);
+  if (!subRes.ok || !buyRes.ok) return false;
+  const profs = await subRes.json();
+  const vipUntil = Array.isArray(profs) && profs[0] ? profs[0].vip_until : null;
+  if (vipUntil && new Date(vipUntil).getTime() > Date.now()) return true;
+  const buys = await buyRes.json();
+  return Array.isArray(buys) && buys.length > 0;
+}
+
+/**
+ * Нэг бүтэн кино (HLS). Хариу нь ХҮН БҮРД хаяг өгнө — ялгаа нь хаягт суулгасан эрх:
+ * төлсөн бол бүх хэсэг, төлөөгүй бол зөвхөн үнэгүй танилцуулгын хэсгүүд.
+ * Ингэснээр нэвтрээгүй зочин ч шууд үзэж эхэлнэ (бүртгэл шаардахгүй).
+ */
+async function playHls(request, env, seriesId) {
+  const metaRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,free_minutes,hidden,hls`,
+    { headers: { apikey: SUPABASE_ANON } },
+  );
+  const rows = await metaRes.json();
+  const meta = Array.isArray(rows) ? rows[0] : null;
+  if (!meta) return json({ error: "unknown_series" }, 404);
+  if (meta.hidden) return json({ error: "hidden" }, 403);
+  if (!meta.hls) return json({ error: "not_hls" }, 400);
+
+  const free = Number(meta.price ?? 0) <= 0;
+  const entitled = free || (await isEntitled(request, seriesId));
+  // free_eps энд «үнэгүй ХЭСГИЙН тоо» (хэсгүүдийн уртаас trigger-ээр тооцогддог)
+  const max = entitled ? "a" : Math.max(0, Number(meta.free_eps ?? 0));
+
+  const exp = Math.floor(Date.now() / 1000) + HLS_TTL;
+  const token = await signHlsToken(env, seriesId, exp, max);
+  return json({
+    url: `/hls/${seriesId}/${token}/index.m3u8`,
+    exp,
+    entitled,
+    // Клиент энэ секундэд төлбөрийн саналыг харуулна. Серверийн хил үүнээс
+    // ХОЙНО байдаг (тэр цонхонд ЭХЭЛСЭН хэсэг бүтнээрээ үнэгүй) тул бичлэг
+    // саналаас өмнө гацахгүй.
+    previewSeconds: entitled ? null : Number(meta.free_minutes ?? 0) * 60,
+  });
+}
+
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const seriesId = url.searchParams.get("series") || "";
+  if (url.searchParams.get("kind") === "hls") {
+    if (!/^[\w-]+$/.test(seriesId)) return json({ error: "bad_request" }, 400);
+    return playHls(request, env, seriesId);
+  }
   const ep = Number(url.searchParams.get("ep") || 0);
   const file = url.searchParams.get("file") || "";
 
@@ -43,13 +106,16 @@ export async function onRequestGet({ request, env }) {
 
   // 1) Киноны үнэ ба үнэгүй ангийн тоог сервер талаас авна
   const metaRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,hidden`,
+    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,hidden,hls`,
     { headers: { apikey: SUPABASE_ANON } },
   );
   const metaRows = await metaRes.json();
   const meta = Array.isArray(metaRows) ? metaRows[0] : null;
   if (!meta) return json({ error: "unknown_series" }, 404);
   if (meta.hidden) return json({ error: "hidden" }, 403);
+  // Нэг бүтэн кино болж шилжсэн бол ангийн зам ХААЛТТАЙ. Эс бөгөөс free_eps
+  // (одоо ~100 «хэсэг») нь ангийн тооноос их тул хуучин ангиуд бүгд үнэгүй болно.
+  if (meta.hls) return json({ error: "moved_to_hls" }, 410);
 
   const freeEps = Number(meta.free_eps ?? 0);
   const price = Number(meta.price ?? 0);

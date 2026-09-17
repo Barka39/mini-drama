@@ -19,6 +19,8 @@ export interface Series {
   price: number; // ₮ — киног бүтнээр нь нээх үнэ; 0 бол бүрэн үнэгүй
   freeMinutes: number; // эхний хэдэн минут үнэгүй
   episodes: Episode[];
+  // Нэг бүтэн кино (HLS). Байвал ангиудаар биш, нэг тасралтгүй бичлэгээр тоглоно.
+  hls?: { duration: number };
 }
 
 const BASE = import.meta.env.BASE_URL;
@@ -113,6 +115,29 @@ export function freeEpCount(series: Series): number {
     start += ep.duration;
   }
   return count;
+}
+
+/** Кино нэг бүтэн бичлэг болсон эсэх */
+export function isMovie(series: Series): boolean {
+  return !!series.hls;
+}
+
+/** Киноны нийт урт (секунд): бүтэн бичлэг бол өөрийнх нь, үгүй бол ангиудын нийлбэр */
+export function totalSeconds(series: Series): number {
+  if (series.hls) return series.hls.duration;
+  return series.episodes.reduce((a, e) => a + (e.duration || 0), 0);
+}
+
+/** «2 цаг 9 мин» / «48 мин» */
+export function formatDuration(sec: number): string {
+  const m = Math.max(1, Math.round(sec / 60));
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h} цаг ${m % 60} мин` : `${m} мин`;
+}
+
+/** Тоглуулагч руу очих зам — кино шилжсэн эсэхээс хамаарна */
+export function watchPath(series: Series, epIndex = 1): string {
+  return series.hls ? `/movie/${series.id}` : `/watch/${series.id}/${epIndex}`;
 }
 
 export function formatPrice(price: number): string {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { formatPrice, freeEpCount } from "../data/catalog";
 import { siteHost } from "../lib/accessLinks";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
@@ -84,6 +84,10 @@ export function PlayerFeed() {
       </div>
     );
   }
+
+  // Нэг бүтэн кино болж шилжсэн бол хуучин ангийн хаягууд (зарын линк, нэвтрэх линк,
+  // хадгалсан bookmark) шинэ тоглуулагч руу өөрөө очно.
+  if (series.hls) return <Navigate to={`/movie/${series.id}`} replace />;
 
   const freeCount = freeEpCount(series);
   const pending = buyStatus(s, series.id) === "pending";

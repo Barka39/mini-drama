@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { formatPrice, freeEpCount } from "../data/catalog";
+import { formatDuration, formatPrice, freeEpCount, totalSeconds } from "../data/catalog";
 import { buyStatus, canWatch, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
@@ -39,6 +39,11 @@ export function SeriesPage() {
   const freeCount = freeEpCount(series);
   const status = buyStatus(s, series.id);
   const continueEp = s.progress[series.id] ?? 1;
+  const movie = !!series.hls;
+  const savedAt = s.movieTime[series.id]?.t ?? 0;
+  // Төгсгөлд нь хүрсэн бол «үргэлжлүүлэх» биш «дахин үзэх»
+  const resumable = movie && savedAt > 30 && savedAt < totalSeconds(series) - 60;
+  const mm = Math.floor(savedAt / 60);
 
   return (
     <div className="page">
@@ -54,7 +59,9 @@ export function SeriesPage() {
         <img className="series-poster" src={series.poster} alt={series.title} />
         <div className="series-info">
           <h2>{series.title}</h2>
-          <p className="card-genre">{series.genre}</p>
+          <p className="card-genre">
+            {series.genre} · {formatDuration(totalSeconds(series))}
+          </p>
           <p className="card-tagline">{series.tagline}</p>
           {series.price > 0 && status !== "owned" && (
             <p className="muted small">
@@ -63,10 +70,27 @@ export function SeriesPage() {
           )}
           <button
             className="btn btn-primary"
-            onClick={() => navigate(`/watch/${series.id}/${continueEp}`)}
+            onClick={() =>
+              navigate(movie ? `/movie/${series.id}` : `/watch/${series.id}/${continueEp}`)
+            }
           >
-            ▶ {continueEp > 1 ? `${continueEp}-р ангиас үргэлжлүүлэх` : "Үзэж эхлэх"}
+            ▶{" "}
+            {movie
+              ? resumable
+                ? `Үргэлжлүүлэх · ${mm} дахь минутаас`
+                : "Үзэж эхлэх"
+              : continueEp > 1
+                ? `${continueEp}-р ангиас үргэлжлүүлэх`
+                : "Үзэж эхлэх"}
           </button>
+          {resumable && (
+            <div className="resume-bar">
+              <div
+                className="resume-fill"
+                style={{ width: `${(savedAt / totalSeconds(series)) * 100}%` }}
+              />
+            </div>
+          )}
           {series.price > 0 && status === "none" && (
             <button className="btn btn-outline" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
               🎬 Худалдаж авах — {formatPrice(series.price)}
@@ -82,7 +106,7 @@ export function SeriesPage() {
 
       {series.price > 0 && status !== "owned" && (
         <div className="series-trust">
-          <span>✅ Нэг удаа төлөөд бүх ангийг хязгааргүй үзнэ</span>
+          <span>✅ Нэг удаа төлөөд хязгааргүй үзнэ</span>
           <span>⚡ Төлбөр ормогц автоматаар нээгдэнэ</span>
           <Link className="link-btn" to="/help">
             Хэрхэн ажилладаг вэ? →
@@ -90,7 +114,8 @@ export function SeriesPage() {
         </div>
       )}
 
-      <section className="ep-grid">
+      {/* Нэг бүтэн кино бол ангийн сүлжээ байхгүй — шууд үзнэ */}
+      <section className="ep-grid" hidden={movie}>
         {series.episodes.map((ep) => {
           const watchable = canWatch(s, series, ep.index);
           return (

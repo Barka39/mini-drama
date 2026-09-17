@@ -1666,3 +1666,106 @@ a {
     border-radius: 20px;
   }
 }
+
+/* ---------- Нэг бүтэн киноны тоглуулагч ---------- */
+.movie-page {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 50;
+}
+
+.movie-player {
+  width: 100%;
+  height: 100%;
+}
+
+.movie-player video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* босоо ч, хэвтээ ч кино тасрахгүй */
+  background: #000;
+}
+
+.movie-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 24px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.movie-top.vctl-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.movie-top .back {
+  color: #fff;
+  font-size: 22px;
+  text-decoration: none;
+  padding: 4px 8px;
+}
+
+.movie-top-title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 4;
+}
+
+.movie-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -14px 0 0 -14px;
+  z-index: 2;
+}
+
+.movie-unmute {
+  position: absolute;
+  top: calc(56px + env(safe-area-inset-top));
+  right: 14px;
+  z-index: 3;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
+}
+
+/* Киноны хуудсан дээрх «хаана хүрсэн» зурвас */
+.resume-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: -2px;
+}
+
+.resume-fill {
+  height: 100%;
+  background: var(--accent);
+}

@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from "react-router-dom";
 import { loadSeriesMeta } from "./lib/seriesAdmin";
 import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
+import { MoviePlayer } from "./pages/MoviePlayer";
 import { PlayerFeed } from "./pages/PlayerFeed";
 import { AdminPage } from "./pages/AdminPage";
 import { HelpPage } from "./pages/HelpPage";
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/series/:seriesId" element={<SeriesPage />} />
         <Route path="/watch/:seriesId/:epIndex" element={<PlayerFeed />} />
+        <Route path="/movie/:seriesId" element={<MoviePlayer />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/search" element={<SearchPage />} />

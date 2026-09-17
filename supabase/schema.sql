@@ -996,3 +996,12 @@ $$;
 
 revoke all on function public.md_delete_link(text) from public, anon;
 grant execute on function public.md_delete_link(text) to authenticated;
+
+-- ============================================================
+-- Нэг бүтэн кино (HLS) — 2026-09-17
+-- ============================================================
+-- hls = true бол кино ангиудаар биш, нэг тасралтгүй бичлэгээр (HLS хэсгүүд) дамжина.
+-- Тэр үед ep_durations = ХЭСГҮҮДИЙН урт, free_eps = үнэгүй ХЭСГИЙН тоо болно —
+-- тооцоолол нь яг ижил (md_free_eps_from) тул админ «үнэгүй минут»-ыг өөрчлөхөд
+-- танилцуулгын хил автоматаар шилжинэ.
+alter table public.md_series add column if not exists hls boolean not null default false;

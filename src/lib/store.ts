@@ -18,6 +18,8 @@ export interface AppState {
   vipUntil: string | null; // сарын эрх дуусах хугацаа
   subPending: boolean; // сарын эрхийн төлбөр хүлээгдэж байна
   progress: Record<string, number>; // seriesId -> хамгийн сүүлд үзсэн анги (локал)
+  // seriesId -> бүтэн киноны зогссон цэг ба нийт урт (секунд, локал)
+  movieTime: Record<string, { t: number; d: number }>;
 }
 
 function loadProgress(): Record<string, number> {
@@ -28,6 +30,27 @@ function loadProgress(): Record<string, number> {
     /* эвдэрсэн бол хоосноос эхэлнэ */
   }
   return {};
+}
+
+function loadMovieTime(): Record<string, { t: number; d: number }> {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) return JSON.parse(raw).movieTime ?? {};
+  } catch {
+    /* эвдэрсэн бол хоосноос эхэлнэ */
+  }
+  return {};
+}
+
+function persistLocal() {
+  try {
+    localStorage.setItem(
+      LOCAL_KEY,
+      JSON.stringify({ progress: state.progress, movieTime: state.movieTime }),
+    );
+  } catch {
+    /* хувийн горимд хадгалж чадахгүй байж болно — үзэлтэд саад болохгүй */
+  }
 }
 
 let state: AppState = {
@@ -41,6 +64,7 @@ let state: AppState = {
   vipUntil: null,
   subPending: false,
   progress: loadProgress(),
+  movieTime: loadMovieTime(),
 };
 
 const listeners = new Set<() => void>();
@@ -329,5 +353,14 @@ export function setProgress(seriesId: string, epIndex: number) {
   if (state.progress[seriesId] === epIndex) return;
   const progress = { ...state.progress, [seriesId]: epIndex };
   commit({ progress });
-  localStorage.setItem(LOCAL_KEY, JSON.stringify({ progress }));
+  persistLocal();
+}
+
+/** Бүтэн киноны зогссон цэгийг хадгална (дараа яг тэндээс үргэлжлүүлнэ) */
+export function setMovieTime(seriesId: string, t: number, d: number) {
+  const prev = state.movieTime[seriesId];
+  // Секунд тутамд биш — 5 секундын зөрүүтэй үед л бичнэ (утасны санах ойг хэмнэнэ)
+  if (prev && Math.abs(prev.t - t) < 5 && prev.d === d) return;
+  commit({ movieTime: { ...state.movieTime, [seriesId]: { t, d } } });
+  persistLocal();
 }

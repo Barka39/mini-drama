@@ -60,15 +60,28 @@ if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {
     # учир нь нэр/үнэ/ангиллыг одоо АДМИН ХУУДАСНААС засдаг, тэр нь эх сурвалж.
     $esc = { param($s) if ($null -eq $s) { "" } else { $s -replace "'", "''" } }
     $rows = @($cat.series | Where-Object { $_.id } | ForEach-Object {
-            $durs = (@($_.episodes | ForEach-Object { [double]$_.duration }) -join ',')
-            "('$(& $esc $_.id)', $([int]$_.price), $([double]$_.freeMinutes), '$(& $esc $_.title)', '$(& $esc $_.tagline)', '$(& $esc $_.genre)', ARRAY[$durs]::numeric[])"
+            $isHls = [bool]$_.hls
+            if ($isHls) {
+                # Нэг бүтэн кино: «ангийн урт»-ын оронд HLS ХЭСГҮҮДИЙН уртыг илгээнэ.
+                # Сервер үүгээр үнэгүй хэсгийн хилийг (free_eps = үнэгүй хэсгийн тоо) тооцдог.
+                # Файл байхгүй бол ЗОГСОНО: хоосон илгээвэл хил 0 болж кино бүхэлдээ түгжигдэнэ.
+                $durFile = Join-Path $root "tools\hls-durations\$($_.id).json"
+                if (-not (Test-Path -LiteralPath $durFile)) {
+                    Write-Error "HLS киноны хэсгүүдийн урт алга: $durFile (to-hls.mjs-ийг дахин ажиллуулна уу)"; exit 1
+                }
+                $durs = [System.IO.File]::ReadAllText($durFile).Trim().TrimStart('[').TrimEnd(']')
+            }
+            else {
+                $durs = (@($_.episodes | ForEach-Object { ([double]$_.duration).ToString([Globalization.CultureInfo]::InvariantCulture) }) -join ',')
+            }
+            "('$(& $esc $_.id)', $([int]$_.price), $(([double]$_.freeMinutes).ToString([Globalization.CultureInfo]::InvariantCulture)), '$(& $esc $_.title)', '$(& $esc $_.tagline)', '$(& $esc $_.genre)', ARRAY[$durs]::numeric[], $(if ($isHls) { 'true' } else { 'false' }))"
         })
     if ($rows.Count -eq 0) { Write-Error "catalog.json дотор кино алга"; exit 1 }
     # Ангиудын урт бол catalog.json-ы үнэн (бичлэг хэрчихэд тодорхойлогддог) тул
     # үргэлж шинэчилнэ — үүгээр сервер аль анги үнэгүйг мэднэ.
     # Нэр/үнэ/ангилал зэрэг нь админ хуудасны эзэмшилд тул хөндөхгүй.
-    $sql = "insert into public.md_series (id, price, free_minutes, title, tagline, genre, ep_durations) values " +
-    ($rows -join ", ") + " on conflict (id) do update set ep_durations = excluded.ep_durations;"
+    $sql = "insert into public.md_series (id, price, free_minutes, title, tagline, genre, ep_durations, hls) values " +
+    ($rows -join ", ") + " on conflict (id) do update set ep_durations = excluded.ep_durations, hls = excluded.hls;"
     $body = @{ query = $sql } | ConvertTo-Json -Compress
     try {
         # ЧУХАЛ: биетийг БАЙТААР илгээнэ. Тэгэхгүй бол PowerShell кирилл
