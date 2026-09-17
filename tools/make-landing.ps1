@@ -53,7 +53,9 @@ foreach ($s in $catalog.series) {
     }
 
     $priceText = if ([int]$s.price -le 0) { "Үнэгүй" } else { "Бүтэн кино {0:N0}₮" -f [int]$s.price }
-    $desc = "Эхний $([int]$s.freeMinutes) минут үнэгүй · $priceText · $($s.episodes.Count) анги · Утсандаа шууд үз"
+    # Нэг бүтэн кино бол «N анги» биш, уртыг нь хэлнэ
+    $lenText = if ($s.hls) { "$([int][math]::Round([double]$s.hls.duration / 60)) минут" } else { "$($s.episodes.Count) анги" }
+    $desc = "Эхний $([int]$s.freeMinutes) минут үнэгүй · $priceText · $lenText · Утсандаа шууд үз"
     if ($s.tagline) { $desc = "$($s.tagline) — $desc" }
 
     $title = Esc $s.title

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatPrice, seriesCategories } from "../data/catalog";
+import { formatDuration, formatPrice, seriesCategories, totalSeconds } from "../data/catalog";
 import { buyStatus, useAppState } from "../lib/store";
 import { useCatalog } from "../lib/seriesAdmin";
 import { AccountBadge } from "../components/AccountBadge";
@@ -46,7 +46,7 @@ export function SearchPage() {
             <Link key={series.id} to={`/series/${series.id}`} className="card">
               <div className="card-poster">
                 <img src={series.poster} alt={series.title} loading="lazy" />
-                <span className="card-eps">{series.episodes.length} анги</span>
+                <span className="card-eps">{formatDuration(totalSeconds(series))}</span>
               </div>
               <div className="card-body">
                 <h3>{series.title}</h3>

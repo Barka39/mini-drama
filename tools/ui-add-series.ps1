@@ -30,20 +30,27 @@ if (-not $title) {
 }
 
 $tagline = Read-Host "3) Товч танилцуулга (хоосон орхиж болно)"
-$sec = Read-Host "4) Нэг ангийн урт секундээр (хоосон = 120)"
-if (-not $sec) { $sec = 120 }
-$price = Read-Host "5) Киноны үнэ төгрөгөөр (хоосон = 3500, 0 = бүрэн үнэгүй)"
-if ($price -eq "") { $price = 3500 }
-$freeMin = Read-Host "6) Эхний хэдэн минут үнэгүй үзүүлэх вэ? (хоосон = 20)"
-if (-not $freeMin) { $freeMin = 20 }
+# «Нэг ангийн урт» гэсэн асуулт хасагдсан: кино одоо нэг бүтэн бичлэг. (Тэр асуултад
+# бичих ёстой 210-ыг «үнэгүй минут»-д бичсэнээс нэг кино 5 долоо хоног бүхэлдээ үнэгүй явсан.)
+$price = Read-Host "4) Киноны үнэ төгрөгөөр (хоосон = 3800, 0 = бүрэн үнэгүй)"
+if ($price -eq "") { $price = 3800 }
+$freeMin = Read-Host "5) Эхний хэдэн МИНУТ үнэгүй үзүүлэх вэ? (хоосон = 15)"
+if (-not $freeMin) { $freeMin = 15 }
+# Хамгаалалт: үнэтэй кинонд үнэгүй хэсэг 60 минутаас их бол бараг бүхэлдээ үнэгүй гэсэн үг
+if ([int]$price -gt 0 -and [double]$freeMin -gt 60) {
+    Write-Host ""
+    Write-Host "АНХААР: $freeMin минут үнэгүй гэвэл кино бараг бүхэлдээ үнэгүй болно." -ForegroundColor Yellow
+    $ok = Read-Host "   Үнэхээр $freeMin минут уу? (y = тийм / хоосон = 15 болгоно)"
+    if ($ok -ne "y") { $freeMin = 15 }
+}
 Write-Host ""
 Write-Host "   Анхдагчаар бичлэгийн хэлбэрийг хэвээр нь хадгална (16:9 бол 16:9-ээр гарна)."
-$crop = Read-Host "7) Хэвтээ бичлэгийг босоо (9:16) болгож тайрах уу? (y / хоосон = үгүй)"
+$crop = Read-Host "6) Хэвтээ бичлэгийг босоо (9:16) болгож тайрах уу? (y / хоосон = үгүй)"
 
 Write-Host ""
 $argsExtra = @{}
 if ($crop -eq "y") { $argsExtra["Crop9x16"] = $true }
-& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -EpisodeSeconds ([int]$sec) -Price ([int]$price) -FreeMinutes ([double]$freeMin) @argsExtra
+& (Join-Path $PSScriptRoot "add-series.ps1") -Video $video -Title $title -Tagline $tagline -Price ([int]$price) -FreeMinutes ([double]$freeMin) @argsExtra
 if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
     Read-Host "Алдаа гарлаа. Enter дарж хаана уу"
     exit 1

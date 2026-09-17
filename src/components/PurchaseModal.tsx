@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatPrice, getSeries } from "../data/catalog";
+import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, type SiteSettings } from "../lib/settings";
 import {
   buyStatus,
@@ -98,7 +98,9 @@ export function PurchaseModal() {
           <img className="pay-poster" src={series.poster} alt={series.title} />
           <div>
             <h3 className="pay-title">{series.title}</h3>
-            <p className="muted small">{series.episodes.length} анги · бүх анги нээгдэнэ</p>
+            <p className="muted small">
+              {formatDuration(totalSeconds(series))} · бүтэн кино нээгдэнэ
+            </p>
             <p className="pay-price">{formatPrice(series.price)}</p>
           </div>
         </div>

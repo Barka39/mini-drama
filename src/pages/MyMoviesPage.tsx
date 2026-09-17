@@ -1,10 +1,21 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { formatPrice } from "../data/catalog";
-import { buyStatus, useAppState } from "../lib/store";
+import { formatDuration, formatPrice, watchPath, type Series } from "../data/catalog";
+import { buyStatus, useAppState, type AppState } from "../lib/store";
 import { useCatalog } from "../lib/seriesAdmin";
 import { openAuth, openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
+
+/** «34 мин үлдсэн» / «5/37 анги» — кино нэг бүтэн бичлэг эсэхээс хамаарна */
+function whereAt(s: AppState, x: Series): string | null {
+  if (x.hls) {
+    const mt = s.movieTime[x.id];
+    if (!mt || mt.t < 30) return null;
+    return mt.t > mt.d - 60 ? "үзэж дууссан" : `${formatDuration(mt.d - mt.t)} үлдсэн`;
+  }
+  const at = s.progress[x.id] ?? 1;
+  return at > 1 ? `${at}/${x.episodes.length} анги` : null;
+}
 
 // Худалдаж авсан кинонуудаа олох тусдаа хэсэг — өмнө нь тэднийг каталогоос
 // хайж олох ёстой байсан.
@@ -21,7 +32,10 @@ export function MyMoviesPage() {
     [catalog, s],
   );
   const watching = useMemo(
-    () => catalog.filter((x) => s.progress[x.id] && buyStatus(s, x.id) !== "owned"),
+    () =>
+      catalog.filter(
+        (x) => (s.progress[x.id] || s.movieTime[x.id]) && buyStatus(s, x.id) !== "owned",
+      ),
     [catalog, s],
   );
 
@@ -64,12 +78,12 @@ export function MyMoviesPage() {
           {owned.map((x) => {
             const at = s.progress[x.id] ?? 1;
             return (
-              <Link key={x.id} to={`/watch/${x.id}/${at}`} className="my-row">
+              <Link key={x.id} to={watchPath(x, at)} className="my-row">
                 <img src={x.poster} alt="" />
                 <span className="my-row-text">
                   <strong>{x.title}</strong>
                   <span className="muted small">
-                    {at > 1 ? `${at}/${x.episodes.length} анги · үргэлжлүүлэх` : "Үзэж эхлэх"}
+                    {whereAt(s, x) ? `${whereAt(s, x)} · үргэлжлүүлэх` : "Үзэж эхлэх"}
                   </span>
                 </span>
               </Link>
@@ -84,12 +98,12 @@ export function MyMoviesPage() {
           {watching.map((x) => {
             const at = s.progress[x.id] ?? 1;
             return (
-              <Link key={x.id} to={`/watch/${x.id}/${at}`} className="my-row">
+              <Link key={x.id} to={watchPath(x, at)} className="my-row">
                 <img src={x.poster} alt="" />
                 <span className="my-row-text">
                   <strong>{x.title}</strong>
                   <span className="muted small">
-                    {at}/{x.episodes.length} анги ·{" "}
+                    {whereAt(s, x) ?? "эхэлсэн"} ·{" "}
                     {x.price > 0 ? `бүтэн кино ${formatPrice(x.price)}` : "үнэгүй"}
                   </span>
                 </span>

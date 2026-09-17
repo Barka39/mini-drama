@@ -70,8 +70,12 @@ async function playHls(request, env, seriesId) {
 
   const exp = Math.floor(Date.now() / 1000) + HLS_TTL;
   const token = await signHlsToken(env, seriesId, exp, max);
+  // Олон чанарын хувилбартай кино бол master жагсаалтыг өгнө — тоглуулагч сүлжээний
+  // хурдаар өөрөө сонгоно (сул сүлжээнд 360p руу бууж гацахгүй үргэлжилнэ).
+  // Эрхийн хил хувилбар бүрд адил үйлчилнэ: хэсгүүд нь яг ижил дугаарлагдсан.
+  const master = await env.VIDEOS.head(`hls/${seriesId}/master.m3u8`);
   return json({
-    url: `/hls/${seriesId}/${token}/index.m3u8`,
+    url: `/hls/${seriesId}/${token}/${master ? "master" : "index"}.m3u8`,
     exp,
     entitled,
     // Клиент энэ секундэд төлбөрийн саналыг харуулна. Серверийн хил үүнээс
