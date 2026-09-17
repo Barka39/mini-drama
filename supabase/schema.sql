@@ -971,3 +971,28 @@ $$;
 
 revoke all on function public.md_bank_status() from public, anon;
 grant execute on function public.md_bank_status() to authenticated;
+
+-- ============================================================
+-- Линк устгах (2026-09-17) — дууссан линкүүд жагсаалтыг дүүргэдэг байсан
+-- ============================================================
+-- Зөвхөн линкийн мөрийг устгана. Тэр линкээр аль хэдийн олгогдсон эрх
+-- (md_purchases) хөндөгдөхгүй — үзэж байгаа хүн үргэлжлүүлэн үзнэ.
+create or replace function public.md_delete_link(p_token text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  delete from md_access_links where token = p_token;
+  if not found then
+    raise exception 'bad_link';
+  end if;
+end;
+$$;
+
+revoke all on function public.md_delete_link(text) from public, anon;
+grant execute on function public.md_delete_link(text) to authenticated;

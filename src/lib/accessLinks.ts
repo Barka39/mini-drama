@@ -66,6 +66,12 @@ export async function revokeLink(token: string): Promise<boolean> {
   return !error;
 }
 
+/** Линкийг жагсаалтаас бүрмөсөн устгана. Аль хэдийн олгогдсон эрх хөндөгдөхгүй. */
+export async function deleteLink(token: string): Promise<boolean> {
+  const { error } = await supa.rpc("md_delete_link", { p_token: token });
+  return !error;
+}
+
 /** Хүчингүй болгосон линкийг буцааж нээх, эсвэл дүүрсэн линкэд төхөөрөмж нэмэх. */
 export async function restoreLink(token: string, addClaims = 0): Promise<boolean> {
   const { error } = await supa.rpc("md_restore_link", {

@@ -4,6 +4,7 @@ import { supa } from "../lib/supa";
 import { formatPrice } from "../data/catalog";
 import {
   createLinks,
+  deleteLink,
   linkUrl,
   listLinks,
   restoreLink,
@@ -546,6 +547,20 @@ export function AdminPage() {
                     Хүчингүй болгох
                   </button>
                 )}
+                <button
+                  className="copy-btn danger-btn"
+                  onClick={async () => {
+                    if (!confirm("Энэ линкийг жагсаалтаас бүрмөсөн устгах уу?\n\nЭнэ линкээр аль хэдийн нээсэн хүмүүс үргэлжлүүлэн үзнэ — зөвхөн линк өөрөө устана.")) return;
+                    if (await deleteLink(l.token)) {
+                      setLinks(await listLinks());
+                      setMsg("Линк устгагдлаа");
+                    } else {
+                      setMsg("Устгаж чадсангүй");
+                    }
+                  }}
+                >
+                  Устгах
+                </button>
               </div>
             </div>
           ))}
