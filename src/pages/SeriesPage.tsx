@@ -1,8 +1,15 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { formatDuration, formatPrice, freeEpCount, totalSeconds } from "../data/catalog";
-import { buyStatus, canWatch, useAppState } from "../lib/store";
-import { useSeriesById } from "../lib/seriesAdmin";
+import {
+  formatDuration,
+  formatPrice,
+  freeEpCount,
+  seriesCategories,
+  totalSeconds,
+} from "../data/catalog";
+import { buyStatus, canWatch, toggleMyList, useAppState } from "../lib/store";
+import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
+import { SITE } from "../lib/accessLinks";
 import { track } from "../lib/track";
 import { openPurchase } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
@@ -14,6 +21,7 @@ export function SeriesPage() {
   const navigate = useNavigate();
   const s = useAppState();
   const series = useSeriesById(seriesId);
+  const catalog = useCatalog();
 
   useEffect(() => {
     if (series) {
@@ -44,6 +52,14 @@ export function SeriesPage() {
   // Төгсгөлд нь хүрсэн бол «үргэлжлүүлэх» биш «дахин үзэх»
   const resumable = movie && savedAt > 30 && savedAt < totalSeconds(series) - 60;
   const mm = Math.floor(savedAt / 60);
+  const inList = s.myList.includes(series.id);
+  // Төстэй кинонууд: ижил ангилалтайг эхэнд, дутвал бусдаар нөхнө
+  const cats = seriesCategories(series);
+  const others = catalog.filter((x) => x.id !== series.id);
+  const similar = [
+    ...others.filter((x) => seriesCategories(x).some((c) => cats.includes(c))),
+    ...others.filter((x) => !seriesCategories(x).some((c) => cats.includes(c))),
+  ].slice(0, 8);
 
   return (
     <div className="page">
@@ -96,6 +112,22 @@ export function SeriesPage() {
               🎬 Худалдаж авах — {formatPrice(series.price)}
             </button>
           )}
+          <button
+            className="btn btn-ghost btn-list"
+            onClick={() => {
+              // Зарын хуудсын хаягийг хуваалцана — Facebook/Messenger дээр зурагтай карт гарна
+              const url = `${SITE}/k/${series.id}?src=share`;
+              const text = `«${series.title}» — Кино Мандал дээр үзээрэй`;
+              if (navigator.share) void navigator.share({ title: series.title, text, url }).catch(() => undefined);
+              else void navigator.clipboard?.writeText(url).then(() => alert("Линк хуулагдлаа"));
+              track("share", series.id);
+            }}
+          >
+            ↗ Найздаа хуваалцах
+          </button>
+          <button className="btn btn-ghost btn-list" onClick={() => toggleMyList(series.id)}>
+            {inList ? "✓ Миний жагсаалтад байна" : "+ Миний жагсаалтад нэмэх"}
+          </button>
           {series.price > 0 && status === "pending" && (
             <button className="btn btn-outline" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
               ⏳ Хүсэлт хүлээгдэж байна…
@@ -107,7 +139,7 @@ export function SeriesPage() {
       {series.price > 0 && status !== "owned" && (
         <div className="series-trust">
           <span>✅ Нэг удаа төлөөд хязгааргүй үзнэ</span>
-          <span>⚡ Төлбөр ормогц автоматаар нээгдэнэ</span>
+          <span>⚡ Төлбөр баталгаажмагц шууд нээгдэнэ</span>
           <Link className="link-btn" to="/help">
             Хэрхэн ажилладаг вэ? →
           </Link>
@@ -146,6 +178,21 @@ export function SeriesPage() {
           );
         })}
       </section>
+
+      {similar.length > 0 && (
+        <section className="row-block similar-block">
+          <h2 className="row-title">Танд таалагдаж магадгүй</h2>
+          <div className="row-scroll">
+            {similar.map((x) => (
+              <Link key={x.id} to={`/series/${x.id}`} className="row-card">
+                <img src={x.poster} alt={x.title} loading="lazy" />
+                <span className="row-card-title">{x.title}</span>
+                <span className="row-card-sub">{formatDuration(totalSeconds(x))}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

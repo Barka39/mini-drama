@@ -210,7 +210,7 @@ drop policy if exists md_events_insert on public.md_events;
 create policy md_events_insert on public.md_events
   for insert to anon, authenticated
   with check (
-    event in ('open_series', 'watch_start', 'paywall_hit', 'buy_click', 'order_created')
+    event in ('open_series', 'watch_start', 'paywall_hit', 'buy_click', 'order_created', 'share', 'install')
     and length(sid) between 8 and 40
     and (series_id is null or length(series_id) <= 40)
   );

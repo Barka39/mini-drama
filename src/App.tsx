@@ -14,6 +14,7 @@ import { BottomNav } from "./components/BottomNav";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
 import { VipModal } from "./components/VipModal";
+import { InstallPrompt } from "./components/InstallPrompt";
 
 // HashRouter: GitHub Pages зэрэг статик хостинг дээр сервер тохиргоогүйгээр ажиллана
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
       </Routes>
+      <InstallPrompt />
       <BottomNav />
       <PurchaseModal />
       <AuthModal />

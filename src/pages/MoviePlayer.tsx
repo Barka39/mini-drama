@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatPrice } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
-import { useSeriesById } from "../lib/seriesAdmin";
+import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
 import { track } from "../lib/track";
 import { openPurchase, openVip } from "../lib/ui";
+import { cheapestPlan, usePlans } from "../lib/plans";
 
 const SPEEDS = [1, 1.25, 1.5, 2];
 const DEFAULT_TITLE = "Кино Мандал — богино драм монголоор";
@@ -60,6 +61,9 @@ export function MoviePlayer() {
   const resumeAt = useRef(0);
   const wallTracked = useRef(false);
   const startTracked = useRef(false);
+
+  const plan = cheapestPlan(usePlans());
+  const movieCount = useCatalog().length;
 
   const owned = !!series && (series.price <= 0 || hasVip(s) || s.purchased.includes(series.id));
   const status = series ? buyStatus(s, series.id) : "none";
@@ -361,20 +365,34 @@ export function MoviePlayer() {
               <p className="muted">
                 Үргэлжлэлийг яг эндээс нь үзнэ — төлбөр баталгаажмагц кино өөрөө цааш тоглоно.
               </p>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  if (status !== "pending") track("buy_click", series.id);
-                  openPurchase(series.id);
-                }}
-              >
-                {status === "pending"
-                  ? "⏳ Төлбөр хүлээгдэж байна — дансны мэдээлэл"
-                  : `Үргэлжлүүлэн үзэх — ${formatPrice(series.price)}`}
-              </button>
-              <button className="btn btn-outline" onClick={openVip}>
-                ⭐ Сарын эрх — бүх кино
-              </button>
+              {status === "pending" ? (
+                <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
+                  ⏳ Төлбөр хүлээгдэж байна — дансны мэдээлэл
+                </button>
+              ) : (
+                <>
+                  {/* Сарын эрх тэргүүнд: орлогын 60% эндээс ордог, хэрэглэгчид ч ашигтай
+                      (нэг киноны биш, бүх киноны эрх) */}
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      track("buy_click", series.id);
+                      openVip();
+                    }}
+                  >
+                    ⭐ Бүх {movieCount} кино{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => {
+                      track("buy_click", series.id);
+                      openPurchase(series.id);
+                    }}
+                  >
+                    Зөвхөн энэ кино — {formatPrice(series.price)}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

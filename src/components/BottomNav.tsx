@@ -11,7 +11,7 @@ const TABS = [
 export function BottomNav() {
   const { pathname } = useLocation();
   // Тоглуулагч бүтэн дэлгэц тул цэс харуулахгүй
-  if (pathname.startsWith("/watch")) return null;
+  if (pathname.startsWith("/watch") || pathname.startsWith("/movie")) return null;
 
   return (
     <nav className="bottom-nav">

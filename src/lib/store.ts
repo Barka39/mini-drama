@@ -20,6 +20,7 @@ export interface AppState {
   progress: Record<string, number>; // seriesId -> хамгийн сүүлд үзсэн анги (локал)
   // seriesId -> бүтэн киноны зогссон цэг ба нийт урт (секунд, локал)
   movieTime: Record<string, { t: number; d: number }>;
+  myList: string[]; // «Миний жагсаалт» — дараа үзэхээр хадгалсан кинонууд (локал)
 }
 
 function loadProgress(): Record<string, number> {
@@ -42,11 +43,25 @@ function loadMovieTime(): Record<string, { t: number; d: number }> {
   return {};
 }
 
+function loadMyList(): string[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) return JSON.parse(raw).myList ?? [];
+  } catch {
+    /* эвдэрсэн бол хоосноос эхэлнэ */
+  }
+  return [];
+}
+
 function persistLocal() {
   try {
     localStorage.setItem(
       LOCAL_KEY,
-      JSON.stringify({ progress: state.progress, movieTime: state.movieTime }),
+      JSON.stringify({
+        progress: state.progress,
+        movieTime: state.movieTime,
+        myList: state.myList,
+      }),
     );
   } catch {
     /* хувийн горимд хадгалж чадахгүй байж болно — үзэлтэд саад болохгүй */
@@ -65,6 +80,7 @@ let state: AppState = {
   subPending: false,
   progress: loadProgress(),
   movieTime: loadMovieTime(),
+  myList: loadMyList(),
 };
 
 const listeners = new Set<() => void>();
@@ -353,6 +369,13 @@ export function setProgress(seriesId: string, epIndex: number) {
   if (state.progress[seriesId] === epIndex) return;
   const progress = { ...state.progress, [seriesId]: epIndex };
   commit({ progress });
+  persistLocal();
+}
+
+/** «Миний жагсаалт»-д нэмэх / хасах */
+export function toggleMyList(seriesId: string) {
+  const has = state.myList.includes(seriesId);
+  commit({ myList: has ? state.myList.filter((x) => x !== seriesId) : [seriesId, ...state.myList] });
   persistLocal();
 }
 

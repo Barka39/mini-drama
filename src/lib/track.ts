@@ -9,7 +9,9 @@ export type TrackEvent =
   | "watch_start" // тоглуулж эхэлсэн
   | "paywall_hit" // түгжээтэй ангид хүрсэн
   | "buy_click" // «Худалдаж авах» дарсан
-  | "order_created"; // захиалга үүсгэсэн
+  | "order_created" // захиалга үүсгэсэн
+  | "share" // найздаа хуваалцсан
+  | "install"; // дэлгэцэндээ нэмсэн
 
 const SID_KEY = "md-sid";
 const SRC_KEY = "md-src";
