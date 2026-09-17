@@ -27,8 +27,21 @@ const BASE = import.meta.env.BASE_URL;
 // Видеонууд R2 сан дээр байрладаг (videoBase); хоосон бол сайтын хавтаснаас
 const VIDEO_BASE = raw.videoBase || BASE;
 
+// catalog.json-ы хэлбэр. Төрлийг ГАРААР заана: бүх кино нэг бүтэн бичлэг болсноор
+// episodes нь хоосон массив болж, TypeScript түүнийг never[] гэж таамаглаад эвдэрдэг.
+interface RawEpisode {
+  index: number;
+  video: string;
+  title: string;
+  duration: number;
+}
+interface RawSeries extends Omit<Series, "episodes"> {
+  episodes: RawEpisode[];
+}
+const RAW_SERIES = raw.series as unknown as RawSeries[];
+
 // Сүүлд нэмсэн кино эхэнд харагдана (catalog.json-д шинэ кино төгсгөлд нэмэгддэг)
-export const CATALOG: Series[] = [...raw.series].reverse().map((s) => ({
+export const CATALOG: Series[] = [...RAW_SERIES].reverse().map((s) => ({
   ...s,
   poster: BASE + s.poster,
   episodes: s.episodes.map((e) => ({

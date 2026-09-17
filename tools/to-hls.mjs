@@ -82,7 +82,9 @@ function finish(id, durations, out) {
   s.hls = { duration: total };
   writeCatalog(cat);
   console.log(`\n✅ «${s.title}» нэг бүтэн кино боллоо (${Math.round(total / 60)} мин).`);
-  console.log("   Сайтад гаргах: tools\\deploy.ps1  — дараа нь шалгаад: to-hls.mjs drop-episodes " + id);
+  console.log("   Сайтад гаргах: tools\\deploy.ps1");
+  // Зөвхөн хуучин ангиас шилжүүлсэн кинонд: шалгасны дараа ангиудыг устгаж зай чөлөөлнө
+  if (s.episodes.length) console.log("   Дараа нь: node tools/to-hls.mjs drop-episodes " + id);
 }
 
 const [cmd, id, file] = process.argv.slice(2);
