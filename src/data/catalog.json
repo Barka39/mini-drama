@@ -143,6 +143,19 @@
       "hls": {
         "duration": 5527.2
       }
+    },
+    {
+      "id": "series-260921-1402",
+      "title": "Boyka!",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260921-1402.jpg",
+      "price": 3800,
+      "freeMinutes": 4,
+      "episodes": [],
+      "hls": {
+        "duration": 5545.7
+      }
     }
   ]
 }
