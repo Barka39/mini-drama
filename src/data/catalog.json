@@ -130,6 +130,19 @@
       "hls": {
         "duration": 9819.4
       }
+    },
+    {
+      "id": "series-260921-1306",
+      "title": "Асрагчын нууц хүүхэд",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260921-1306.jpg",
+      "price": 3800,
+      "freeMinutes": 11,
+      "episodes": [],
+      "hls": {
+        "duration": 5527.2
+      }
     }
   ]
 }
