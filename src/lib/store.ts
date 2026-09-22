@@ -313,7 +313,18 @@ export async function claimAccess(token: string): Promise<ClaimResult> {
       if (error) return { ok: false, reason: "Холболт үүсгэж чадсангүй: " + error.message };
     }
 
-    const { data, error } = await supa.rpc("md_claim_access", { p_token: token });
+    let { data, error } = await supa.rpc("md_claim_access", { p_token: token });
+    // Линкийн өөрийн алдаа биш (хүчингүй, дүүрсэн г.м) бол ихэвчлэн утсанд үлдсэн
+    // хуучин сесс нь серверт байхгүй болсон байдаг (хэрэглэгч устгагдсан, хугацаа
+    // дууссан). Тэр үед шинэ нэргүй сесс үүсгээд нэг удаа дахин оролдоно — эс бөгөөс
+    // хүн линкээ хэдэн ч удаа нээсэн «алдаа» гэсээр гацна.
+    const linkError = (m: string) => Object.keys(CLAIM_ERRORS).some((k) => m.includes(k));
+    if (error && !linkError(error.message)) {
+      await supa.auth.signOut().catch(() => undefined);
+      const { error: signErr } = await supa.auth.signInAnonymously();
+      if (signErr) return { ok: false, reason: "Холболт үүсгэж чадсангүй: " + signErr.message };
+      ({ data, error } = await supa.rpc("md_claim_access", { p_token: token }));
+    }
     if (error) {
       const key = Object.keys(CLAIM_ERRORS).find((k) => error.message.includes(k));
       return { ok: false, reason: key ? CLAIM_ERRORS[key] : error.message };
