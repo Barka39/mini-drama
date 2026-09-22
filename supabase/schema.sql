@@ -1005,3 +1005,37 @@ grant execute on function public.md_delete_link(text) to authenticated;
 -- тооцоолол нь яг ижил (md_free_eps_from) тул админ «үнэгүй минут»-ыг өөрчлөхөд
 -- танилцуулгын хил автоматаар шилжинэ.
 alter table public.md_series add column if not exists hls boolean not null default false;
+
+-- ============================================================
+-- Линкийг НЭХЭМЖЛЭХГҮЙГЭЭР урьдчилан харах (2026-09-22)
+-- ============================================================
+-- Messenger-ээр линк явуулмагц Facebook-ийн аюулгүй байдлын робот (66.220.x,
+-- 31.13.x, 173.252.x — Chrome 74) хуудсыг JS-тэй нь нээдэг. Хуудас нээгдмэгц
+-- эрх нэхэмжилдэг байсан тул робот бүр нэг «төхөөрөмж» зарцуулж, 14 хоногт 15
+-- нэхэмжлэлийн 10 нь робот байв. Одоо хуудас зөвхөн энэ функцийг дуудаж киног
+-- харуулна; эрх нь хүн «Үзэх» товч дарахад л олгогдоно.
+create or replace function public.md_link_preview(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v md_access_links%rowtype;
+begin
+  select * into v from md_access_links where token = p_token;
+  if v.token is null then return jsonb_build_object('ok', false, 'reason', 'bad_link'); end if;
+  if v.revoked then return jsonb_build_object('ok', false, 'reason', 'revoked'); end if;
+  if v.expires_at is not null and v.expires_at < now() then
+    return jsonb_build_object('ok', false, 'reason', 'expired');
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'series_id', v.series_id,
+    'plan_days', v.plan_days,
+    'full', v.claims >= v.max_claims
+  );
+end;
+$$;
+
+grant execute on function public.md_link_preview(text) to anon, authenticated;

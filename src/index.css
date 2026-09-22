@@ -1998,3 +1998,31 @@ a {
 .billboard-actions .btn-primary {
   padding: 11px 22px;
 }
+
+/* Нэвтрэх линкийн хуудас: эрхийг хүн товч дарахад л олгоно (робот дардаггүй) */
+.claim-page {
+  text-align: center;
+  gap: 10px;
+}
+
+.claim-poster {
+  width: 168px;
+  aspect-ratio: 9 / 13;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  margin-bottom: 6px;
+}
+
+.claim-title {
+  font-size: 21px;
+  line-height: 1.25;
+  max-width: 320px;
+}
+
+.claim-btn {
+  min-width: 240px;
+  padding: 15px 24px;
+  font-size: 17px;
+  margin-top: 8px;
+}
