@@ -395,7 +395,7 @@ async function onRequestGet5({ request, env, params }) {
 }
 __name(onRequestGet5, "onRequestGet");
 
-// ../.wrangler/tmp/pages-IHgbQT/functionsRoutes-0.3403961387191321.mjs
+// ../.wrangler/tmp/pages-fuObyz/functionsRoutes-0.0473718203333342.mjs
 var routes = [
   {
     routePath: "/api/bank-sms",
