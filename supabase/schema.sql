@@ -1039,3 +1039,296 @@ end;
 $$;
 
 grant execute on function public.md_link_preview(text) to anon, authenticated;
+
+-- ============================================================
+-- ОНЛАЙН ТӨЛБӨР — Byl (QPay) 2026-09-24
+-- ============================================================
+-- Хэрэглэгч «QPay-ээр төлөх» дарахад /api/pay/byl нь Byl дээр төлбөрийн хуудас
+-- (checkout) үүсгээд тэр рүү шилжүүлнэ. Төлбөр ормогц Byl гарын үсэгтэй мэдэгдлийг
+-- /api/pay/byl-webhook руу илгээж, md_confirm_by_byl захиалгыг ДУГААРААР нь
+-- (өвөрмөц дүнгээр биш) олж баталгаажуулна. Мөнгө Byl-ээр дамжихгүй — QPay шууд
+-- эзний данс руу хийнэ.
+
+-- Горим: off = хэнд ч харагдахгүй, admin = зөвхөн админд (туршилт), on = бүгдэд
+alter table public.md_settings add column if not exists online_pay text not null default 'off';
+do $$ begin
+  alter table public.md_settings add constraint md_settings_online_pay_chk
+    check (online_pay in ('off', 'admin', 'on'));
+exception when duplicate_object then null; end $$;
+
+alter table public.md_purchases add column if not exists pay_checkout_id bigint;
+alter table public.md_purchases add column if not exists pay_url text;
+-- Юугаар баталгаажсан: bank (SMS), admin (гараар), byl (QPay)
+alter table public.md_purchases add column if not exists paid_via text;
+
+-- Byl-ээс ирсэн мэдэгдэл бүр (таарсан ч, таараагүй ч). event_id давхцвал
+-- дахин боловсруулахгүй — Byl нэг мэдэгдлийг хэд хэдэн удаа илгээж болдог.
+create table if not exists public.md_pay_events (
+  id bigint generated always as identity primary key,
+  provider text not null default 'byl',
+  event_id text not null,
+  type text not null,
+  purchase_id bigint references public.md_purchases (id) on delete set null,
+  amount numeric,
+  matched boolean not null default false,
+  note text,
+  raw jsonb,
+  created_at timestamptz not null default now(),
+  unique (provider, event_id)
+);
+alter table public.md_pay_events enable row level security;
+drop policy if exists md_pay_events_select on public.md_pay_events;
+create policy md_pay_events_select on public.md_pay_events
+  for select using (public.md_is_admin());
+
+-- Серверийн нууц түлхүүр (md_config.bank_secret) таарч байна уу
+create or replace function public.md__secret_ok(p_secret text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce((select bank_secret = p_secret and length(bank_secret) > 10
+                     from md_config where id = 1), false);
+$$;
+revoke all on function public.md__secret_ok(text) from public, anon, authenticated;
+
+-- ЭРХ ОЛГОХ ГАНЦ ГАЗАР. Банкны SMS, админы товч, QPay — гурвуулаа үүгээр дамжина.
+-- 2026-08-09-нд VIP сунгах код зөвхөн нэг замд байсан тул гараар баталгаажуулсан
+-- 7 захиалга юу ч олгоогүй. Одоо зам бүр нэг л функц дууддаг.
+-- Буцаах утга: granted | already_confirmed | already_owned | not_found
+create or replace function public.md__grant_purchase(p_id bigint, p_via text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_p md_purchases%rowtype;
+begin
+  select * into v_p from md_purchases where id = p_id for update;
+  if v_p.id is null then return 'not_found'; end if;
+  if v_p.status = 'confirmed' then return 'already_confirmed'; end if;
+
+  -- Нэг хүн нэг киног хоёр удаа эзэмшихгүй (md_purchases_one_confirmed индекс).
+  -- Өөр замаар (линк, гараар) аль хэдийн нээгдсэн бол энэ мөрийг хөндөхгүй —
+  -- дуудагч нь бүртгэж, эзэн мөнгийг буцаана.
+  if coalesce(v_p.kind, 'movie') = 'movie' and exists (
+       select 1 from md_purchases
+        where user_id = v_p.user_id and series_id = v_p.series_id
+          and status = 'confirmed' and id <> p_id) then
+    return 'already_owned';
+  end if;
+
+  update md_purchases
+     set status = 'confirmed', decided_at = now(), paid_via = p_via
+   where id = p_id;
+
+  -- Сарын эрх: идэвхтэй бол үргэлжлүүлж нэмнэ, дууссан бол өнөөдрөөс эхэлнэ
+  if v_p.kind = 'sub' and v_p.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_p.plan_days || ' days')::interval
+     where id = v_p.user_id;
+  end if;
+  return 'granted';
+end;
+$$;
+revoke all on function public.md__grant_purchase(bigint, text) from public, anon, authenticated;
+
+-- АДМИН: гараар баталгаажуулах — одоо ганц эрх олгогчоор дамжина
+create or replace function public.md_confirm_purchase(p_id bigint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_res text;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if not exists (select 1 from md_purchases where id = p_id and status = 'pending') then
+    raise exception 'not_pending';
+  end if;
+  v_res := public.md__grant_purchase(p_id, 'admin');
+  if v_res <> 'granted' then
+    raise exception '%', v_res;
+  end if;
+end;
+$$;
+
+-- БАНКНЫ SMS: тааруулах логик хэвээр, эрх олгох нь ганц функцээр
+create or replace function public.md_confirm_by_amount(
+  p_secret text,
+  p_amount numeric,
+  p_raw text,
+  p_utga text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_series text;
+  v_phone text;
+  v_how text;
+  v_res text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  -- 1) ҮНДСЭН ЗАМ: яг тэр өвөрмөц дүнтэй хүлээгдэж буй захиалга
+  select p.id, p.series_id, u.phone
+    into v_id, v_series, v_phone
+    from md_purchases p
+    join md_profiles u on u.id = p.user_id
+   where p.amount = p_amount
+     and p.status = 'pending'
+     and p.created_at > now() - interval '48 hours'
+   order by p.created_at
+   limit 1;
+  if v_id is not null then v_how := 'amount'; end if;
+
+  -- 2) НӨӨЦ ЗАМ: гүйлгээний утганд хэрэглэгчийн утасны дугаар байвал.
+  --    Дүн нь киноны үнийг хангасан байх ёстой (дутуу төлбөрөөр нээхгүй).
+  if v_id is null and coalesce(p_utga, '') <> '' then
+    select p.id, p.series_id, u.phone
+      into v_id, v_series, v_phone
+      from md_purchases p
+      join md_profiles u on u.id = p.user_id
+     where p.status = 'pending'
+       and p.created_at > now() - interval '48 hours'
+       and length(u.phone) = 8
+       and regexp_replace(p_utga, '\D', '', 'g') like '%' || u.phone || '%'
+       and p_amount >= p.amount
+     order by p.created_at
+     limit 1;
+    if v_id is not null then v_how := 'utga'; end if;
+  end if;
+
+  if v_id is null then
+    insert into md_bank_msgs (raw, amount, matched) values (p_raw, p_amount, false);
+    return jsonb_build_object('matched', false);
+  end if;
+
+  v_res := public.md__grant_purchase(v_id, 'bank');
+  if v_res <> 'granted' then
+    insert into md_bank_msgs (raw, amount, purchase_id, matched)
+    values (p_raw, p_amount, v_id, false);
+    return jsonb_build_object('matched', false, 'reason', v_res, 'purchase_id', v_id);
+  end if;
+
+  insert into md_bank_msgs (raw, amount, purchase_id, matched)
+  values (p_raw, p_amount, v_id, true);
+
+  return jsonb_build_object(
+    'matched', true, 'how', v_how,
+    'purchase_id', v_id, 'series_id', v_series, 'phone', v_phone
+  );
+end;
+$$;
+
+-- /api/pay/byl үүсгэсэн төлбөрийн хуудсыг захиалгад холбоно. Аль хэдийн хуудастай
+-- бол ХУУЧИН хуудас нь үлдэнэ (давхар дарахад хоёр хуудас үүсгэхгүйн тулд).
+create or replace function public.md_attach_checkout(
+  p_secret text, p_purchase bigint, p_checkout bigint, p_url text
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  update md_purchases
+     set pay_checkout_id = p_checkout, pay_url = p_url
+   where id = p_purchase and pay_url is null;
+  return (select pay_url from md_purchases where id = p_purchase);
+end;
+$$;
+grant execute on function public.md_attach_checkout(text, bigint, bigint, text) to anon, authenticated;
+
+-- Byl-ийн «төлбөр орлоо» мэдэгдэл. Захиалгыг client_reference_id-аар (md-<id>)
+-- олно — тэр нь манай сервер үүсгэсэн, Byl гарын үсэг зурсан тул хуурамчаар
+-- өөрчлөх боломжгүй. Татгалзсан (rejected) захиалгыг ч нээнэ: мөнгө нь орсон.
+create or replace function public.md_confirm_by_byl(
+  p_secret text,
+  p_event_id text,
+  p_type text,
+  p_purchase bigint,
+  p_checkout bigint,
+  p_amount numeric,
+  p_raw jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ev bigint;
+  v_p md_purchases%rowtype;
+  v_res text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  select * into v_p from md_purchases where id = p_purchase;
+
+  insert into md_pay_events (provider, event_id, type, purchase_id, amount, raw)
+  values ('byl', p_event_id, p_type, v_p.id, p_amount, p_raw)
+  on conflict (provider, event_id) do nothing
+  returning id into v_ev;
+  if v_ev is null then
+    return jsonb_build_object('duplicate', true);
+  end if;
+
+  if v_p.id is null then
+    v_res := 'unknown_purchase';
+  elsif p_amount is null or p_amount < v_p.amount then
+    v_res := 'underpaid';
+  else
+    v_res := public.md__grant_purchase(v_p.id, 'byl');
+  end if;
+
+  update md_pay_events set matched = (v_res = 'granted'), note = v_res where id = v_ev;
+  if v_res = 'granted' and p_checkout is not null then
+    update md_purchases set pay_checkout_id = coalesce(pay_checkout_id, p_checkout)
+     where id = v_p.id;
+  end if;
+
+  return jsonb_build_object(
+    'matched', v_res = 'granted', 'result', v_res,
+    'purchase_id', v_p.id, 'kind', v_p.kind, 'series_id', v_p.series_id
+  );
+end;
+$$;
+grant execute on function public.md_confirm_by_byl(text, text, text, bigint, bigint, numeric, jsonb)
+  to anon, authenticated;
+
+-- АДМИН: онлайн төлбөрийн горим (off | admin | on)
+create or replace function public.md_set_online_pay(p_mode text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_mode not in ('off', 'admin', 'on') then
+    raise exception 'bad_mode';
+  end if;
+  update md_settings set online_pay = p_mode where id = 1;
+end;
+$$;
+grant execute on function public.md_set_online_pay(text) to authenticated;

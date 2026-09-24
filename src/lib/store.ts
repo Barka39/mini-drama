@@ -368,6 +368,44 @@ export async function requestSubscription(code: string): Promise<BuyResult> {
   return { ok: true };
 }
 
+// ---------- QPay (Byl) ----------
+
+export type OnlinePayResult = { ok: true; url: string } | { ok: false; reason: string };
+
+const ONLINE_PAY_ERRORS: Record<string, string> = {
+  auth_required: "Эхлээд нэвтэрнэ үү",
+  disabled: "QPay төлбөр одоогоор хаалттай байна — дансаар шилжүүлнэ үү",
+  no_pending: "Захиалга олдсонгүй. Цонхоо хаагаад дахин оролдоно уу.",
+  not_configured: "QPay холболт тохируулагдаагүй байна — дансаар шилжүүлнэ үү",
+  byl_failed: "QPay түр ажиллахгүй байна — дансаар шилжүүлж болно",
+};
+
+/**
+ * Хүлээгдэж буй захиалгын QPay төлбөрийн хуудасны хаягийг авна. Захиалга нь
+ * (requestPurchase / requestSubscription-оор) аль хэдийн үүссэн байх ёстой.
+ * Төлсний дараа Byl хэрэглэгчийг яг одоогийн хуудас руу нь буцаана.
+ */
+export async function startOnlinePay(kind: "movie" | "sub", seriesId?: string): Promise<OnlinePayResult> {
+  const { data } = await supa.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { ok: false, reason: ONLINE_PAY_ERRORS.auth_required };
+  try {
+    const res = await fetch("/api/pay/byl", {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ kind, series: seriesId, back: window.location.hash || "#/" }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+    if (res.ok && body.url) return { ok: true, url: body.url };
+    return {
+      ok: false,
+      reason: (body.error && ONLINE_PAY_ERRORS[body.error]) || "QPay холболт амжилтгүй — дансаар шилжүүлж болно",
+    };
+  } catch {
+    return { ok: false, reason: "Сүлжээний алдаа. Дахин оролдоно уу." };
+  }
+}
+
 export function buyStatus(s: AppState, seriesId: string): "owned" | "pending" | "none" {
   if (s.purchased.includes(seriesId)) return "owned";
   if (s.pendingBuys.includes(seriesId)) return "pending";

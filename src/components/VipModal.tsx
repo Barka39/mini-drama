@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
-import { getSettings, type SiteSettings } from "../lib/settings";
+import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
   hasVip,
   loadPlans,
   refreshAccount,
   requestSubscription,
+  startOnlinePay,
   useAppState,
   type Plan,
 } from "../lib/store";
@@ -38,6 +39,7 @@ export function VipModal() {
 
   const vip = hasVip(s);
   const payAmount = s.payAmounts["__vip__"] ?? 0;
+  const qpay = onlinePayFor(bank, s.isAdmin);
 
   function copy(text: string, label: string) {
     void navigator.clipboard?.writeText(text).then(() => {
@@ -50,9 +52,27 @@ export function VipModal() {
     setBusy(true);
     setMsg(null);
     const res = await requestSubscription(code);
-    setBusy(false);
     if (res.ok) track("order_created");
-    else if (res.code !== "pending") setMsg(res.reason);
+    else if (res.code !== "pending") {
+      setBusy(false);
+      setMsg(res.reason);
+      return;
+    }
+    // QPay асаалттай бол шууд төлбөрийн хуудас руу; эс бөгөөс дансны мэдээлэл гарна
+    if (qpay) await payQpay();
+    else setBusy(false);
+  }
+
+  async function payQpay() {
+    setBusy(true);
+    setMsg(null);
+    const pay = await startOnlinePay("sub");
+    if (pay.ok) {
+      window.location.href = pay.url;
+      return;
+    }
+    setBusy(false);
+    setMsg(pay.reason);
   }
 
   return (
@@ -77,8 +97,17 @@ export function VipModal() {
           <>
             <div className="pay-status">
               <span className="pay-spinner" />
-              <span>Шилжүүлгийг хүлээж байна…</span>
+              <span>{qpay ? "Төлбөрийг хүлээж байна…" : "Шилжүүлгийг хүлээж байна…"}</span>
             </div>
+            {qpay && (
+              <>
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
+                </button>
+                {msg && <p className="msg-err">{msg}</p>}
+                <p className="muted small">Эсвэл доорх данс руу шилжүүлж болно:</p>
+              </>
+            )}
             <div className="pay-box">
               <div className="pay-row">
                 <div className="pay-row-text">
@@ -149,8 +178,10 @@ export function VipModal() {
             </div>
             {msg && <p className="msg-err">{msg}</p>}
             <p className="muted small">
-              Багц сонгоход шилжүүлэх дансны мэдээлэл гарч ирнэ. Автоматаар сунгагддаггүй —
-              хугацаа дуусахад та өөрөө сонгоно.
+              {qpay
+                ? "Багц сонгоход QPay-ийн төлбөрийн хуудас нээгдэнэ."
+                : "Багц сонгоход шилжүүлэх дансны мэдээлэл гарч ирнэ."}{" "}
+              Автоматаар сунгагддаггүй — хугацаа дуусахад та өөрөө сонгоно.
             </p>
           </>
         )}

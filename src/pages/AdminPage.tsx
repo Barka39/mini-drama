@@ -12,7 +12,13 @@ import {
   type AccessLink,
 } from "../lib/accessLinks";
 import { agoText, bankHookUrl, loadBankStatus, type BankStatus } from "../lib/bankHook";
-import { getSettings, saveSettings, type SiteSettings } from "../lib/settings";
+import {
+  getSettings,
+  saveSettings,
+  setOnlinePay,
+  type OnlinePayMode,
+  type SiteSettings,
+} from "../lib/settings";
 import {
   loadSeriesMeta,
   saveSeriesMeta,
@@ -176,6 +182,14 @@ export function AdminPage() {
     const res = await saveSettings(settings);
     setSavingSettings(false);
     setMsg(res.ok ? "Данс хадгалагдлаа ✅" : "Алдаа: " + res.reason);
+  }
+
+  async function changeOnlinePay(mode: OnlinePayMode) {
+    if (!settings) return;
+    if (mode === "on" && !confirm("QPay товчийг БҮХ хэрэглэгчид харуулах уу?\n\nByl төсөл «Live» горимд шилжсэн эсэхийг шалгасан байх ёстой — Test горимд бодит төлбөр авахгүй.")) return;
+    const res = await setOnlinePay(mode);
+    if (res.ok) setSettings({ ...settings, online_pay: mode });
+    setMsg(res.ok ? "QPay горим хадгалагдлаа ✅" : "Алдаа: " + res.reason);
   }
 
   if (!s.authReady) {
@@ -604,13 +618,32 @@ export function AdminPage() {
             {savingSettings ? "Хадгалж байна…" : "Данс хадгалах"}
           </button>
           <p className="muted small">
-            Энэ данс худалдан авалтын цонхонд хэрэглэгч бүрт харагдана. (QPay холболт дараагийн
-            шатанд — мерчант бүртгэлтэй болмогц автоматжина.)
+            Энэ данс худалдан авалтын цонхонд хэрэглэгч бүрт харагдана — QPay асаалттай үед ч
+            «дансаар шилжүүлэх» сонголт болж үлдэнэ.
           </p>
         </div>
       ) : (
         <p className="muted small">Ачаалж байна…</p>
       )}
+
+      <h3 className="admin-h">QPay онлайн төлбөр (Byl)</h3>
+      {settings ? (
+        <div className="settings-form">
+          <select
+            className="code-input"
+            value={settings.online_pay}
+            onChange={(e) => void changeOnlinePay(e.target.value as OnlinePayMode)}
+          >
+            <option value="off">Унтраалттай — хэнд ч харагдахгүй</option>
+            <option value="admin">Зөвхөн надад (туршилт)</option>
+            <option value="on">Бүх хэрэглэгчид</option>
+          </select>
+          <p className="muted small">
+            Асаалттай үед худалдан авалтын цонхонд «QPay-ээр төлөх» товч гарч, төлбөр ормогц кино
+            автоматаар нээгдэнэ. Мөнгө QPay-ээр шууд таны данс руу орно.
+          </p>
+        </div>
+      ) : null}
 
       <h3 className="admin-h">Гараар кино нээж өгөх</h3>
       <div className="code-row">

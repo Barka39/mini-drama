@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
-import { getSettings, type SiteSettings } from "../lib/settings";
+import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
   buyStatus,
   loadPlans,
   refreshAccount,
   requestPurchase,
+  startOnlinePay,
   useAppState,
   type Plan,
 } from "../lib/store";
@@ -57,6 +58,8 @@ export function PurchaseModal() {
   const status = series ? buyStatus(s, series.id) : "none";
   // Сервер захиалга бүрд өвөрмөц дүн оноодог — түүгээр банкнаас автоматаар таньдаг
   const payAmount = (series && s.payAmounts[series.id]) || series?.price || 0;
+  // QPay (Byl) товч: эзэн админ хуудаснаас асаана (туршилтын үед зөвхөн админд)
+  const qpay = onlinePayFor(bank, s.isAdmin);
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +91,31 @@ export function PurchaseModal() {
     setBusy(false);
     if (res.ok) track("order_created", series.id);
     else if (res.code !== "pending") setMsg(res.reason);
+  }
+
+  // QPay: захиалгагүй бол үүсгээд (дансаар төлөхтэй ижил өвөрмөц дүнтэй), Byl-ийн
+  // төлбөрийн хуудас руу шилжинэ. Төлсний дараа хэрэглэгч яг энэ хуудас руугаа буцаж,
+  // кино нь аль хэдийн нээгдсэн байна (Byl-ийн мэдэгдэл түрүүлж ирдэг).
+  async function payQpay() {
+    if (!series) return;
+    setBusy(true);
+    setMsg(null);
+    if (status === "none") {
+      const res = await requestPurchase(series.id);
+      if (res.ok) track("order_created", series.id);
+      else if (res.code !== "pending") {
+        setBusy(false);
+        setMsg(res.reason);
+        return;
+      }
+    }
+    const pay = await startOnlinePay("movie", series.id);
+    if (pay.ok) {
+      window.location.href = pay.url;
+      return;
+    }
+    setBusy(false);
+    setMsg(pay.reason);
   }
 
   return (
@@ -124,16 +152,35 @@ export function PurchaseModal() {
           </>
         ) : status === "none" ? (
           <>
-            <ol className="pay-steps">
-              <li>«Захиалах» дарна</li>
-              <li>Банкны аппаараа шилжүүлэг хийнэ</li>
-              <li>Кино автоматаар нээгдэнэ</li>
-            </ol>
-            {msg && <p className="msg-err">{msg}</p>}
-            <button className="btn btn-primary" disabled={busy} onClick={order}>
-              {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
-            </button>
-            <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
+            {qpay ? (
+              <>
+                <ol className="pay-steps">
+                  <li>«QPay-ээр төлөх» дарна</li>
+                  <li>Банкны аппаа сонгож эсвэл QR уншуулж төлнө</li>
+                  <li>Кино шууд нээгдэнэ</li>
+                </ol>
+                {msg && <p className="msg-err">{msg}</p>}
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(series.price)}`}
+                </button>
+                <button className="btn btn-ghost" disabled={busy} onClick={order}>
+                  Дансаар шилжүүлэх
+                </button>
+              </>
+            ) : (
+              <>
+                <ol className="pay-steps">
+                  <li>«Захиалах» дарна</li>
+                  <li>Банкны аппаараа шилжүүлэг хийнэ</li>
+                  <li>Кино автоматаар нээгдэнэ</li>
+                </ol>
+                {msg && <p className="msg-err">{msg}</p>}
+                <button className="btn btn-primary" disabled={busy} onClick={order}>
+                  {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
+                </button>
+                <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
+              </>
+            )}
 
             {/* Сарын эрхийн санал. Түгжээ бол хүн худалдан авах бодолтой байгаа
                 ганц мөч — сайт дээр 9 кинотой болсон тул нэг кино авахаас
@@ -156,8 +203,18 @@ export function PurchaseModal() {
           <>
             <div className="pay-status">
               <span className="pay-spinner" />
-              <span>Шилжүүлгийг хүлээж байна…</span>
+              <span>{qpay ? "Төлбөрийг хүлээж байна…" : "Шилжүүлгийг хүлээж байна…"}</span>
             </div>
+
+            {qpay && (
+              <>
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
+                </button>
+                {msg && <p className="msg-err">{msg}</p>}
+                <p className="muted small">Эсвэл доорх данс руу шилжүүлж болно:</p>
+              </>
+            )}
 
             <div className="pay-box">
               {bank ? (

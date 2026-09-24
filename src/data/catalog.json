@@ -182,6 +182,19 @@
       "hls": {
         "duration": 5422.6
       }
+    },
+    {
+      "id": "series-260924-1805",
+      "title": "Мангар тулаанч",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260924-1805.jpg",
+      "price": 3800,
+      "freeMinutes": 12,
+      "episodes": [],
+      "hls": {
+        "duration": 7381.5
+      }
     }
   ]
 }

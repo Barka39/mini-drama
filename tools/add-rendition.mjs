@@ -142,3 +142,4 @@ fs.copyFileSync(path.join(base, "master.m3u8"), path.join(tmp, "master.m3u8"));
 run(process.execPath, [path.join(root, "tools", "r2-sync.mjs"), "put", tmp, `hls/${id}`]);
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`✅ ${id}: сул сүлжээнд 360p руу автоматаар буудаг боллоо.`);
+console.log("⚠ Хэрэв энэ кино (id) сайт дээр ӨМНӨ НЬ байсан бол functions/hls/[[path]].js доторх CACHE_VERSION-ийг нэмэгдүүлээд deploy хийнэ үү — эс бөгөөс Cloudflare-ийн кэш 7 хоног хуучин хэсгүүдийг өгнө.");

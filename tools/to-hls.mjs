@@ -83,6 +83,7 @@ function finish(id, durations, out) {
   writeCatalog(cat);
   console.log(`\n✅ «${s.title}» нэг бүтэн кино боллоо (${Math.round(total / 60)} мин).`);
   console.log("   Сайтад гаргах: tools\\deploy.ps1");
+  console.log("⚠ Хэрэв энэ кино (id) сайт дээр ӨМНӨ НЬ байсан бол functions/hls/[[path]].js доторх CACHE_VERSION-ийг нэмэгдүүлээд deploy хийнэ үү — эс бөгөөс Cloudflare-ийн кэш 7 хоног хуучин хэсгүүдийг өгнө.");
   // Зөвхөн хуучин ангиас шилжүүлсэн кинонд: шалгасны дараа ангиудыг устгаж зай чөлөөлнө
   if (s.episodes.length) console.log("   Дараа нь: node tools/to-hls.mjs drop-episodes " + id);
 }
