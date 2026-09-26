@@ -44,11 +44,12 @@ foreach ($s in $catalog.series) {
             "scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630" `
             -frames:v 1 -q:v 3 $ogPath
     }
-    # Эх бичлэгийн шатсан хадмал ихэвчлэн доод талд байдаг тул урд талын
-    # постерын доод 36%-ийг таслана (зарын карт цэвэрхэн харагдана)
+    # Босоо бичлэгийн (9:16) постерт шатсан хадмал ихэвчлэн доод талд байдаг тул
+    # доод 36%-ийг таслана. Харин 9:13 постер (кадраас сонгож тайрсан, хадмалгүй)
+    # бүтнээрээ — эс бөгөөс нүүр нь тасарна (2026-09-26).
     elseif (Test-Path $posterPath) {
         & $ff -v error -y -i $posterPath -filter_complex `
-            "[0:v]scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630,boxblur=20:2[bg];[0:v]crop=iw:ih*0.64:0:0,scale=-2:630[fg];[bg][fg]overlay=(W-w)/2:0" `
+            "[0:v]scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630,boxblur=20:2[bg];[0:v]crop=iw:'if(gt(ih/iw,1.6),ih*0.64,ih)':0:0,scale=-2:630[fg];[bg][fg]overlay=(W-w)/2:0" `
             -frames:v 1 -q:v 3 $ogPath
     }
 

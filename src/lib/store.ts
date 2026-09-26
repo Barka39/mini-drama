@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { supa } from "./supa";
 import { CONFIG } from "../config";
+import { currentRouteAsHash } from "./routing";
 import { freeEpCount, type Series } from "../data/catalog";
 
 const LOCAL_KEY = "drama-demo-state-v1";
@@ -618,7 +619,7 @@ export async function startOnlinePay(kind: "movie" | "sub", seriesId?: string): 
     const res = await fetch("/api/pay/byl", {
       method: "POST",
       headers: { "content-type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ kind, series: seriesId, back: window.location.hash || "#/" }),
+      body: JSON.stringify({ kind, series: seriesId, back: currentRouteAsHash() }),
     });
     const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
     if (res.ok && body.url) return { ok: true, url: body.url };

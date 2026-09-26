@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="mn">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Хаяг «#»-гүй (kinomandal.com/movie/<id>): Facebook/Messenger #-ийн араас юу ч
+      // уншдаггүй тул хуулж явуулсан линкэнд киноны нэр, зураг гардаггүй байв.
+      // GitHub-ийн нөөц хаяг (дэд зам /mini-drama/) л хуучнаараа #/... — бусад бүх
+      // домэйн (kinomandal.com, ирээдүйн шинэ домэйн, preview) #-гүй.
+      (function () {
+        var h = location.hostname;
+        if (/\.github\.io$/.test(h)) return;
+        // Бүх харьцангуй хаяг (posters/..., assets/...) сайтын үндэснээс — /movie/x дээр ч
+        document.write('<base href="/">');
+        // Хуучин #/... линк (өмнө нь хуваалцсан, QPay-ээс буцах г.м) → #-гүй хаяг
+        if (location.hash.indexOf("#/") === 0) {
+          var r = location.hash.slice(1), q = r.indexOf("?");
+          var path = q < 0 ? r : r.slice(0, q), hq = q < 0 ? "" : r.slice(q);
+          var query = hq && location.search ? hq + "&" + location.search.slice(1) : hq || location.search;
+          history.replaceState(null, "", path + query);
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0b0b12" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Facebook/Messenger-т хуваалцахад гарах карт -->
+    <!-- Домэйн .env-ийн VITE_SITE_URL-ээс build үед орно (нэг газраас удирдана) -->
+    <!-- Сервер рүү урьдчилан холбогдоно (видео нь одоо энэ домэйнээрээ дамждаг) -->
+    <link rel="preconnect" href="https://uloxtmssvloffbwfwzki.supabase.co" crossorigin />
+    <script type="module" crossorigin src="/assets/index-CUm5Mu6E.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-N_En9zws.css">
+      <title>Дагавар эгч — Кино Мандал</title>
+    <meta name="description" content="Танилцаад удаагүй хос дагавар хүүхдүүдээ гэртээ үлдээж аялалд гарна. Гэртээ үлдсэн эгч дүү хоёрын зөрчил адал явдал болон хувирна. — Эхний 5 минут үнэгүй · Бүтэн кино 3,800₮ · 51 минут · Утсандаа шууд үз" />
+    <meta property="og:type" content="video.other" />
+    <meta property="og:site_name" content="Кино Мандал" />
+    <meta property="og:title" content="Дагавар эгч — Кино Мандал" />
+    <meta property="og:description" content="Танилцаад удаагүй хос дагавар хүүхдүүдээ гэртээ үлдээж аялалд гарна. Гэртээ үлдсэн эгч дүү хоёрын зөрчил адал явдал болон хувирна. — Эхний 5 минут үнэгүй · Бүтэн кино 3,800₮ · 51 минут · Утсандаа шууд үз" />
+    <meta property="og:image" content="https://kinomandal.com/og/series-260926-1904.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:url" content="https://kinomandal.com/movie/series-260926-1904" />
+    <link rel="canonical" href="https://kinomandal.com/series/series-260926-1904" />
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

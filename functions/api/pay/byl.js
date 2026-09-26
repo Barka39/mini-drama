@@ -49,9 +49,11 @@ function userIdFrom(auth) {
 
 /** Төлсний дараа буцах хаяг — зөвхөн манай сайтын дотоод зам (гадагш чиглүүлэхгүй) */
 function safeBack(back) {
-  return typeof back === "string" && back.length < 200 && /^#\/[\w\-/?=&.%]*$/.test(back)
-    ? back
-    : "#/";
+  const ok = (b) => typeof b === "string" && b.length < 200 && /^#\/[\w\-/?=&.%]*$/.test(b);
+  if (ok(back)) return back;
+  // Урт/хачин хавсралттай (fbclid г.м) бол ядаж замыг нь — нүүр хуудас биш
+  const bare = typeof back === "string" ? back.split("?")[0] : "";
+  return ok(bare) ? bare : "#/";
 }
 
 export async function onRequestPost({ request, env }) {

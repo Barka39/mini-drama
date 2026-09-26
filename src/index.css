@@ -352,6 +352,9 @@ a {
 
 .row-card {
   flex: 0 0 118px;
+  /* Урт нэр (nowrap) картыг өргөсгөхгүй — flex элементийн min-width:auto-г тэглэнэ */
+  min-width: 0;
+  width: 118px;
   text-decoration: none;
   color: inherit;
   display: flex;

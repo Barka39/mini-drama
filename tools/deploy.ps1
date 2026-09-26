@@ -52,6 +52,10 @@ Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
 & (Join-Path $PSScriptRoot "make-landing.ps1") -SiteUrl $siteUrl
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
+# Кино бүрийн хуваалцах хуудас (/series/<id>, /movie/<id>) — хуулсан линкэнд нэр, зураг гарна
+$env:SITE_URL = $siteUrl
+node (Join-Path $PSScriptRoot "make-shells.mjs")
+if ($LASTEXITCODE -ne 0) { Write-Error "Хуваалцах хуудсууд үүссэнгүй"; exit 1 }
 
 Write-Host "2/5 Шинэ кинонуудыг сервэрт бүртгэж байна..."
 if ($env:SUPABASE_ACCESS_TOKEN -and $env:SUPABASE_PROJECT_REF) {

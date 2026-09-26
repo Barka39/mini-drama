@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { PATH_MODE } from "./lib/routing";
 import { loadSeriesMeta } from "./lib/seriesAdmin";
 import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
@@ -16,7 +17,9 @@ import { AuthModal } from "./components/AuthModal";
 import { VipModal } from "./components/VipModal";
 import { InstallPrompt } from "./components/InstallPrompt";
 
-// HashRouter: GitHub Pages зэрэг статик хостинг дээр сервер тохиргоогүйгээр ажиллана
+// Үндсэн домэйнд #-гүй хаяг (BrowserRouter), GitHub-ийн нөөц хаягт HashRouter
+const Router = PATH_MODE ? BrowserRouter : HashRouter;
+
 export default function App() {
   // Админы засварыг (нэр, ангилал, үнэ, эрэмбэ) ачаална
   useEffect(() => {
@@ -24,7 +27,7 @@ export default function App() {
   }, []);
 
   return (
-    <HashRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/series/:seriesId" element={<SeriesPage />} />
@@ -35,12 +38,14 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
+        {/* Буруу/хуучирсан хаяг — хоосон дэлгэц биш, нүүр хуудас */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallPrompt />
       <BottomNav />
       <PurchaseModal />
       <AuthModal />
       <VipModal />
-    </HashRouter>
+    </Router>
   );
 }
