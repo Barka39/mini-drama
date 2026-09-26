@@ -142,9 +142,16 @@ if ($isVertical -or $Crop9x16) {
     & $ff -v error -y -ss $posterTime -i $full -frames:v 1 -vf "scale=540:-2" $posterOut
 }
 else {
-    & $ff -v error -y -ss $posterTime -i $full -frames:v 1 -filter_complex `
-        "[0:v]scale=540:780:force_original_aspect_ratio=increase,crop=540:780,boxblur=20:2[bg];[0:v]scale=540:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" `
+    # Хэвтээ кино: босоо 9:13 хүрээг ДҮҮРГЭСЭН poster (голоос нь тайрна). Бүдэг дэвсгэр дээр
+    # жижиг хэвтээ зураг тавих нь муухай харагддаг (эзний санал, 2026-09-26).
+    # Хар зурвас (letterbox) байвал эхлээд тайрна — эс бөгөөс poster-т хар зураас үлдэнэ.
+    $det = & $ff -hide_banner -ss ([math]::Max(0, $posterTime - 2)) -i $full -t 4 -vf "cropdetect=24:2:0" -f null - 2>&1 | Out-String
+    $crops = [regex]::Matches($det, 'crop=(\d+:\d+:\d+:\d+)')
+    $pre = if ($crops.Count -gt 0) { "crop=$($crops[$crops.Count - 1].Groups[1].Value)," } else { "" }
+    & $ff -v error -y -ss $posterTime -i $full -frames:v 1 -vf `
+        "${pre}scale=540:780:force_original_aspect_ratio=increase:flags=lanczos,crop=540:780,unsharp=5:5:0.5" `
         $posterOut
+    Write-Host "Poster: голоос нь тайрсан. Нүүр нь тасарсан бол админ хуудаснаас утсаараа солино уу."
 }
 
 $outSize = (Get-Item -LiteralPath $full).Length
