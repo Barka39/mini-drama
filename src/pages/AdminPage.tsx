@@ -26,7 +26,7 @@ import {
   useCatalog,
   type SeriesMeta,
 } from "../lib/seriesAdmin";
-import { checkQpay, useAppState } from "../lib/store";
+import { useAppState } from "../lib/store";
 import { openAuth } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
@@ -66,10 +66,8 @@ export function AdminPage() {
     [metas, catalog],
   );
   const [pending, setPending] = useState<AdminPurchase[]>([]);
-  // QPay захиалга (Byl хуудас үүссэн) — автоматаар нээгддэг тул гараар батлах жагсаалтаас тусад нь
-  const qpayPending = pending.filter(
-    (t) => t.pay_checkout_id && Date.now() - new Date(t.created_at).getTime() < 7 * 86400000,
-  );
+  // QPay захиалга (Byl хуудас үүссэн) огт харагдахгүй: төлсөн нь Byl-ийн мэдэгдлээр
+  // өөрөө нээгддэг, төлөөгүй нь эзэнд хамаагүй. Энд зөвхөн дансаар шилжүүлсэн захиалга.
   const manualPending = pending.filter((t) => !t.pay_checkout_id);
   const purchaseLabel = (t: AdminPurchase) =>
     t.kind === "sub" ? `Сарын эрх (${t.plan_code === "m3" ? "3 сар" : "1 сар"})` : seriesTitle(t.series_id ?? "");
@@ -236,17 +234,6 @@ export function AdminPage() {
     );
   }
 
-  // QPay захиалгын төлбөрийг Byl-ээс шууд шалгана (төлөгдсөн бол автоматаар нээнэ)
-  async function checkWithByl(id: number) {
-    setMsg("Byl-ээс шалгаж байна…");
-    const r = await checkQpay({ purchase: id });
-    if (!r.ok) setMsg("Шалгаж чадсангүй: " + r.reason);
-    else if (r.status === "confirmed") setMsg("✅ Byl-д төлөгдсөн байна — автоматаар нээгдлээ");
-    else if (r.status.startsWith("pending")) setMsg("Byl-д төлбөр ОРООГҮЙ байна (" + r.status.replace("pending:", "") + ") — хүн төлөөгүй");
-    else setMsg("Төлөв: " + r.status);
-    await load();
-  }
-
   async function decide(id: number, confirm: boolean) {
     const { error } = await supa.rpc(confirm ? "md_confirm_purchase" : "md_reject_purchase", {
       p_id: id,
@@ -287,36 +274,6 @@ export function AdminPage() {
       </header>
 
       {msg && <p className="msg-ok">{msg}</p>}
-
-      {/* QPay захиалга: төлбөр орвол Byl-ийн мэдэгдлээр АВТОМАТААР нээгдэнэ — энд
-          харагдаж байгаа нь «QPay товч дараад ТӨЛӨӨГҮЙ» гэсэн үг. Гараар батлах хэрэггүй. */}
-      {qpayPending.length > 0 && (
-        <details className="admin-qpay">
-          <summary className="admin-h">
-            QPay: эхлүүлээд төлөөгүй ({qpayPending.length}) — гараар батлах шаардлагагүй
-          </summary>
-          <p className="muted small">
-            QPay-ээр төлсөн хүний кино хэдхэн секундэд өөрөө нээгддэг. Энд байгаа нь төлбөрийн
-            хуудсаа нээгээд төлөөгүй хүмүүс. Эргэлзвэл «Byl-ээс шалгах» дарна уу.
-          </p>
-          {qpayPending.map((t) => (
-            <div key={t.id} className="admin-row">
-              <div>
-                <strong>{t.phone ?? "Зочин"}</strong> · {purchaseLabel(t)} ·{" "}
-                <span className="pack-price">{formatPrice(t.price)}</span>
-                <div className="muted small">
-                  №{t.id} · {new Date(t.created_at).toLocaleString("mn-MN")}
-                </div>
-              </div>
-              <div className="admin-actions">
-                <button className="btn btn-outline" onClick={() => void checkWithByl(t.id)}>
-                  Byl-ээс шалгах
-                </button>
-              </div>
-            </div>
-          ))}
-        </details>
-      )}
 
       <h3 className="admin-h">Гараар батлах (дансаар шилжүүлсэн) ({manualPending.length})</h3>
       {manualPending.length === 0 && <p className="muted small">Одоогоор хүсэлт алга.</p>}
