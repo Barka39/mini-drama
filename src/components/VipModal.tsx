@@ -40,6 +40,8 @@ export function VipModal() {
   const vip = hasVip(s);
   const payAmount = s.payAmounts["__vip__"] ?? 0;
   const qpay = onlinePayFor(bank, s.isAdmin);
+  // Сарын эрх утасны дугаарт холбогддог тул бүртгэл заавал (зочин ч бүртгүүлнэ)
+  const needAccount = !s.signedIn || s.guest;
 
   function copy(text: string, label: string) {
     void navigator.clipboard?.writeText(text).then(() => {
@@ -49,6 +51,11 @@ export function VipModal() {
   }
 
   async function order(code: string) {
+    if (needAccount) {
+      // Бүртгүүлсний дараа энэ цонх руу буцаж ирээд багцаа дахин сонгоно
+      openAuth("up", "vip");
+      return;
+    }
     setBusy(true);
     setMsg(null);
     const res = await requestSubscription(code);
@@ -89,35 +96,42 @@ export function VipModal() {
             ✅ Таны сарын эрх идэвхтэй —{" "}
             {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл
           </p>
-        ) : !s.signedIn ? (
-          <button className="btn btn-primary" onClick={openAuth}>
-            Нэвтрэх / Бүртгүүлэх
-          </button>
-        ) : s.subPending ? (
+        ) : !needAccount && s.subPending ? (
           <>
             <div className="pay-status">
               <span className="pay-spinner" />
               <span>{qpay ? "Төлбөрийг хүлээж байна…" : "Шилжүүлгийг хүлээж байна…"}</span>
             </div>
-            {qpay && (
+            {qpay ? (
               <>
                 <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
                   {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
                 </button>
                 {msg && <p className="msg-err">{msg}</p>}
-                <p className="muted small">Эсвэл доорх данс руу шилжүүлж болно:</p>
               </>
-            )}
+            ) : (
+            <>
             <div className="pay-box">
               <div className="pay-row">
                 <div className="pay-row-text">
-                  <span className="pay-label">Төлөх дүн — яг энэ дүнгээр</span>
+                  <span className="pay-label">Төлөх дүн</span>
                   <span className="pay-value pay-value-big">{formatPrice(payAmount)}</span>
                 </div>
                 <button className="copy-btn" onClick={() => copy(String(payAmount), "дүн")}>
                   Хуулах
                 </button>
               </div>
+              {s.phone && (
+                <div className="pay-row">
+                  <div className="pay-row-text">
+                    <span className="pay-label">Гүйлгээний утга — утасны дугаараа заавал бичнэ</span>
+                    <span className="pay-value">{s.phone}</span>
+                  </div>
+                  <button className="copy-btn" onClick={() => copy(s.phone as string, "утга")}>
+                    Хуулах
+                  </button>
+                </div>
+              )}
               <div className="pay-divider" />
               {bank && (
                 <>
@@ -149,8 +163,11 @@ export function VipModal() {
               )}
             </div>
             {copied && <p className="msg-ok">{copied} хуулагдлаа ✅</p>}
+            </>
+            )}
             <p className="muted small">
-              Төлбөр орсноос хойш хэдэн минутын дотор эрх тань автоматаар идэвхжинэ.
+              Төлбөр орсны дараа эрх тань <strong>автоматаар</strong> идэвхжиж, энэ цонх өөрөө
+              шинэчлэгдэнэ.
             </p>
           </>
         ) : (
@@ -177,6 +194,15 @@ export function VipModal() {
               })}
             </div>
             {msg && <p className="msg-err">{msg}</p>}
+            {needAccount && (
+              <p className="hint-box">
+                📱 Сарын эрх утасны дугаарт тань холбогдоно — өөр утаснаас ч нэвтэрч үзнэ. Багц
+                сонгоход бүртгүүлэх цонх гарна
+                {s.guest && s.purchased.length > 0
+                  ? "; энэ утсан дээр авсан кинонууд тань бүртгэлд тань шилжинэ."
+                  : "."}
+              </p>
+            )}
             <p className="muted small">
               {qpay
                 ? "Багц сонгоход QPay-ийн төлбөрийн хуудас нээгдэнэ."

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { signIn, signUp } from "../lib/store";
-import { closeModals, useOpenModal } from "../lib/ui";
+import { signIn, signUp, useAppState } from "../lib/store";
+import { authOptions, closeModals, finishAuth, useOpenModal } from "../lib/ui";
 
 export function AuthModal() {
   const open = useOpenModal() === "auth";
+  const s = useAppState();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [err, setErr] = useState<string | null>(null);
 
-  // Цонх нээгдэх бүрд «Нэвтрэх»-ээс эхэлнэ (өмнөх сонголт үлдэхгүй)
+  // Цонх нээгдэх бүрд дуудсан газрын хүссэн хуудаснаас эхэлнэ (анхдагч «Нэвтрэх»)
   useEffect(() => {
     if (open) {
-      setMode("in");
+      setMode(authOptions().mode);
       setErr(null);
     }
   }, [open]);
@@ -27,7 +28,7 @@ export function AuthModal() {
     const res = mode === "in" ? await signIn(phone, pass) : await signUp(phone, pass, name);
     setBusy(false);
     if (res.ok) {
-      closeModals();
+      finishAuth();
       setPhone("");
       setPass("");
       setName("");
@@ -66,6 +67,12 @@ export function AuthModal() {
             ? "Бүртгэлтэй дугаараараа нэвтэрнэ үү."
             : "Худалдаж авсан кинонууд тань утасны дугаартаа холбогдоно — өөр төхөөрөмжөөс ч нэвтэрч үзэж болно."}
         </p>
+
+        {s.guest && (
+          <p className="hint-box">
+            🎬 Энэ утсан дээр авсан кинонууд тань бүртгэлд тань автоматаар шилжинэ.
+          </p>
+        )}
 
         {mode === "up" && (
           <input

@@ -54,6 +54,8 @@ export async function listLinks(seriesId?: string): Promise<AccessLink[]> {
   let q = supa
     .from("md_access_links")
     .select("token, series_id, max_claims, claims, note, revoked, created_at")
+    // QPay-ийн дараа автоматаар үүсдэг төлбөрийн линкүүдийг жагсаалтад холихгүй
+    .is("purchase_id", null)
     .order("created_at", { ascending: false })
     .limit(60);
   if (seriesId) q = q.eq("series_id", seriesId);

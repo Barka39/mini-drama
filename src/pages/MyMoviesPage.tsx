@@ -46,6 +46,18 @@ export function MyMoviesPage() {
         <AccountBadge />
       </header>
 
+      {s.guest && owned.length + pending.length > 0 && (
+        <section className="empty-block">
+          <p className="muted">
+            Кинонууд тань энэ утсан дээр хадгалагдсан. Өөр утаснаас үзэх эсвэл хөтчөө
+            цэвэрлэсэн ч алдахгүйн тулд утасны дугаараараа бүртгүүлээрэй — үнэгүй.
+          </p>
+          <button className="btn btn-outline" onClick={() => openAuth("up")}>
+            Бүртгүүлэх
+          </button>
+        </section>
+      )}
+
       {!s.signedIn && (
         <section className="empty-block">
           <p className="muted">

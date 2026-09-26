@@ -2,7 +2,7 @@
 // үүсгээд хаягийг нь буцаана. Клиент тэр хаяг руу шилжинэ.
 //
 // Урсгал: клиент эхлээд md_request_purchase / md_request_subscription-оор захиалга
-// үүсгэнэ (өвөрмөц дүнтэй) → энд тэр захиалгыг ХЭРЭГЛЭГЧИЙН ӨӨРИЙНХ НЬ эрхээр (RLS)
+// үүсгэнэ (дүн = зарласан үнэ; нэг кинонд зочин ч болно) → энд тэр захиалгыг ХЭРЭГЛЭГЧИЙН ӨӨРИЙНХ НЬ эрхээр (RLS)
 // олно → Byl дээр хуудас үүсгэж client_reference_id = "md-<захиалгын дугаар>" гэж
 // тэмдэглэнэ → төлбөр ормогц /api/pay/byl-webhook тэр дугаараар нь нээнэ.
 import { createCheckout } from "../../_lib/byl.js";
@@ -70,12 +70,23 @@ export async function onRequestPost({ request, env }) {
   // Горим: off → хэнд ч үгүй, admin → зөвхөн админд (туршилт), on → бүгдэд
   const [settings, me] = await Promise.all([
     first(rest("md_settings?id=eq.1&select=online_pay")),
-    first(rest(`md_profiles?id=eq.${uid}&select=is_admin`, auth)),
+    first(rest(`md_profiles?id=eq.${uid}&select=is_admin,vip_until`, auth)),
   ]);
   if (!me) return json({ error: "auth_required" }, 401);
   const mode = settings?.online_pay ?? "off";
   if (mode === "off" || (mode === "admin" && !me.is_admin)) {
     return json({ error: "disabled" }, 403);
+  }
+
+  // Аль хэдийн үзэх эрхтэй бол (кино нь нээлттэй / сарын эрх идэвхтэй) дахин
+  // төлүүлэхгүй — давхар төлбөрийг гараар буцаах шаардлагагүй болгоно.
+  if (kind === "movie") {
+    const vip = me.vip_until && new Date(me.vip_until).getTime() > Date.now();
+    const owned = vip || (await first(rest(
+      `md_purchases?user_id=eq.${uid}&series_id=eq.${encodeURIComponent(series)}&status=eq.confirmed&select=id&limit=1`,
+      auth,
+    )));
+    if (owned) return json({ error: "owned" }, 409);
   }
 
   // Хэрэглэгчийн ӨӨРИЙН хүлээгдэж буй захиалга
@@ -84,13 +95,16 @@ export async function onRequestPost({ request, env }) {
     (kind === "sub" ? "kind=eq.sub" : `kind=eq.movie&series_id=eq.${encodeURIComponent(series)}`);
   const buy = await first(
     rest(
-      `md_purchases?${filter}&status=eq.pending&select=id,amount,kind,series_id,plan_code,pay_url&order=created_at.desc&limit=1`,
+      `md_purchases?${filter}&status=eq.pending&select=id,amount,kind,series_id,plan_code,pay_url,pay_at&order=created_at.desc&limit=1`,
       auth,
     ),
   );
   if (!buy) return json({ error: "no_pending" }, 404);
-  // Өмнө нь үүсгэсэн хуудас байвал түүнийгээ (нэг захиалга — нэг хуудас)
-  if (buy.pay_url) return json({ url: buy.pay_url, reused: true });
+  // Саяхан (20 минутын дотор) үүсгэсэн хуудас байвал түүнийгээ — давхар дарахад
+  // хоёр хуудас үүсгэхгүй. Хуучин хуудасны хугацаа дууссан байж болох тул шинийг
+  // үүсгэнэ (аль хуудсаар төлсөн ч ижил захиалгын дугаартай тул нээгдэнэ).
+  const fresh = buy.pay_at && Date.now() - new Date(buy.pay_at).getTime() < 20 * 60 * 1000;
+  if (buy.pay_url && fresh) return json({ url: buy.pay_url, reused: true });
 
   let name = "Кино Мандал";
   if (kind === "sub") {
@@ -102,7 +116,21 @@ export async function onRequestPost({ request, env }) {
     name = title ? `Кино: ${title}` : "Кино Мандал — кино";
   }
 
-  const back = `${new URL(request.url).origin}/${safeBack(input.back)}`;
+  const origin = new URL(request.url).origin;
+  const back = `${origin}/${safeBack(input.back)}`;
+  // Кино: төлсний дараа нэг удаагийн линк рүү буцна. Төлбөр баталгаажмагц тэр
+  // линк кино нээнэ — QPay/банкны апп өөр хөтөч нээсэн ч (Facebook-ийн дотоод
+  // хөтөч → Chrome г.м) кино тэнд нээгдэнэ. Линк үүсэхгүй бол энгийн буцах хаяг.
+  let success = back;
+  if (kind === "movie") {
+    const link = await fetch(`${SUPABASE_URL}/rest/v1/rpc/md_create_pay_link`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON, "content-type": "application/json" },
+      body: JSON.stringify({ p_secret: env.BANK_HOOK_SECRET, p_purchase: buy.id }),
+    });
+    const token = link.ok ? await link.json().catch(() => null) : null;
+    if (typeof token === "string" && /^[0-9a-f]{32}$/.test(token)) success = `${origin}/#/u/${token}`;
+  }
   const created = await createCheckout(env, {
     items: [
       {
@@ -117,7 +145,7 @@ export async function onRequestPost({ request, env }) {
       },
     ],
     client_reference_id: `md-${buy.id}`,
-    success_url: back,
+    success_url: success,
     cancel_url: back,
     // Манай хэрэглэгчид ихэвчлэн имэйлгүй — нэхэхгүй
     email_collection: false,

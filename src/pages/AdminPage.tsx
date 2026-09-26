@@ -36,7 +36,7 @@ interface AdminPurchase {
   price: number;
   status: string;
   created_at: string;
-  phone: string;
+  phone: string | null;
 }
 
 const FUNNEL_STEPS = [
@@ -69,6 +69,10 @@ export function AdminPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [bank, setBank] = useState<BankStatus | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+  // QPay-ийн тохироогүй мэдэгдлүүд (давхар/дутуу төлбөр г.м) — эзэн мөнгийг буцаах ёстой
+  const [payIssues, setPayIssues] = useState<
+    { id: number; purchase_id: number | null; amount: string | null; note: string | null; created_at: string }[]
+  >([]);
   const [bankMsgs, setBankMsgs] = useState<
     { id: number; raw: string; amount: string | null; matched: boolean; created_at: string }[]
   >([]);
@@ -131,6 +135,15 @@ export function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(12);
     setBankMsgs((bm.data ?? []) as typeof bankMsgs);
+
+    const pe = await supa
+      .from("md_pay_events")
+      .select("id, purchase_id, amount, note, created_at")
+      .eq("matched", false)
+      .not("note", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setPayIssues((pe.data ?? []) as typeof payIssues);
 
     setBank(await loadBankStatus());
   }, []);
@@ -258,7 +271,7 @@ export function AdminPage() {
       {pending.map((t) => (
         <div key={t.id} className="admin-row">
           <div>
-            <strong>{t.phone}</strong> · {seriesTitle(t.series_id)} ·{" "}
+            <strong>{t.phone ?? "Зочин (QPay)"}</strong> · {seriesTitle(t.series_id)} ·{" "}
             <span className="pack-price">{formatPrice(t.price)}</span>
             <div className="muted small">{new Date(t.created_at).toLocaleString("mn-MN")}</div>
           </div>
@@ -726,11 +739,38 @@ export function AdminPage() {
         </div>
       ))}
 
+      {payIssues.length > 0 && (
+        <>
+          <h3 className="admin-h">⚠️ QPay: шалгах төлбөрүүд ({payIssues.length})</h3>
+          <p className="muted small">
+            Мөнгө орсон ч кино нээгдээгүй (давхар төлсөн, дутуу төлсөн г.м). Byl-ийн самбараас
+            шалгаад шаардлагатай бол буцаан олголт хийнэ үү.
+          </p>
+          {payIssues.map((e) => (
+            <div key={e.id} className="admin-row">
+              <div>
+                <strong>
+                  {e.note === "already_confirmed" || e.note === "already_owned"
+                    ? "Давхар төлбөр"
+                    : e.note === "underpaid"
+                      ? "Дутуу төлбөр"
+                      : e.note}{" "}
+                  · {e.amount ? formatPrice(Number(e.amount)) : "—"}
+                </strong>
+                <div className="muted small">
+                  Захиалга №{e.purchase_id ?? "?"} · {new Date(e.created_at).toLocaleString("mn-MN")}
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
       <h3 className="admin-h">Сүүлийн шийдвэрүүд</h3>
       {history.map((t) => (
         <div key={t.id} className="admin-row">
           <div>
-            {t.phone} · {seriesTitle(t.series_id)} · {formatPrice(t.price)}
+            {t.phone ?? "Зочин"} · {seriesTitle(t.series_id)} · {formatPrice(t.price)}
           </div>
           <span className="muted small">{t.status === "confirmed" ? "✅" : "❌"}</span>
         </div>

@@ -42,8 +42,27 @@ export function openVip() {
   notify();
 }
 
-export function openAuth() {
+// Нэвтрэх цонх: аль хуудаснаас (горим) эхлэх, амжилттай бол аль цонх руу буцах.
+// Жишээ: зочин сарын эрх сонгоод бүртгүүлбэл шууд сарын эрхийн цонх руугаа буцна.
+let authMode: "in" | "up" = "in";
+let afterAuth: ModalName = null;
+
+/** onClick={openAuth} хэлбэрээр ч дуудагддаг (тэгвэл эхний аргумент нь event) */
+export function openAuth(mode?: unknown, then?: ModalName) {
+  authMode = mode === "up" ? "up" : "in";
+  afterAuth = then ?? null;
   openModal = "auth";
+  notify();
+}
+
+export function authOptions(): { mode: "in" | "up"; then: ModalName } {
+  return { mode: authMode, then: afterAuth };
+}
+
+/** Нэвтрэлт амжилттай: хүлээж байсан цонх руу буцна (эсвэл хаана) */
+export function finishAuth() {
+  openModal = afterAuth;
+  afterAuth = null;
   notify();
 }
 

@@ -105,6 +105,11 @@ export function seriesCategories(s: { genre: string }): string[] {
     .filter(Boolean);
 }
 
+/** Насанд хүрэгчдийн кино эсэх — ангилалд «18+» бичсэн бол */
+export function isAdult(s: { genre: string }): boolean {
+  return seriesCategories(s).includes("18+");
+}
+
 export function allCategories(list: Series[]): string[] {
   const seen = new Map<string, number>();
   for (const s of list) {

@@ -22,7 +22,9 @@ export function AccountBadge() {
     };
   }, [open]);
 
-  if (!s.signedIn) {
+  // Зочинд (бүртгэлгүй QPay-ээр кино авсан) «Гарах» өгөхгүй — гарвал авсан кино нь
+  // энэ утаснаас алга болно. Оронд нь нэвтрэх/бүртгүүлэх (кинонууд нь шилжинэ).
+  if (!s.signedIn || s.guest) {
     return (
       <button className="coin-badge" onClick={openAuth}>
         Нэвтрэх

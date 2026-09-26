@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { formatPrice } from "../data/catalog";
+import { formatPrice, isAdult } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
 import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
@@ -29,6 +29,57 @@ interface HlsLike {
   on(event: string, cb: (e: string, data: { fatal?: boolean; details?: string }) => void): void;
 }
 
+const ADULT_KEY = "md-adult-ok";
+
+function adultConfirmed(): boolean {
+  try {
+    return localStorage.getItem(ADULT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 18+ кинонд нас баталгаажуулах нэг удаагийн асуулт. Тоглуулагч (бичлэг татах,
+ * автоматаар эхлэх) асуултад хариулахаас ӨМНӨ огт ачаалагдахгүй.
+ */
+export function MoviePlayer() {
+  const { seriesId } = useParams();
+  const series = useSeriesById(seriesId);
+  const [ok, setOk] = useState(adultConfirmed);
+
+  if (series && isAdult(series) && !ok) {
+    return (
+      <div className="page center">
+        <div className="lock-panel">
+          <div className="lock-icon">🔞</div>
+          <h3>Насанд хүрэгчдэд зориулсан кино</h3>
+          <p className="muted">
+            «{series.title}» нь 18 ба түүнээс дээш насныханд зориулагдсан. Та 18 нас хүрсэн үү?
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              try {
+                localStorage.setItem(ADULT_KEY, "1");
+              } catch {
+                /* хувийн горимд хадгалагдахгүй — энэ удаад л зөвшөөрнө */
+              }
+              setOk(true);
+            }}
+          >
+            Тийм, 18 нас хүрсэн
+          </button>
+          <Link className="btn btn-ghost" to={`/series/${series.id}`}>
+            Үгүй, буцах
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  return <MoviePlayerInner />;
+}
+
 /**
  * Нэг бүтэн киноны тоглуулагч.
  *
@@ -37,7 +88,7 @@ interface HlsLike {
  * төлмөгц (эсвэл сарын эрх идэвхжмэгц) ЯГ ТЭР СЕКУНДЭЭС үргэлжилнэ.
  * Хилийг сервер өөрөө сахидаг — клиент зөвхөн саналыг зөв мөчид харуулна.
  */
-export function MoviePlayer() {
+function MoviePlayerInner() {
   const { seriesId } = useParams();
   const series = useSeriesById(seriesId);
   const s = useAppState();
@@ -367,7 +418,7 @@ export function MoviePlayer() {
               </p>
               {status === "pending" ? (
                 <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
-                  ⏳ Төлбөр хүлээгдэж байна — дансны мэдээлэл
+                  ⏳ Төлбөр хүлээгдэж байна
                 </button>
               ) : (
                 <>

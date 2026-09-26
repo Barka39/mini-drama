@@ -2,6 +2,7 @@
 // Үзсэн явц (progress) хөнгөн мэдээлэл тул локал хэвээр.
 import { useSyncExternalStore } from "react";
 import { supa } from "./supa";
+import { CONFIG } from "../config";
 import { freeEpCount, type Series } from "../data/catalog";
 
 const LOCAL_KEY = "drama-demo-state-v1";
@@ -9,11 +10,15 @@ const LOCAL_KEY = "drama-demo-state-v1";
 export interface AppState {
   authReady: boolean; // сервертэй холбогдож дууссан эсэх
   signedIn: boolean;
+  // Утасны дугааргүй «зочин» (нэргүй сесс): нэг киног бүртгэлгүй QPay-ээр авсан хүн.
+  // Эрх нь зөвхөн энэ төхөөрөмж/хөтчийн сесст — сарын эрхэд бүртгэл заавал.
+  guest: boolean;
   phone: string | null;
   isAdmin: boolean;
   purchased: string[]; // худалдаж авсан (баталгаажсан) кинонуудын id
   pendingBuys: string[]; // хүсэлт илгээгээд хүлээгдэж буй кинонуудын id
-  // seriesId -> яг төлөх өвөрмөц дүн (банкнаас таних тул зарласан үнээс бага)
+  // seriesId -> захиалгын дүн (2026-09-26-ноос зарласан үнэтэй ижил; хуучин
+  // захиалгад өвөрмөц дүн үлдсэн байж болно). Сарын эрх = "__vip__".
   payAmounts: Record<string, number>;
   vipUntil: string | null; // сарын эрх дуусах хугацаа
   subPending: boolean; // сарын эрхийн төлбөр хүлээгдэж байна
@@ -71,6 +76,7 @@ function persistLocal() {
 let state: AppState = {
   authReady: false,
   signedIn: false,
+  guest: false,
   phone: null,
   isAdmin: false,
   purchased: [],
@@ -100,9 +106,106 @@ export function useAppState(): AppState {
   );
 }
 
+// ---------- Зочноос данс руу шилжүүлэх тасалбар ----------
+//
+// Зочин (нэргүй сесс) нэвтрэх/бүртгүүлэхэд хуучин сесс нь солигддог тул эрхээ
+// нотлох арга нь ЗӨВХӨН өмнө нь авсан тасалбар. Түүнийг localStorage-д хадгална:
+// шилжүүлэх дуудлага сүлжээнээс болж бүтэлгүйтвэл дараагийн ачааллаар дахин
+// оролдоно (тасалбар 1 цаг хүчинтэй). Амжилттай болмогц устгана.
+
+const TICKET_KEY = "md-guest-ticket";
+// supabase-js сессээ энэ түлхүүрээр хадгалдаг (sb-<төсөл>-auth-token)
+const AUTH_KEY = `sb-${new URL(CONFIG.supabaseUrl).hostname.split(".")[0]}-auth-token`;
+
+function storedTicket(): string | null {
+  try {
+    const raw = localStorage.getItem(TICKET_KEY);
+    if (!raw) return null;
+    const t = JSON.parse(raw) as { token?: string; at?: number };
+    if (!t.token || !t.at || Date.now() - t.at > 55 * 60 * 1000) {
+      localStorage.removeItem(TICKET_KEY);
+      return null;
+    }
+    return t.token;
+  } catch {
+    return null;
+  }
+}
+
+function storeTicket(token: string) {
+  try {
+    localStorage.setItem(TICKET_KEY, JSON.stringify({ token, at: Date.now() }));
+  } catch {
+    /* хувийн горим — энэ удаагийн дуудлагаар л шилжүүлнэ */
+  }
+}
+
+function clearTicket() {
+  try {
+    localStorage.removeItem(TICKET_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Хөтөчид хадгалагдсан сесс байгаа эсэх (getSession() null буцаасан ч) */
+function hasStoredSession(): boolean {
+  try {
+    return !!localStorage.getItem(AUTH_KEY);
+  } catch {
+    return false;
+  }
+}
+
+/** Сүлжээ/серверийн түр алдаа эсэх — тэр үед сессийг ХЭЗЭЭ Ч солихгүй */
+function isRetryable(err: { name?: string; status?: number; message?: string } | null): boolean {
+  if (!err) return false;
+  const status = err.status ?? 0;
+  return (
+    err.name === "AuthRetryableFetchError" ||
+    status === 0 ||
+    status >= 500 ||
+    /fetch|network|timeout/i.test(err.message ?? "")
+  );
+}
+
+// Хэрэглэгч устсан/сесс нь хүчингүй — зөвхөн энэ үед зочны сессийг шинээр солино
+// (тэр хэрэглэгчийн мөрүүд аль хэдийн байхгүй тул алдах юм үгүй).
+const DEAD_USER = /foreign key|sub claim|user_not_found|User from sub claim/i;
+
+/**
+ * Зочны сесс хадгалагдсан ч getSession() хоосон буцаах нь (токен сэргээх сүлжээний
+ * алдаа) бий. Тэр үед шинэ сесс үүсгэвэл төлсөн кинотой зочин устана — эхлээд
+ * сэргээж үзнэ. ok=false бол сүлжээний алдаа: юу ч бүү соль.
+ */
+async function currentSession() {
+  const { data } = await supa.auth.getSession();
+  if (data.session) return { ok: true as const, session: data.session };
+  if (!hasStoredSession()) return { ok: true as const, session: null };
+  const r = await supa.auth.refreshSession();
+  if (r.data.session) return { ok: true as const, session: r.data.session };
+  if (isRetryable(r.error)) return { ok: false as const, session: null };
+  return { ok: true as const, session: null }; // хадгалсан сесс үхсэн
+}
+
+async function adoptStoredGuest() {
+  const ticket = storedTicket();
+  if (!ticket) return;
+  const { error } = await supa.rpc("md_adopt_guest", { p_ticket: ticket });
+  if (!error) clearTicket();
+}
+
+// Бүртгүүлэх явцад onAuthStateChange профайл үүсэхээс ӨМНӨ ачааллаж болно —
+// тэр үед «профайл дутуу» гэж гаргаж хаяхгүй.
+let signingUp = false;
+
 // ---------- Серверээс дансаа ачаалах ----------
 
-async function loadServerState(userId: string, anonymous = false) {
+async function loadServerState(userId: string, anonymous = false, healed = false) {
+  // Бүртгэл үүсэж эхлэх мөчийн төлөвийг барина (дуудлагын явцад signingUp солигдож болно)
+  const creating = signingUp;
+  // Өмнө нь шилжүүлж амжаагүй зочны кино байвал эхлээд шилжүүлнэ
+  if (!anonymous && !creating) await adoptStoredGuest();
   const [profRes, buyRes] = await Promise.all([
     supa.from("md_profiles").select("phone, is_admin, full_name, vip_until").eq("id", userId).maybeSingle(),
     supa.from("md_purchases").select("series_id, status, amount, kind, plan_days").eq("user_id", userId),
@@ -132,6 +235,7 @@ async function loadServerState(userId: string, anonymous = false) {
     commit({
       authReady: true,
       signedIn: true,
+      guest: anonymous,
       phone: profRes.data.phone,
       isAdmin: profRes.data.is_admin,
       purchased,
@@ -151,6 +255,7 @@ async function loadServerState(userId: string, anonymous = false) {
     commit({
       authReady: true,
       signedIn: true,
+      guest: true,
       phone: null,
       isAdmin: false,
       purchased,
@@ -159,9 +264,31 @@ async function loadServerState(userId: string, anonymous = false) {
       vipUntil: null,
       subPending,
     });
+  } else if (creating || signingUp || profRes.error) {
+    // Бүртгэл үүсэж байгаа эсвэл сүлжээний алдаа — гаргахгүй, дараа нь дахин ачаална
+    commit({ authReady: true });
   } else {
-    // Утсаар бүртгүүлсэн атлаа профайл дутуу — жинхэнэ эвдрэл, гарган хаяна
-    await supa.auth.signOut();
+    // Утсаар бүртгүүлсэн атлаа профайл дутуу (бүртгэл дундаа тасарсан, өөр tab-д
+    // үүсч байгаа г.м). Хэзээ ч гаргаж хаяхгүй — нэвтрэх дугаараас нь профайлыг
+    // нөхөөд дахин ачаална (сервер зөвхөн өөрийн дугаарыг зөвшөөрдөг).
+    const { data: sess } = await supa.auth.getSession();
+    const digits = /^(\d{8})@minidram\.app$/.exec(sess.session?.user?.email ?? "")?.[1] ?? null;
+    if (digits && !healed) {
+      const { error } = await supa.from("md_profiles").insert({ id: userId, phone: digits });
+      if (!error || /duplicate/i.test(error.message)) return loadServerState(userId, anonymous, true);
+    }
+    commit({
+      authReady: true,
+      signedIn: true,
+      guest: false,
+      phone: digits,
+      isAdmin: false,
+      purchased,
+      pendingBuys,
+      payAmounts,
+      vipUntil: null,
+      subPending,
+    });
   }
 }
 
@@ -172,6 +299,7 @@ supa.auth.onAuthStateChange((_event, session) => {
     commit({
       authReady: true,
       signedIn: false,
+      guest: false,
       phone: null,
       isAdmin: false,
       purchased: [],
@@ -202,6 +330,30 @@ function mapAuthError(message: string): string {
   return message;
 }
 
+/**
+ * Зочин (нэргүй сесс) нэвтрэх/бүртгүүлэхийн ӨМНӨ тасалбар авч хадгална. Авч
+ * чадахгүй бол (сүлжээ) нэвтрэлтийг ЗОГСООНО — эс бөгөөс зочны сесс солигдож,
+ * төлсөн кино нь хэзээ ч олдохгүй болно.
+ */
+async function prepareGuestHandover(): Promise<AuthResult> {
+  const cur = await currentSession();
+  if (!cur.ok) return { ok: false, reason: "Сүлжээ тогтворгүй байна. Түр хүлээгээд дахин оролдоно уу." };
+  if (cur.session?.user?.is_anonymous !== true) return { ok: true };
+  let { data: token, error } = await supa.rpc("md_guest_ticket");
+  if (error && /JWT expired/i.test(error.message)) {
+    await supa.auth.refreshSession();
+    ({ data: token, error } = await supa.rpc("md_guest_ticket"));
+  }
+  if (error || typeof token !== "string" || !token) {
+    return {
+      ok: false,
+      reason: "Сүлжээ тасарлаа — дахин оролдоно уу. Энэ утсан дээр авсан кинонууд тань хэвээр байна.",
+    };
+  }
+  storeTicket(token);
+  return { ok: true };
+}
+
 export async function signUp(
   phone: string,
   password: string,
@@ -211,31 +363,65 @@ export async function signUp(
   if (digits.length !== 8) return { ok: false, reason: "Утасны дугаар 8 оронтой байх ёстой" };
   const email = `${digits}@minidram.app`;
 
-  const { data, error } = await supa.auth.signUp({ email, password });
-  if (error) return { ok: false, reason: mapAuthError(error.message) };
-  if (!data.session) {
-    return { ok: false, reason: "Имэйл баталгаажуулалт асаалттай байна (эзэн Dashboard-оос унтраах ёстой)" };
-  }
+  const hand = await prepareGuestHandover();
+  if (!hand.ok) return hand;
+  signingUp = true;
+  try {
+    const { data, error } = await supa.auth.signUp({ email, password });
+    if (error) return { ok: false, reason: mapAuthError(error.message) };
+    if (!data.session) {
+      return { ok: false, reason: "Имэйл баталгаажуулалт асаалттай байна (эзэн Dashboard-оос унтраах ёстой)" };
+    }
 
-  const { error: profErr } = await supa
-    .from("md_profiles")
-    .insert({ id: data.session.user.id, phone: digits, full_name: fullName.trim() });
-  if (profErr && !/duplicate/i.test(profErr.message)) {
-    return { ok: false, reason: "Профайл үүсгэхэд алдаа: " + profErr.message };
-  }
+    const { error: profErr } = await supa
+      .from("md_profiles")
+      .insert({ id: data.session.user.id, phone: digits, full_name: fullName.trim() });
+    if (profErr && !/duplicate/i.test(profErr.message)) {
+      return { ok: false, reason: "Профайл үүсгэхэд алдаа: " + profErr.message };
+    }
 
-  await loadServerState(data.session.user.id);
-  return { ok: true };
+    await adoptStoredGuest();
+    signingUp = false;
+    await loadServerState(data.session.user.id);
+    return { ok: true };
+  } finally {
+    signingUp = false;
+  }
 }
 
 export async function signIn(phone: string, password: string): Promise<AuthResult> {
   const digits = phone.replace(/\D/g, "");
   if (digits.length !== 8) return { ok: false, reason: "Утасны дугаар 8 оронтой байх ёстой" };
+  const hand = await prepareGuestHandover();
+  if (!hand.ok) return hand;
   const { error } = await supa.auth.signInWithPassword({
     email: `${digits}@minidram.app`,
     password,
   });
   if (error) return { ok: false, reason: mapAuthError(error.message) };
+  await adoptStoredGuest();
+  await refreshAccount();
+  return { ok: true };
+}
+
+/**
+ * Нэг кино бүртгэлгүй авахад: сессгүй бол нэргүй (зочин) сесс нээнэ. Эрх нь тэр
+ * сесст хадгалагдана — хөтөч нь санаж байх хугацаанд энэ төхөөрөмж дээр нээлттэй.
+ * Хадгалсан сесс байгаа ч сүлжээнээс болж сэргээж чадахгүй бол ШИНЭ сесс нээхгүй.
+ */
+export async function ensureSession(): Promise<AuthResult> {
+  const cur = await currentSession();
+  if (!cur.ok) return { ok: false, reason: "Сүлжээ тогтворгүй байна. Түр хүлээгээд дахин оролдоно уу." };
+  if (cur.session) return { ok: true };
+  const { error } = await supa.auth.signInAnonymously();
+  if (error) {
+    return {
+      ok: false,
+      reason: /rate limit/i.test(error.message)
+        ? "Түр ачаалал ихтэй байна. Хэдэн минутын дараа дахин оролдоно уу."
+        : "Холболт үүсгэж чадсангүй. Дахин оролдоно уу.",
+    };
+  }
   return { ok: true };
 }
 
@@ -243,13 +429,34 @@ export async function signOut() {
   await supa.auth.signOut();
 }
 
+/** Хэрэглэгч устсан зочны сессийг шинээр солино (өөр ямар ч алдаанд солихгүй) */
+async function replaceDeadGuest(): Promise<AuthResult> {
+  await supa.auth.signOut({ scope: "local" }).catch(() => undefined);
+  const { error } = await supa.auth.signInAnonymously();
+  return error ? { ok: false, reason: "Холболт үүсгэж чадсангүй. Дахин оролдоно уу." } : { ok: true };
+}
+
 // ---------- Худалдан авалт ----------
 
 export type BuyResult = { ok: true } | { ok: false; code: string; reason: string };
 
 export async function requestPurchase(seriesId: string): Promise<BuyResult> {
-  if (!state.signedIn) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
-  const { error } = await supa.rpc("md_request_purchase", { p_series: seriesId });
+  // state.signedIn-ийг биш сессийг шалгана: зочны сесс дөнгөж нээгдсэн бол
+  // onAuthStateChange хараахан state-ийг шинэчлээгүй байж болно.
+  const { data: sess } = await supa.auth.getSession();
+  if (!sess.session) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
+  let { error } = await supa.rpc("md_request_purchase", { p_series: seriesId });
+  // Токены хугацаа дууссан (утасны цаг зөрүүтэй г.м) — ИЖИЛ хэрэглэгчээр сэргээгээд дахин
+  if (error && /JWT expired/i.test(error.message)) {
+    await supa.auth.refreshSession();
+    ({ error } = await supa.rpc("md_request_purchase", { p_series: seriesId }));
+  }
+  // Зочин серверт байхгүй болсон (устгагдсан) — зөвхөн тэр үед шинэ зочин
+  if (error && sess.session.user.is_anonymous === true && DEAD_USER.test(error.message)) {
+    const again = await replaceDeadGuest();
+    if (!again.ok) return { ok: false, code: "auth", reason: again.reason ?? "Алдаа" };
+    ({ error } = await supa.rpc("md_request_purchase", { p_series: seriesId }));
+  }
   if (error) {
     const m = error.message;
     if (/already_owned/.test(m)) {
@@ -269,12 +476,16 @@ export async function requestPurchase(seriesId: string): Promise<BuyResult> {
     if (/not_signed_in|JWT|jwt/.test(m)) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
     return { ok: false, code: "error", reason: m };
   }
-  // Сервер оноосон өвөрмөц дүнг авахын тулд дансаа шинэчилнэ
   await refreshAccount();
   if (!state.pendingBuys.includes(seriesId)) {
     commit({ pendingBuys: [...state.pendingBuys, seriesId] });
   }
   return { ok: true };
+}
+
+/** Энэ киног ОДОО үзэх эрхтэй эсэх (async урсгалын дундаас шалгахад — хуучин snapshot биш) */
+export function canWatchNow(seriesId: string): boolean {
+  return state.purchased.includes(seriesId) || hasVip(state);
 }
 
 /** Сарын эрх идэвхтэй эсэх */
@@ -295,6 +506,8 @@ export interface ClaimResult {
   ok: boolean;
   seriesId?: string;
   reason?: string;
+  // Төлбөрийн линк: төлбөр хараахан баталгаажаагүй — хэдэн секундын дараа дахин
+  notPaidYet?: boolean;
 }
 
 const CLAIM_ERRORS: Record<string, string> = {
@@ -302,32 +515,40 @@ const CLAIM_ERRORS: Record<string, string> = {
   revoked: "Энэ линк хүчингүй болсон байна.",
   expired: "Энэ линкийн хугацаа дууссан байна.",
   used_up: "Энэ линкийг аль хэдийн ашигласан байна. Шинэ линк хүсээрэй.",
+  not_paid_yet: "Төлбөр баталгаажихыг хүлээж байна…",
 };
 
 /** Линкээр эрх авах. Бүртгэлгүй бол нэргүй хэрэглэгчээр нэвтэрнэ. */
 export async function claimAccess(token: string): Promise<ClaimResult> {
   try {
-    const { data: sess } = await supa.auth.getSession();
-    if (!sess.session) {
+    const cur = await currentSession();
+    if (!cur.ok) return { ok: false, reason: "Сүлжээ тогтворгүй байна. Дахин оролдоно уу." };
+    let anon = cur.session?.user?.is_anonymous === true;
+    if (!cur.session) {
       const { error } = await supa.auth.signInAnonymously();
       if (error) return { ok: false, reason: "Холболт үүсгэж чадсангүй: " + error.message };
+      anon = true;
     }
 
     let { data, error } = await supa.rpc("md_claim_access", { p_token: token });
-    // Линкийн өөрийн алдаа биш (хүчингүй, дүүрсэн г.м) бол ихэвчлэн утсанд үлдсэн
-    // хуучин сесс нь серверт байхгүй болсон байдаг (хэрэглэгч устгагдсан, хугацаа
-    // дууссан). Тэр үед шинэ нэргүй сесс үүсгээд нэг удаа дахин оролдоно — эс бөгөөс
-    // хүн линкээ хэдэн ч удаа нээсэн «алдаа» гэсээр гацна.
-    const linkError = (m: string) => Object.keys(CLAIM_ERRORS).some((k) => m.includes(k));
-    if (error && !linkError(error.message)) {
-      await supa.auth.signOut().catch(() => undefined);
-      const { error: signErr } = await supa.auth.signInAnonymously();
-      if (signErr) return { ok: false, reason: "Холболт үүсгэж чадсангүй: " + signErr.message };
+    if (error && /JWT expired/i.test(error.message)) {
+      await supa.auth.refreshSession();
+      ({ data, error } = await supa.rpc("md_claim_access", { p_token: token }));
+    }
+    // Утсанд үлдсэн хуучин зочны сесс серверт байхгүй болсон (хэрэглэгч устгагдсан)
+    // бол л шинэ зочин үүсгээд нэг удаа дахин. Сүлжээ г.м бусад алдаанд сессийг
+    // ХЭЗЭЭ Ч хаяхгүй — зочин төлсөн кинотой байж болно.
+    if (error && anon && DEAD_USER.test(error.message)) {
+      const again = await replaceDeadGuest();
+      if (!again.ok) return { ok: false, reason: again.reason };
       ({ data, error } = await supa.rpc("md_claim_access", { p_token: token }));
     }
     if (error) {
+      if (error.message.includes("not_paid_yet")) {
+        return { ok: false, notPaidYet: true, reason: CLAIM_ERRORS.not_paid_yet };
+      }
       const key = Object.keys(CLAIM_ERRORS).find((k) => error.message.includes(k));
-      return { ok: false, reason: key ? CLAIM_ERRORS[key] : error.message };
+      return { ok: false, reason: key ? CLAIM_ERRORS[key] : "Холболтын алдаа. Дахин оролдоно уу." };
     }
 
     await refreshAccount();
@@ -357,11 +578,14 @@ export async function loadPlans(): Promise<Plan[]> {
 }
 
 export async function requestSubscription(code: string): Promise<BuyResult> {
-  if (!state.signedIn) return { ok: false, code: "auth", reason: "Эхлээд нэвтэрнэ үү" };
+  if (!state.signedIn || state.guest)
+    return { ok: false, code: "auth", reason: "Сарын эрх авахын тулд бүртгүүлнэ үү" };
   const { error } = await supa.rpc("md_request_subscription", { p_plan: code });
   if (error) {
     if (/already_pending/.test(error.message))
       return { ok: false, code: "pending", reason: "Хүсэлт аль хэдийн илгээгдсэн" };
+    if (/register_required|not_signed_in/.test(error.message))
+      return { ok: false, code: "auth", reason: "Сарын эрх авахын тулд бүртгүүлнэ үү" };
     return { ok: false, code: "error", reason: error.message };
   }
   await refreshAccount();
@@ -373,11 +597,12 @@ export async function requestSubscription(code: string): Promise<BuyResult> {
 export type OnlinePayResult = { ok: true; url: string } | { ok: false; reason: string };
 
 const ONLINE_PAY_ERRORS: Record<string, string> = {
-  auth_required: "Эхлээд нэвтэрнэ үү",
-  disabled: "QPay төлбөр одоогоор хаалттай байна — дансаар шилжүүлнэ үү",
+  auth_required: "Холболт салсан байна. Хуудсаа дахин ачаалаад оролдоно уу.",
+  owned: "Энэ кино танд аль хэдийн нээлттэй байна.",
+  disabled: "QPay төлбөр одоогоор хаалттай байна.",
   no_pending: "Захиалга олдсонгүй. Цонхоо хаагаад дахин оролдоно уу.",
-  not_configured: "QPay холболт тохируулагдаагүй байна — дансаар шилжүүлнэ үү",
-  byl_failed: "QPay түр ажиллахгүй байна — дансаар шилжүүлж болно",
+  not_configured: "QPay холболт тохируулагдаагүй байна.",
+  byl_failed: "QPay түр ажиллахгүй байна. Хэдэн минутын дараа дахин оролдоно уу.",
 };
 
 /**

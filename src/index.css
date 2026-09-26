@@ -1888,6 +1888,17 @@ a {
   left: 6px;
 }
 
+/* 18+ — баруун дээд буланд, бусад шошготой (ШИНЭ) давхцахгүй */
+.badge-adult {
+  background: #d32f2f;
+}
+
+.row-card-img .badge-adult,
+.card-poster .badge-adult {
+  left: auto;
+  right: 6px;
+}
+
 .row-card-img .badge-free {
   top: auto;
   bottom: 6px;

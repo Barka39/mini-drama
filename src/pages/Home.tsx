@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   allCategories,
   formatDuration,
+  isAdult,
   formatPrice,
   seriesCategories,
   totalSeconds,
@@ -66,6 +67,7 @@ function PosterCard({ series, s, to }: { series: Series; s: AppState; to?: strin
         <img src={series.poster} alt={series.title} loading="lazy" />
         {isNew(series.id) && <span className="badge badge-new">ШИНЭ</span>}
         {series.price <= 0 && <span className="badge badge-free">ҮНЭГҮЙ</span>}
+        {isAdult(series) && <span className="badge badge-adult">18+</span>}
       </span>
       {prog && (
         <div className="row-card-bar">
@@ -240,7 +242,7 @@ export function Home() {
         .map((c) => ({ c, items: catalog.filter((x) => seriesCategories(x).includes(c)) }))
         .filter((g) => g.items.length >= 2 && g.items.length < catalog.length)
         .map((g) => (
-          <Row key={g.c} title={g.c}>
+          <Row key={g.c} title={g.c === "18+" ? "Насанд хүрэгчдэд · 18+" : g.c}>
             {g.items.map((x) => (
               <PosterCard key={x.id} series={x} s={s} />
             ))}
@@ -257,6 +259,7 @@ export function Home() {
               <img src={series.poster} alt={series.title} loading="lazy" />
               <span className="card-eps">{formatDuration(totalSeconds(series))}</span>
               {isNew(series.id) && <span className="badge badge-new">ШИНЭ</span>}
+              {isAdult(series) && <span className="badge badge-adult">18+</span>}
             </div>
             <div className="card-body">
               <h3>{series.title}</h3>
@@ -288,7 +291,7 @@ export function Home() {
       </section>
 
       <footer className="foot">
-        {s.signedIn ? (
+        {s.signedIn && !s.guest ? (
           <>
             {s.phone} гэж нэвтэрсэн ·{" "}
             <button className="link-btn" onClick={() => void signOut()}>

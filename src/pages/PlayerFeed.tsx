@@ -5,7 +5,8 @@ import { siteHost } from "../lib/accessLinks";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
-import { openAuth, openPurchase, openVip } from "../lib/ui";
+import { cheapestPlan, usePlans } from "../lib/plans";
+import { openPurchase, openVip } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 import { EpisodeVideo } from "../components/EpisodeVideo";
 
@@ -13,6 +14,7 @@ export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
   const s = useAppState();
   const series = useSeriesById(seriesId);
+  const plan = cheapestPlan(usePlans());
   const startIndex = Math.max(1, Number(epIndex) || 1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -169,20 +171,11 @@ export function PlayerFeed() {
                     Эхний {freeCount} анги ({series.freeMinutes} минут) үнэгүй. Үргэлжлэлийг үзэхийн
                     тулд киног бүтнээр нь нээнэ — нэг удаа төлөөд дуустал үзнэ.
                   </p>
-                  {!s.signedIn ? (
-                    <>
-                      <button className="btn btn-primary" onClick={openAuth}>
-                        Нэвтрэх / Бүртгүүлэх
-                      </button>
-                      <p className="muted small">
-                        Бүтэн кино: {formatPrice(series.price)}
-                      </p>
-                    </>
-                  ) : pending ? (
+                  {pending ? (
                     <>
                       <p className="msg-ok">⏳ Хүсэлт хүлээгдэж байна</p>
                       <button className="btn btn-primary" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
-                        Шилжүүлгийн мэдээлэл харах
+                        Төлбөрийн мэдээлэл харах
                       </button>
                     </>
                   ) : (
@@ -197,7 +190,7 @@ export function PlayerFeed() {
                         🎬 Энэ киног авах — {formatPrice(series.price)}
                       </button>
                       <button className="btn btn-outline" onClick={openVip}>
-                        ⭐ Сарын эрх — бүх кино 8,800₮
+                        ⭐ Сарын эрх — бүх кино{plan ? ` ${formatPrice(plan.price)}` : ""}
                       </button>
                     </>
                   )}

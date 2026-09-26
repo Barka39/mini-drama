@@ -1332,3 +1332,881 @@ begin
 end;
 $$;
 grant execute on function public.md_set_online_pay(text) to authenticated;
+
+-- ============================================================
+-- 2026-09-26: QPay ГОЛ ТӨЛБӨР БОЛОВ — өвөрмөц дүн хасагдаж, нэг кино бүртгэлгүй
+--
+-- 1) Өвөрмөц дүн (3769₮ г.м) ХЭРЭГГҮЙ: QPay захиалгыг дугаараар нь (md-<id>) таньдаг.
+--    Захиалга бүр зарласан үнээрээ. Банкны SMS зам зөвхөн утасны дугаараар таньна.
+-- 2) Нэг кино: утасны дугааргүй «зочин» (Supabase-ийн нэргүй хэрэглэгч) QPay-ээр
+--    төлж шууд үзнэ — эрх нь тэр төхөөрөмжийн сесст. Сарын эрх: заавал бүртгэлтэй.
+-- 3) Зочин дараа нь бүртгүүлбэл/нэвтэрвэл авсан кинонууд нь данс руу нь шилжинэ
+--    (md_guest_ticket → md_adopt_guest).
+-- ============================================================
+
+update public.md_plans set price = 9900 where code = 'm1';
+update public.md_plans set price = 15500 where code = 'm3';
+
+-- Нэвтэрсэн хэрэглэгч нэргүй (зочин) эсэх — Supabase JWT-ийн is_anonymous
+create or replace function public.md__is_guest()
+returns boolean
+language sql
+stable
+as $$
+  select coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false);
+$$;
+
+-- Нэг кино захиалах: зочинд ч нээлттэй, дүн = зарласан үнэ
+create or replace function public.md_request_purchase(p_series text)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_price integer;
+  v_id bigint;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select price into v_price from md_series where id = p_series;
+  if v_price is null then
+    raise exception 'unknown_series';
+  end if;
+  if v_price <= 0 then
+    raise exception 'free_series';
+  end if;
+
+  -- Зочинд профайл байхгүй (md_purchases.user_id → md_profiles). Утасгүй үүсгэнэ.
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and series_id = p_series and status = 'confirmed') then
+    raise exception 'already_owned';
+  end if;
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and series_id = p_series and status = 'pending') then
+    raise exception 'already_pending';
+  end if;
+  -- Спам хамгаалалт
+  if (select count(*) from md_purchases where user_id = auth.uid() and status = 'pending') >= 10 then
+    raise exception 'too_many_pending';
+  end if;
+
+  insert into md_purchases (user_id, series_id, price, amount)
+  values (auth.uid(), p_series, v_price, v_price)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+-- Сарын эрх захиалах: ЗӨВХӨН бүртгэлтэй (утасны дугаартай) хэрэглэгч
+create or replace function public.md_request_subscription(p_plan text)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_price integer;
+  v_days integer;
+  v_id bigint;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+  if public.md__is_guest() then
+    raise exception 'register_required';
+  end if;
+
+  select price, days into v_price, v_days
+    from md_plans where code = p_plan and active;
+  if v_price is null then
+    raise exception 'unknown_plan';
+  end if;
+
+  if exists (select 1 from md_purchases
+             where user_id = auth.uid() and kind = 'sub' and status = 'pending') then
+    raise exception 'already_pending';
+  end if;
+
+  insert into md_purchases (user_id, series_id, price, amount, kind, plan_code, plan_days)
+  values (auth.uid(), null, v_price, v_price, 'sub', p_plan, v_days)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.md_request_purchase(text) to authenticated;
+grant execute on function public.md_request_subscription(text) to authenticated;
+
+-- БАНКНЫ SMS: дүн давхцдаг болсон тул ДҮНГЭЭР ГАНЦААРАА хэзээ ч таньж болохгүй
+-- (3800₮ хоёр хүн зэрэг захиалсан бол хэнийх нь болохыг мэдэхгүй). Зөвхөн хуучин
+-- өвөрмөц дүнтэй (amount <> price) захиалга дүнгээрээ, бусад нь утасны дугаараар.
+create or replace function public.md_confirm_by_amount(
+  p_secret text,
+  p_amount numeric,
+  p_raw text,
+  p_utga text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_series text;
+  v_phone text;
+  v_how text;
+  v_res text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  -- 1) Хуучин өвөрмөц дүнтэй захиалга (2026-09-26-ноос өмнө үүссэн)
+  select p.id, p.series_id, u.phone
+    into v_id, v_series, v_phone
+    from md_purchases p
+    join md_profiles u on u.id = p.user_id
+   where p.amount = p_amount
+     and p.amount <> p.price
+     and p.status = 'pending'
+     and p.created_at > now() - interval '48 hours'
+   order by p.created_at
+   limit 1;
+  if v_id is not null then v_how := 'amount'; end if;
+
+  -- 2) Гүйлгээний утганд хэрэглэгчийн утасны дугаар байвал.
+  --    Дүн нь захиалгын дүнг хангасан байх ёстой (дутуу төлбөрөөр нээхгүй).
+  if v_id is null and coalesce(p_utga, '') <> '' then
+    select p.id, p.series_id, u.phone
+      into v_id, v_series, v_phone
+      from md_purchases p
+      join md_profiles u on u.id = p.user_id
+     where p.status = 'pending'
+       and p.created_at > now() - interval '48 hours'
+       and length(u.phone) = 8
+       and regexp_replace(p_utga, '\D', '', 'g') like '%' || u.phone || '%'
+       and p_amount >= p.amount
+     order by p.created_at
+     limit 1;
+    if v_id is not null then v_how := 'utga'; end if;
+  end if;
+
+  if v_id is null then
+    insert into md_bank_msgs (raw, amount, matched) values (p_raw, p_amount, false);
+    return jsonb_build_object('matched', false);
+  end if;
+
+  v_res := public.md__grant_purchase(v_id, 'bank');
+  if v_res <> 'granted' then
+    insert into md_bank_msgs (raw, amount, purchase_id, matched)
+    values (p_raw, p_amount, v_id, false);
+    return jsonb_build_object('matched', false, 'reason', v_res, 'purchase_id', v_id);
+  end if;
+
+  insert into md_bank_msgs (raw, amount, purchase_id, matched)
+  values (p_raw, p_amount, v_id, true);
+
+  return jsonb_build_object(
+    'matched', true, 'how', v_how,
+    'purchase_id', v_id, 'series_id', v_series, 'phone', v_phone
+  );
+end;
+$$;
+
+-- Зочноос бүртгэлтэй данс руу шилжүүлэх нэг удаагийн тасалбар.
+-- Зочин нэвтрэх/бүртгүүлэхийн ӨМНӨ өөрийн сессээр авна (зөвхөн тэр л авч чадна),
+-- дараа нь шинэ сессээр md_adopt_guest-д өгнө. 1 цаг хүчинтэй, нэг удаа.
+create table if not exists public.md_guest_tickets (
+  token text primary key,
+  guest_id uuid not null,
+  created_at timestamptz not null default now()
+);
+alter table public.md_guest_tickets enable row level security;
+-- Бодлого (policy) байхгүй = клиент шууд уншиж/бичиж чадахгүй, зөвхөн функцээр
+
+create or replace function public.md_guest_ticket()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+begin
+  if auth.uid() is null or not public.md__is_guest() then
+    return null;
+  end if;
+  delete from md_guest_tickets where created_at < now() - interval '1 hour';
+  -- gen_random_uuid() нь хүчтэй санамсаргүй тоо (pg_strong_random) ашигладаг
+  v_token := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
+  insert into md_guest_tickets (token, guest_id) values (v_token, auth.uid());
+  return v_token;
+end;
+$$;
+grant execute on function public.md_guest_ticket() to authenticated;
+
+create or replace function public.md_adopt_guest(p_ticket text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_guest uuid;
+  v_movies integer := 0;
+  v_pending integer := 0;
+  v_vip timestamptz;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+  if public.md__is_guest() then
+    raise exception 'register_required';
+  end if;
+
+  delete from md_guest_tickets
+   where token = p_ticket and created_at > now() - interval '1 hour'
+  returning guest_id into v_guest;
+  if v_guest is null or v_guest = auth.uid() then
+    return jsonb_build_object('movies', 0, 'pending', 0);
+  end if;
+
+  -- Худалдаж авсан кинонууд (данс нь аль хэдийн эзэмшдэгийг нь үлдээнэ)
+  update md_purchases g set user_id = auth.uid()
+   where g.user_id = v_guest
+     and coalesce(g.kind, 'movie') = 'movie'
+     and g.status = 'confirmed'
+     and not exists (select 1 from md_purchases t
+                      where t.user_id = auth.uid() and t.series_id = g.series_id
+                        and t.status = 'confirmed');
+  get diagnostics v_movies = row_count;
+
+  -- Төлөгдөж байгаа (QPay мэдэгдэл хараахан ирээгүй) захиалгууд
+  update md_purchases g set user_id = auth.uid()
+   where g.user_id = v_guest
+     and coalesce(g.kind, 'movie') = 'movie'
+     and g.status = 'pending'
+     and not exists (select 1 from md_purchases t
+                      where t.user_id = auth.uid() and t.series_id = g.series_id
+                        and t.status in ('pending', 'confirmed'));
+  get diagnostics v_pending = row_count;
+
+  -- Линкээр авсан сарын эрх
+  select vip_until into v_vip from md_profiles where id = v_guest;
+  if v_vip is not null and v_vip > now()
+     and exists (select 1 from md_profiles where id = auth.uid()) then
+    update md_profiles set vip_until = greatest(coalesce(vip_until, now()), v_vip)
+     where id = auth.uid();
+    update md_profiles set vip_until = null where id = v_guest;
+  end if;
+
+  return jsonb_build_object('movies', v_movies, 'pending', v_pending);
+end;
+$$;
+grant execute on function public.md_adopt_guest(text) to authenticated;
+
+-- ============================================================
+-- 2026-09-26 АЮУЛГҮЙ БАЙДАЛ: клиент профайл үүсгэхдээ is_admin / vip_until-ийг
+-- өөрөө тавьж чаддаг байсан (INSERT бодлого зөвхөн id = auth.uid() шалгадаг,
+-- багана бүрд эрх нээлттэй байв). Одоо клиент зөвхөн id, phone, full_name бичнэ;
+-- админ эрх зөвхөн эзний дугаарт, сарын эрх зөвхөн сервер функцээр.
+-- ============================================================
+revoke insert, update, delete on public.md_profiles from anon, authenticated;
+grant insert (id, phone, full_name) on public.md_profiles to authenticated;
+
+create or replace function public.md_owner_is_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Шинэ профайл хэзээ ч сарын эрхтэй, админ эрхтэй «төрдөггүй» (эзний дугаараас бусад)
+  new.is_admin := coalesce(new.phone = '91300737', false);
+  new.vip_until := null;
+  return new;
+end;
+$$;
+
+-- ============================================================
+-- 2026-09-26 (2): зочны төлбөрийн хамгаалалт — хяналтын дүнгээр
+--
+-- 1) Нэгдсэн зочин (merged_into): зочин бүртгүүлсний/нэвтэрсний ДАРАА түүний
+--    QPay мэдэгдэл ирвэл кино нь хаягдсан зочинд биш — шинэ дансанд очно.
+-- 2) Банкны SMS: зөвхөн ЯГ таарсан дүн + утасны дугаар (тусдаа 8 оронтой тоо),
+--    ганцхан тохирох захиалга байвал л автоматаар нээнэ; эргэлзээтэйг админд.
+-- 3) QPay хуудас 20 минутаас хуучин бол шинийг үүсгэнэ (хугацаа нь дуусч гацахгүй).
+-- 4) Төлбөрийн линк: QPay-ийн дараа буцах хаяг нь нэг удаагийн линк — төлбөр
+--    баталгаажмагц өөр хөтөч рүү буцсан ч кино тэнд нээгдэнэ (2 төхөөрөмж хүртэл).
+-- ============================================================
+
+alter table public.md_profiles add column if not exists merged_into uuid;
+alter table public.md_purchases add column if not exists pay_at timestamptz;
+alter table public.md_access_links add column if not exists purchase_id bigint
+  references public.md_purchases (id) on delete cascade;
+
+-- ЭРХ ОЛГОХ ГАНЦ ГАЗАР (өмнөхтэй ижил) + нэгдсэн зочны захиалгыг данс руу нь шилжүүлнэ
+create or replace function public.md__grant_purchase(p_id bigint, p_via text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_p md_purchases%rowtype;
+  v_target uuid;
+begin
+  select * into v_p from md_purchases where id = p_id for update;
+  if v_p.id is null then return 'not_found'; end if;
+  if v_p.status = 'confirmed' then return 'already_confirmed'; end if;
+
+  -- Зочин аль хэдийн бүртгэлтэй данс руу нэгдсэн бол (сесс нь солигдсон) кино
+  -- дансанд очно. Данс тэр киног аль хэдийн эзэмшдэг бол зочин дээр үлдээж,
+  -- доорх already_owned-оор бүртгэгдэнэ (эзэн мөнгийг буцаана).
+  select merged_into into v_target from md_profiles where id = v_p.user_id;
+  if v_target is not null and coalesce(v_p.kind, 'movie') = 'movie'
+     and not exists (select 1 from md_purchases
+                      where user_id = v_target and series_id = v_p.series_id
+                        and status = 'confirmed') then
+    -- Дансанд ижил киноны хүлээгдэж буй (төлөгдөөгүй) захиалга байвал давхардал
+    -- үүсгэхгүйн тулд татгалзана — энэ захиалга нь төлөгдсөн нь.
+    update md_purchases set status = 'rejected', decided_at = now()
+     where user_id = v_target and series_id = v_p.series_id and status = 'pending'
+       and id <> p_id;
+    update md_purchases set user_id = v_target where id = p_id;
+    v_p.user_id := v_target;
+  end if;
+
+  -- Нэг хүн нэг киног хоёр удаа эзэмшихгүй (md_purchases_one_confirmed индекс).
+  if coalesce(v_p.kind, 'movie') = 'movie' and exists (
+       select 1 from md_purchases
+        where user_id = v_p.user_id and series_id = v_p.series_id
+          and status = 'confirmed' and id <> p_id) then
+    return 'already_owned';
+  end if;
+
+  update md_purchases
+     set status = 'confirmed', decided_at = now(), paid_via = p_via
+   where id = p_id;
+
+  -- Сарын эрх: идэвхтэй бол үргэлжлүүлж нэмнэ, дууссан бол өнөөдрөөс эхэлнэ
+  if v_p.kind = 'sub' and v_p.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_p.plan_days || ' days')::interval
+     where id = v_p.user_id;
+  end if;
+  return 'granted';
+end;
+$$;
+revoke all on function public.md__grant_purchase(bigint, text) from public, anon, authenticated;
+
+create or replace function public.md_adopt_guest(p_ticket text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_guest uuid;
+  v_movies integer := 0;
+  v_pending integer := 0;
+  v_vip timestamptz;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+  if public.md__is_guest() then
+    raise exception 'register_required';
+  end if;
+
+  delete from md_guest_tickets
+   where token = p_ticket and created_at > now() - interval '1 hour'
+  returning guest_id into v_guest;
+  if v_guest is null or v_guest = auth.uid() then
+    return jsonb_build_object('movies', 0, 'pending', 0);
+  end if;
+  -- Нэг зочин нэг л удаа нэгдэнэ: бусад тасалбарыг нь устгаж, мөрийг нь түгжинэ
+  delete from md_guest_tickets where guest_id = v_guest;
+  select vip_until into v_vip from md_profiles where id = v_guest for update;
+  if not found then
+    return jsonb_build_object('movies', 0, 'pending', 0);
+  end if;
+  -- Цаашид ирэх төлбөрийн мэдэгдэл энэ данс руу (md__grant_purchase)
+  update md_profiles set merged_into = auth.uid() where id = v_guest;
+
+  update md_purchases g set user_id = auth.uid()
+   where g.user_id = v_guest
+     and coalesce(g.kind, 'movie') = 'movie'
+     and g.status = 'confirmed'
+     and not exists (select 1 from md_purchases t
+                      where t.user_id = auth.uid() and t.series_id = g.series_id
+                        and t.status = 'confirmed');
+  get diagnostics v_movies = row_count;
+
+  -- Хүлээгдэж буй захиалгуудаас дансанд давхцахгүйг нь шилжүүлнэ. Давхцсан нь
+  -- зочин дээр үлдэх ч төлбөр нь ирвэл merged_into-оор данс руу очно.
+  update md_purchases g set user_id = auth.uid()
+   where g.user_id = v_guest
+     and coalesce(g.kind, 'movie') = 'movie'
+     and g.status = 'pending'
+     and not exists (select 1 from md_purchases t
+                      where t.user_id = auth.uid() and t.series_id = g.series_id
+                        and t.status in ('pending', 'confirmed'));
+  get diagnostics v_pending = row_count;
+
+  -- Линкээр авсан сарын эрхийн ҮЛДСЭН хугацааг нэмнэ
+  if v_vip is not null and v_vip > now()
+     and exists (select 1 from md_profiles where id = auth.uid()) then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now()) + (v_vip - now())
+     where id = auth.uid();
+    update md_profiles set vip_until = null where id = v_guest;
+  end if;
+
+  return jsonb_build_object('movies', v_movies, 'pending', v_pending);
+end;
+$$;
+grant execute on function public.md_adopt_guest(text) to authenticated;
+
+-- БАНКНЫ SMS
+create or replace function public.md_confirm_by_amount(
+  p_secret text,
+  p_amount numeric,
+  p_raw text,
+  p_utga text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_series text;
+  v_phone text;
+  v_how text;
+  v_res text;
+  v_n integer;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  -- 1) Хуучин өвөрмөц дүнтэй захиалга (2026-09-26-ноос өмнө үүссэн)
+  select p.id, p.series_id, u.phone
+    into v_id, v_series, v_phone
+    from md_purchases p
+    join md_profiles u on u.id = p.user_id
+   where p.amount = p_amount
+     and p.amount <> p.price
+     and p.status = 'pending'
+     and p.created_at > now() - interval '48 hours'
+   order by p.created_at
+   limit 1;
+  if v_id is not null then v_how := 'amount'; end if;
+
+  -- 2) Гүйлгээний утганд утасны дугаар (тусдаа 8 оронтой тоо) + ЯГ ижил дүн.
+  --    Тохирох захиалга ганцхан байж л нээнэ — хоёр бол аль нь болохыг мэдэхгүй.
+  if v_id is null and coalesce(p_utga, '') <> '' then
+    select count(*), min(p.id) into v_n, v_id
+      from md_purchases p
+      join md_profiles u on u.id = p.user_id
+     where p.status = 'pending'
+       and p.created_at > now() - interval '48 hours'
+       and length(u.phone) = 8
+       and p_utga ~ ('(^|[^0-9])' || u.phone || '([^0-9]|$)')
+       and p.amount = p_amount;
+    if v_n = 1 then
+      select p.series_id, u.phone into v_series, v_phone
+        from md_purchases p join md_profiles u on u.id = p.user_id where p.id = v_id;
+      v_how := 'utga';
+    else
+      v_id := null;
+    end if;
+  end if;
+
+  if v_id is null then
+    insert into md_bank_msgs (raw, amount, matched) values (p_raw, p_amount, false);
+    return jsonb_build_object('matched', false);
+  end if;
+
+  v_res := public.md__grant_purchase(v_id, 'bank');
+  if v_res <> 'granted' then
+    insert into md_bank_msgs (raw, amount, purchase_id, matched)
+    values (p_raw, p_amount, v_id, false);
+    return jsonb_build_object('matched', false, 'reason', v_res, 'purchase_id', v_id);
+  end if;
+
+  insert into md_bank_msgs (raw, amount, purchase_id, matched)
+  values (p_raw, p_amount, v_id, true);
+
+  return jsonb_build_object(
+    'matched', true, 'how', v_how,
+    'purchase_id', v_id, 'series_id', v_series, 'phone', v_phone
+  );
+end;
+$$;
+
+-- QPay хуудсыг захиалгад холбоно. 20 минутаас хуучин хуудсыг шинээр солино
+-- (хуучин хуудсаар төлсөн ч ижил захиалгын дугаар тул мөн л нээгдэнэ).
+create or replace function public.md_attach_checkout(
+  p_secret text, p_purchase bigint, p_checkout bigint, p_url text
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  update md_purchases
+     set pay_checkout_id = p_checkout, pay_url = p_url, pay_at = now()
+   where id = p_purchase
+     and (pay_url is null or pay_at is null or pay_at < now() - interval '20 minutes');
+  return (select pay_url from md_purchases where id = p_purchase);
+end;
+$$;
+grant execute on function public.md_attach_checkout(text, bigint, bigint, text) to anon, authenticated;
+
+-- QPay-ийн дараа буцах нэг удаагийн линк (киноны захиалгад). Сервер (/api/pay/byl)
+-- л үүсгэнэ. Захиалга баталгаажтал линк «хүлээнэ»; баталгаажсаны дараа төлсөн
+-- хүний өөр хөтөч/утсанд ч нээнэ — 2 төхөөрөмж хүртэл, 30 хоног.
+create or replace function public.md_create_pay_link(p_secret text, p_purchase bigint)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_p md_purchases%rowtype;
+  v_token text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  select * into v_p from md_purchases where id = p_purchase;
+  if v_p.id is null or coalesce(v_p.kind, 'movie') <> 'movie' then
+    return null;
+  end if;
+  select token into v_token from md_access_links
+   where purchase_id = p_purchase and not revoked limit 1;
+  if v_token is not null then return v_token; end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at, purchase_id)
+  values (v_token, v_p.series_id, 2, 'QPay', now() + interval '30 days', p_purchase);
+  return v_token;
+end;
+$$;
+revoke all on function public.md_create_pay_link(text, bigint) from public;
+grant execute on function public.md_create_pay_link(text, bigint) to anon, authenticated;
+
+-- Линк ашиглах: төлбөрийн линк бол төлбөр баталгаажсан байх ёстой
+create or replace function public.md_claim_access(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_link md_access_links%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select * into v_link from md_access_links where token = p_token for update;
+  if v_link.token is null then raise exception 'bad_link'; end if;
+  if v_link.revoked then raise exception 'revoked'; end if;
+  if v_link.expires_at is not null and v_link.expires_at < now() then
+    raise exception 'expired';
+  end if;
+
+  -- Профайл байхгүй бол үүсгэнэ (утасны дугааргүй байж болно)
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
+  -- Аль хэдийн энэ эрхтэй бол дахин тоолохгүй (нэг хүн дахин нээхэд)
+  if v_link.series_id is not null
+     and exists (select 1 from md_purchases
+                 where user_id = auth.uid() and series_id = v_link.series_id
+                   and status = 'confirmed') then
+    return jsonb_build_object('ok', true, 'series_id', v_link.series_id, 'repeat', true);
+  end if;
+
+  if v_link.purchase_id is not null
+     and not exists (select 1 from md_purchases
+                      where id = v_link.purchase_id and status = 'confirmed') then
+    raise exception 'not_paid_yet';
+  end if;
+
+  if v_link.claims >= v_link.max_claims then
+    raise exception 'used_up';
+  end if;
+
+  if v_link.series_id is not null then
+    insert into md_purchases (user_id, series_id, price, amount, status, decided_at, paid_via)
+    values (auth.uid(), v_link.series_id, 0, 0, 'confirmed', now(),
+            case when v_link.purchase_id is not null then 'link:' || v_link.purchase_id else null end)
+    on conflict do nothing;
+  end if;
+
+  if v_link.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_link.plan_days || ' days')::interval
+     where id = auth.uid();
+  end if;
+
+  update md_access_links set claims = claims + 1 where token = p_token;
+
+  return jsonb_build_object('ok', true, 'series_id', v_link.series_id,
+                            'plan_days', v_link.plan_days);
+end;
+$$;
+grant execute on function public.md_claim_access(text) to authenticated, anon;
+
+-- Линкийн урьдчилсан мэдээлэл: төлбөрийн линк бол төлбөр орсон эсэхийг ч хэлнэ
+create or replace function public.md_link_preview(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v md_access_links%rowtype;
+begin
+  select * into v from md_access_links where token = p_token;
+  if v.token is null then return jsonb_build_object('ok', false, 'reason', 'bad_link'); end if;
+  if v.revoked then return jsonb_build_object('ok', false, 'reason', 'revoked'); end if;
+  if v.expires_at is not null and v.expires_at < now() then
+    return jsonb_build_object('ok', false, 'reason', 'expired');
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'series_id', v.series_id,
+    'plan_days', v.plan_days,
+    'full', v.claims >= v.max_claims,
+    'pay', v.purchase_id is not null,
+    'paid', v.purchase_id is null or exists (select 1 from md_purchases
+                                              where id = v.purchase_id and status = 'confirmed')
+  );
+end;
+$$;
+
+-- ============================================================
+-- 2026-09-26 (3): хоёр дахь хяналтын засвар
+--  * Утасны дугаар = зөвхөн 8 цифр, клиент ӨӨРИЙН нэвтрэх дугаараас өөрийг бичиж
+--    чадахгүй (SMS тааруулалтанд regex-ээр орж ирэх, бусдын дугаарыг эзлэхээс хамгаална)
+--  * SMS: гүйлгээний утгаас 8 оронтой тоонуудыг гаргаж ТЭНЦҮҮГЭЭР тулгана
+--  * md__grant_purchase: эзний профайлыг түгжиж нэгдэлтэй дараалуулна; данс нь
+--    киног аль хэдийн эзэмшдэг бол «already_owned» (эзэн мөнгийг буцаана)
+--  * Төлбөрийн линк дахин ашиглагдахад хугацааг нь сунгана
+-- ============================================================
+
+alter table public.md_profiles drop constraint if exists md_profiles_phone_chk;
+alter table public.md_profiles add constraint md_profiles_phone_chk
+  check (phone is null or phone ~ '^[0-9]{8}$');
+
+create or replace function public.md_owner_is_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Клиент зөвхөн өөрийн нэвтрэх дугаараа (<утас>@minidram.app) бичиж чадна
+  if new.phone is not null
+     and new.phone is distinct from split_part(coalesce(auth.jwt() ->> 'email', ''), '@', 1) then
+    raise exception 'phone_mismatch';
+  end if;
+  -- Шинэ профайл хэзээ ч сарын эрхтэй, админ эрхтэй «төрдөггүй» (эзний дугаараас бусад)
+  new.is_admin := coalesce(new.phone = '91300737', false);
+  new.vip_until := null;
+  return new;
+end;
+$$;
+
+create or replace function public.md__grant_purchase(p_id bigint, p_via text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid;
+  v_p md_purchases%rowtype;
+  v_target uuid;
+begin
+  -- Эзний профайлыг ЭХЛЭЭД түгжинэ: зэрэг явж буй md_adopt_guest (мөн профайлыг
+  -- түгжинэ) дуусахыг хүлээж, дараа нь merged_into-г шинэ утгаар нь уншина.
+  select user_id into v_user from md_purchases where id = p_id;
+  if v_user is null then return 'not_found'; end if;
+  perform 1 from md_profiles where id = v_user for update;
+
+  select * into v_p from md_purchases where id = p_id for update;
+  if v_p.id is null then return 'not_found'; end if;
+  if v_p.status = 'confirmed' then return 'already_confirmed'; end if;
+
+  select merged_into into v_target from md_profiles where id = v_p.user_id;
+  if v_target is not null and coalesce(v_p.kind, 'movie') = 'movie' then
+    -- Данс нь энэ киног аль хэдийн эзэмшдэг: давхар төлбөр — эзэн буцаана
+    if exists (select 1 from md_purchases
+                where user_id = v_target and series_id = v_p.series_id
+                  and status = 'confirmed') then
+      return 'already_owned';
+    end if;
+    -- Дансны ижил киноны төлөгдөөгүй захиалгыг татгалзаж, энэ төлөгдсөнийг шилжүүлнэ
+    update md_purchases set status = 'rejected', decided_at = now()
+     where user_id = v_target and series_id = v_p.series_id and status = 'pending'
+       and id <> p_id;
+    update md_purchases set user_id = v_target where id = p_id;
+    v_p.user_id := v_target;
+  end if;
+
+  -- Нэг хүн нэг киног хоёр удаа эзэмшихгүй (md_purchases_one_confirmed индекс).
+  if coalesce(v_p.kind, 'movie') = 'movie' and exists (
+       select 1 from md_purchases
+        where user_id = v_p.user_id and series_id = v_p.series_id
+          and status = 'confirmed' and id <> p_id) then
+    return 'already_owned';
+  end if;
+
+  update md_purchases
+     set status = 'confirmed', decided_at = now(), paid_via = p_via
+   where id = p_id;
+
+  -- Сарын эрх: идэвхтэй бол үргэлжлүүлж нэмнэ, дууссан бол өнөөдрөөс эхэлнэ
+  if v_p.kind = 'sub' and v_p.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_p.plan_days || ' days')::interval
+     where id = v_p.user_id;
+  end if;
+  return 'granted';
+end;
+$$;
+revoke all on function public.md__grant_purchase(bigint, text) from public, anon, authenticated;
+
+-- БАНКНЫ SMS: утгаас 8 оронтой тоонуудыг ялгаж, утастай ТЭНЦҮҮГЭЭР тулгана
+create or replace function public.md_confirm_by_amount(
+  p_secret text,
+  p_amount numeric,
+  p_raw text,
+  p_utga text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_series text;
+  v_phone text;
+  v_how text;
+  v_res text;
+  v_n integer;
+  v_tokens text[];
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  -- 1) Хуучин өвөрмөц дүнтэй захиалга (2026-09-26-ноос өмнө үүссэн)
+  select p.id, p.series_id, u.phone
+    into v_id, v_series, v_phone
+    from md_purchases p
+    join md_profiles u on u.id = p.user_id
+   where p.amount = p_amount
+     and p.amount <> p.price
+     and p.status = 'pending'
+     and p.created_at > now() - interval '48 hours'
+   order by p.created_at
+   limit 1;
+  if v_id is not null then v_how := 'amount'; end if;
+
+  -- 2) Утганд бичсэн тусдаа 8 оронтой тоо = хэрэглэгчийн утас, дүн ЯГ тэнцүү,
+  --    тохирох захиалга ганцхан байх ёстой.
+  if v_id is null and coalesce(p_utga, '') <> '' then
+    v_tokens := array(
+      select (regexp_matches(p_utga, '(?:^|[^0-9])([0-9]{8})(?=[^0-9]|$)', 'g'))[1]
+    );
+    if cardinality(v_tokens) > 0 then
+      select count(*), min(p.id) into v_n, v_id
+        from md_purchases p
+        join md_profiles u on u.id = p.user_id
+       where p.status = 'pending'
+         and p.created_at > now() - interval '48 hours'
+         and u.phone = any (v_tokens)
+         and p.amount = p_amount;
+      if v_n = 1 then
+        select p.series_id, u.phone into v_series, v_phone
+          from md_purchases p join md_profiles u on u.id = p.user_id where p.id = v_id;
+        v_how := 'utga';
+      else
+        v_id := null;
+      end if;
+    end if;
+  end if;
+
+  if v_id is null then
+    insert into md_bank_msgs (raw, amount, matched) values (p_raw, p_amount, false);
+    return jsonb_build_object('matched', false);
+  end if;
+
+  v_res := public.md__grant_purchase(v_id, 'bank');
+  if v_res <> 'granted' then
+    insert into md_bank_msgs (raw, amount, purchase_id, matched)
+    values (p_raw, p_amount, v_id, false);
+    return jsonb_build_object('matched', false, 'reason', v_res, 'purchase_id', v_id);
+  end if;
+
+  insert into md_bank_msgs (raw, amount, purchase_id, matched)
+  values (p_raw, p_amount, v_id, true);
+
+  return jsonb_build_object(
+    'matched', true, 'how', v_how,
+    'purchase_id', v_id, 'series_id', v_series, 'phone', v_phone
+  );
+end;
+$$;
+
+create or replace function public.md_create_pay_link(p_secret text, p_purchase bigint)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_p md_purchases%rowtype;
+  v_token text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  select * into v_p from md_purchases where id = p_purchase;
+  if v_p.id is null or coalesce(v_p.kind, 'movie') <> 'movie' then
+    return null;
+  end if;
+  -- Байгаа линкийг дахин ашиглахдаа хугацааг нь сунгана (хуучин захиалгаа
+  -- удаан хугацааны дараа төлсөн ч буцах хуудас «хугацаа дууссан» болохгүй)
+  update md_access_links set expires_at = now() + interval '30 days'
+   where purchase_id = p_purchase and not revoked
+  returning token into v_token;
+  if v_token is not null then return v_token; end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at, purchase_id)
+  values (v_token, v_p.series_id, 2, 'QPay', now() + interval '30 days', p_purchase);
+  return v_token;
+end;
+$$;

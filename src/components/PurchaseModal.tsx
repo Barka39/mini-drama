@@ -3,6 +3,9 @@ import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/ca
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
   buyStatus,
+  canWatchNow,
+  ensureSession,
+  hasVip,
   loadPlans,
   refreshAccount,
   requestPurchase,
@@ -55,14 +58,18 @@ export function PurchaseModal() {
   const catalogCount = catalog.length;
 
   const series = seriesId ? getSeries(seriesId) : undefined;
-  const status = series ? buyStatus(s, series.id) : "none";
-  // Сервер захиалга бүрд өвөрмөц дүн оноодог — түүгээр банкнаас автоматаар таньдаг
+  // Сарын эрхтэй бол бүх кино нээлттэй — «авсан» гэж үзнэ (дахин төлүүлэхгүй)
+  const status = series ? (hasVip(s) ? "owned" : buyStatus(s, series.id)) : "none";
+  // Захиалгын дүн = зарласан үнэ (хуучин захиалгад өвөрмөц дүн үлдсэн байж болно)
   const payAmount = (series && s.payAmounts[series.id]) || series?.price || 0;
-  // QPay (Byl) товч: эзэн админ хуудаснаас асаана (туршилтын үед зөвхөн админд)
+  // QPay (Byl): эзэн админ хуудаснаас асаана. Асаалттай үед нэг киног бүртгэлгүй авна.
   const qpay = onlinePayFor(bank, s.isAdmin);
+  // Утасны дугаартай бүртгэл (зочин биш)
+  const hasAccount = s.signedIn && !s.guest;
 
   useEffect(() => {
     if (!open) return;
+    setMsg(null);
     void getSettings().then(setBank);
     void loadPlans().then(setPlans);
   }, [open]);
@@ -83,6 +90,7 @@ export function PurchaseModal() {
     });
   }
 
+  // Дансаар шилжүүлэх (QPay унтраалттай үеийн нөөц зам — бүртгэлтэй хэрэглэгчид)
   async function order() {
     if (!series) return;
     setBusy(true);
@@ -93,17 +101,34 @@ export function PurchaseModal() {
     else if (res.code !== "pending") setMsg(res.reason);
   }
 
-  // QPay: захиалгагүй бол үүсгээд (дансаар төлөхтэй ижил өвөрмөц дүнтэй), Byl-ийн
-  // төлбөрийн хуудас руу шилжинэ. Төлсний дараа хэрэглэгч яг энэ хуудас руугаа буцаж,
-  // кино нь аль хэдийн нээгдсэн байна (Byl-ийн мэдэгдэл түрүүлж ирдэг).
+  // QPay: сессгүй бол зочны сесс нээж, захиалга үүсгээд Byl-ийн төлбөрийн хуудас руу
+  // шилжинэ. Төлсний дараа хэрэглэгч яг энэ хуудас руугаа буцаж, кино нь аль хэдийн
+  // нээгдсэн байна (Byl-ийн мэдэгдэл ихэвчлэн түрүүлж ирдэг; үгүй бол 10 сек тутам шалгана).
   async function payQpay() {
     if (!series) return;
     setBusy(true);
     setMsg(null);
-    if (status === "none") {
+    const sess = await ensureSession();
+    if (!sess.ok) {
+      setBusy(false);
+      setMsg(sess.reason);
+      return;
+    }
+    if (status !== "pending") {
       const res = await requestPurchase(series.id);
       if (res.ok) track("order_created", series.id);
-      else if (res.code !== "pending") {
+      if (res.ok || res.code === "pending") {
+        // Захиалгын дараах шинэчлэлт зочны киног данс руу шилжүүлж, кино аль хэдийн
+        // нээгдсэн байж болно — тэгвэл төлбөрийн хуудас руу явуулахгүй.
+        if (canWatchNow(series.id)) {
+          setBusy(false);
+          return;
+        }
+      } else if (res.code === "owned") {
+        // Аль хэдийн нээлттэй (дансаа шинэчилсэн тул цонх «нээгдсэн» болж харагдана)
+        setBusy(false);
+        return;
+      } else if (res.code !== "pending") {
         setBusy(false);
         setMsg(res.reason);
         return;
@@ -117,6 +142,21 @@ export function PurchaseModal() {
     setBusy(false);
     setMsg(pay.reason);
   }
+
+  const vipOffer = vipPlan && catalogCount > 2 && (
+    // Сарын эрхийн санал. Түгжээ бол хүн худалдан авах бодолтой байгаа ганц мөч —
+    // нэг кино авахаас сарын эрх авах нь хамаагүй ашигтайг ЭНД хэлэх ёстой.
+    <div className="pay-vip">
+      <div className="pay-divider" />
+      <p className="pay-vip-line">
+        Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
+        <strong>бүх {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
+      </p>
+      <button className="btn btn-outline" onClick={openVip}>
+        ⭐ Сарын эрх авах
+      </button>
+    </div>
+  );
 
   return (
     <div className="modal-backdrop" onClick={closeModals}>
@@ -133,130 +173,133 @@ export function PurchaseModal() {
           </div>
         </div>
 
-        {!s.signedIn ? (
+        {status === "owned" ? (
+          <>
+            <p className="msg-ok">
+              {hasVip(s) && !s.purchased.includes(series.id)
+                ? "⭐ Таны сарын эрх идэвхтэй — энэ кино танд нээлттэй!"
+                : "✅ Төлбөр баталгаажлаа — кино бүрэн нээгдсэн!"}
+            </p>
+            <button className="btn btn-primary" onClick={closeModals}>
+              Үзэж эхлэх
+            </button>
+            {s.guest && (
+              <>
+                <p className="muted small">
+                  Кино энэ утсан дээр нээлттэй. Өөр утаснаас үзэх эсвэл хөтчөө цэвэрлэсэн ч
+                  алдахгүй байхыг хүсвэл утасны дугаараараа бүртгүүлээрэй — үнэгүй.
+                </p>
+                <button className="btn btn-outline" onClick={() => openAuth("up")}>
+                  Бүртгүүлэх
+                </button>
+              </>
+            )}
+          </>
+        ) : !bank ? (
+          <p className="muted small">Ачаалж байна…</p>
+        ) : qpay ? (
+          status === "pending" ? (
+            <>
+              <div className="pay-status">
+                <span className="pay-spinner" />
+                <span>Төлбөрийг хүлээж байна…</span>
+              </div>
+              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
+              </button>
+              {msg && <p className="msg-err">{msg}</p>}
+              <p className="muted small">
+                Төлсний дараа кино хэдхэн секундын дотор <strong>автоматаар</strong> нээгдэж, энэ
+                цонх өөрөө шинэчлэгдэнэ.
+              </p>
+              {bank.contact && <p className="muted small">{bank.contact}</p>}
+            </>
+          ) : (
+            <>
+              <ol className="pay-steps">
+                <li>«QPay-ээр төлөх» дарна</li>
+                <li>Банкны аппаа сонгож эсвэл QR уншуулж төлнө</li>
+                <li>Кино шууд нээгдэнэ</li>
+              </ol>
+              {msg && <p className="msg-err">{msg}</p>}
+              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(series.price)}`}
+              </button>
+              {!hasAccount && (
+                <p className="muted small">Бүртгэл шаардлагагүй — кино энэ утсан дээр шууд нээгдэнэ.</p>
+              )}
+              {!s.signedIn && (
+                // Бүртгэлтэй (эсвэл сарын эрхтэй) хүн шинэ утсан дээр дахин төлөхөөс сэргийлнэ
+                <button className="btn btn-ghost" onClick={() => openAuth("in", "purchase")}>
+                  Өмнө нь бүртгүүлсэн бол нэвтрэх
+                </button>
+              )}
+              {vipOffer}
+            </>
+          )
+        ) : !hasAccount ? (
+          // QPay унтраалттай (нөөц зам): дансаар шилжүүлгийг утасны дугаараар таньдаг
           <>
             <p className="muted small">
               Худалдаж авахын тулд эхлээд утасны дугаараараа бүртгүүлнэ — кино тань хаанаас ч
               нэвтрэхэд нээлттэй байна.
             </p>
-            <button className="btn btn-primary" onClick={openAuth}>
+            <button className="btn btn-primary" onClick={() => openAuth("in", "purchase")}>
               Нэвтрэх / Бүртгүүлэх
-            </button>
-          </>
-        ) : status === "owned" ? (
-          <>
-            <p className="msg-ok">✅ Төлбөр баталгаажлаа — кино бүрэн нээгдсэн!</p>
-            <button className="btn btn-primary" onClick={closeModals}>
-              Үзэж эхлэх
             </button>
           </>
         ) : status === "none" ? (
           <>
-            {qpay ? (
-              <>
-                <ol className="pay-steps">
-                  <li>«QPay-ээр төлөх» дарна</li>
-                  <li>Банкны аппаа сонгож эсвэл QR уншуулж төлнө</li>
-                  <li>Кино шууд нээгдэнэ</li>
-                </ol>
-                {msg && <p className="msg-err">{msg}</p>}
-                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(series.price)}`}
-                </button>
-                <button className="btn btn-ghost" disabled={busy} onClick={order}>
-                  Дансаар шилжүүлэх
-                </button>
-              </>
-            ) : (
-              <>
-                <ol className="pay-steps">
-                  <li>«Захиалах» дарна</li>
-                  <li>Банкны аппаараа шилжүүлэг хийнэ</li>
-                  <li>Кино автоматаар нээгдэнэ</li>
-                </ol>
-                {msg && <p className="msg-err">{msg}</p>}
-                <button className="btn btn-primary" disabled={busy} onClick={order}>
-                  {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
-                </button>
-                <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
-              </>
-            )}
-
-            {/* Сарын эрхийн санал. Түгжээ бол хүн худалдан авах бодолтой байгаа
-                ганц мөч — сайт дээр 9 кинотой болсон тул нэг кино авахаас
-                сарын эрх авах нь хамаагүй ашигтайг ЭНД хэлэх ёстой. Өмнө нь
-                зөвхөн нүүр хуудсанд бичээстэй байсан тул ихэнх нь хардаггүй. */}
-            {vipPlan && catalogCount > 2 && (
-              <div className="pay-vip">
-                <div className="pay-divider" />
-                <p className="pay-vip-line">
-                  Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
-                  <strong>бүх {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
-                </p>
-                <button className="btn btn-outline" onClick={openVip}>
-                  ⭐ Сарын эрх авах
-                </button>
-              </div>
-            )}
+            <ol className="pay-steps">
+              <li>«Захиалах» дарна</li>
+              <li>Банкны аппаараа шилжүүлэг хийнэ</li>
+              <li>Төлбөр баталгаажмагц кино нээгдэнэ</li>
+            </ol>
+            {msg && <p className="msg-err">{msg}</p>}
+            <button className="btn btn-primary" disabled={busy} onClick={order}>
+              {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
+            </button>
+            <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
+            {vipOffer}
           </>
         ) : (
           <>
             <div className="pay-status">
               <span className="pay-spinner" />
-              <span>{qpay ? "Төлбөрийг хүлээж байна…" : "Шилжүүлгийг хүлээж байна…"}</span>
+              <span>Шилжүүлгийг хүлээж байна…</span>
             </div>
 
-            {qpay && (
-              <>
-                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
-                </button>
-                {msg && <p className="msg-err">{msg}</p>}
-                <p className="muted small">Эсвэл доорх данс руу шилжүүлж болно:</p>
-              </>
-            )}
-
             <div className="pay-box">
-              {bank ? (
-                <>
-                  <CopyRow
-                    label="Төлөх дүн — яг энэ дүнгээр"
-                    value={formatPrice(payAmount)}
-                    big
-                    onCopy={copy}
-                  />
-                  <CopyRow label="Гүйлгээний утга" value={s.phone ?? ""} onCopy={copy} />
-                  <div className="pay-divider" />
-                  <div className="pay-row">
-                    <div className="pay-row-text">
-                      <span className="pay-label">Банк</span>
-                      <span className="pay-value">{bank.bank_name}</span>
-                    </div>
-                  </div>
-                  <CopyRow label="Дансны дугаар" value={bank.account_number} onCopy={copy} />
-                  <CopyRow label="IBAN" value={bank.iban} onCopy={copy} />
-                  <div className="pay-row">
-                    <div className="pay-row-text">
-                      <span className="pay-label">Хүлээн авагч</span>
-                      <span className="pay-value">{bank.account_name}</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p className="muted small">Ачаалж байна…</p>
-              )}
+              <CopyRow label="Төлөх дүн" value={formatPrice(payAmount)} big onCopy={copy} />
+              <CopyRow
+                label="Гүйлгээний утга — утасны дугаараа заавал бичнэ"
+                value={s.phone ?? ""}
+                onCopy={copy}
+              />
+              <div className="pay-divider" />
+              <div className="pay-row">
+                <div className="pay-row-text">
+                  <span className="pay-label">Банк</span>
+                  <span className="pay-value">{bank.bank_name}</span>
+                </div>
+              </div>
+              <CopyRow label="Дансны дугаар" value={bank.account_number} onCopy={copy} />
+              <CopyRow label="IBAN" value={bank.iban} onCopy={copy} />
+              <div className="pay-row">
+                <div className="pay-row-text">
+                  <span className="pay-label">Хүлээн авагч</span>
+                  <span className="pay-value">{bank.account_name}</span>
+                </div>
+              </div>
             </div>
 
             {copied && <p className="msg-ok">{copied} хуулагдлаа ✅</p>}
 
             <p className="muted small">
-              Зарласан үнэ {formatPrice(series.price)} боловч захиалгыг тань таних{" "}
-              <strong>тусгай дүн</strong> оноогдсон тул {formatPrice(payAmount)} шилжүүлнэ — арай
-              бага. Гүйлгээний утганд утасны дугаараа бичвэл бүр найдвартай. Төлбөр орсноос хойш
-              хэдэн минутын дотор кино <strong>автоматаар</strong> нээгдэж, энэ цонх өөрөө
-              шинэчлэгдэнэ.
+              Гүйлгээний утганд утасны дугаараа бичвэл таны захиалгыг таньж кино нээгдэнэ, энэ
+              цонх өөрөө шинэчлэгдэнэ.
             </p>
-            {bank?.contact && <p className="muted small">{bank.contact}</p>}
+            {bank.contact && <p className="muted small">{bank.contact}</p>}
           </>
         )}
 
