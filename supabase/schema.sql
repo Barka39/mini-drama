@@ -2210,3 +2210,84 @@ begin
   return v_token;
 end;
 $$;
+
+-- ============================================================
+-- 2026-09-27: QPay-ийн «Byl-ээс шалгах» нөөц зам + админы тодорхой жагсаалт
+--  * Webhook-оос гадна /api/pay/byl-check нь Byl-ийн checkout төлөвийг шууд асууж
+--    нээж чадна. Нэг checkout-ын төлбөр хоёр замаар ирвэл «давхар төлбөр» биш.
+--  * Эзэн гараар нээсэн захиалгын төлбөр хожим орж ирвэл — зүгээр (давхар биш).
+--  * Админы харагдац QPay захиалгыг (pay_checkout_id) ялгана — төлөөгүй QPay
+--    захиалга «гараар батлах» жагсаалтад холилдохгүй.
+-- ============================================================
+
+create or replace view public.md_purchases_admin as
+  select t.id, t.series_id, t.price, t.status, t.created_at, t.decided_at, p.phone,
+         t.kind, t.plan_code, t.pay_checkout_id, t.paid_via
+    from public.md_purchases t
+    join public.md_profiles p on p.id = t.user_id;
+alter view public.md_purchases_admin set (security_invoker = true);
+
+create or replace function public.md_confirm_by_byl(
+  p_secret text,
+  p_event_id text,
+  p_type text,
+  p_purchase bigint,
+  p_checkout bigint,
+  p_amount numeric,
+  p_raw jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ev bigint;
+  v_p md_purchases%rowtype;
+  v_res text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+
+  select * into v_p from md_purchases where id = p_purchase;
+
+  insert into md_pay_events (provider, event_id, type, purchase_id, amount, raw)
+  values ('byl', p_event_id, p_type, v_p.id, p_amount, p_raw)
+  on conflict (provider, event_id) do nothing
+  returning id into v_ev;
+  if v_ev is null then
+    return jsonb_build_object('duplicate', true);
+  end if;
+
+  if v_p.id is null then
+    v_res := 'unknown_purchase';
+  elsif p_amount is null or p_amount < v_p.amount then
+    v_res := 'underpaid';
+  elsif v_p.status = 'confirmed' and v_p.paid_via = 'byl'
+        and p_checkout is not null and v_p.pay_checkout_id = p_checkout then
+    -- Ижил checkout-ын төлбөр хоёр замаар (webhook + шалгалт) ирсэн — нэг л төлбөр
+    v_res := 'same_checkout';
+  elsif v_p.status = 'confirmed' and v_p.paid_via = 'admin' then
+    -- Эзэн гараар нээсэн захиалгын мөнгө хожим орж ирсэн — асуудалгүй
+    v_res := 'paid_after_manual';
+  else
+    v_res := public.md__grant_purchase(v_p.id, 'byl');
+  end if;
+
+  update md_pay_events
+     set matched = v_res in ('granted', 'same_checkout', 'paid_after_manual'), note = v_res
+   where id = v_ev;
+  if v_res = 'granted' and p_checkout is not null then
+    update md_purchases set pay_checkout_id = coalesce(pay_checkout_id, p_checkout)
+     where id = v_p.id;
+  end if;
+
+  return jsonb_build_object(
+    'matched', v_res in ('granted', 'same_checkout', 'paid_after_manual'), 'result', v_res,
+    'purchase_id', v_p.id, 'kind', v_p.kind, 'series_id', v_p.series_id
+  );
+end;
+$$;
+grant execute on function public.md_confirm_by_byl(text, text, text, bigint, bigint, numeric, jsonb)
+  to anon, authenticated;

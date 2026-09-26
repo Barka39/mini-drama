@@ -200,6 +200,57 @@ async function adoptStoredGuest() {
 // тэр үед «профайл дутуу» гэж гаргаж хаяхгүй.
 let signingUp = false;
 
+// ---------- QPay: Byl-ээс шууд шалгах (webhook-ийн нөөц) ----------
+//
+// Ердийн үед Byl-ийн мэдэгдэл кино/сарын эрхийг хэдхэн секундэд нээдэг. Мэдэгдэл
+// алдагдвал хүн мөнгөө төлчихөөд түгжээтэй дэлгэц харж суух эрсдэлтэй — тиймээс
+// саяхан (2 цагийн дотор) эхлүүлсэн QPay захиалга байхад 15 секунд тутам ~3 минут
+// Byl-ээс өөрөө асууна. Byl «төлөгдсөн» гэвэл сервер webhook-тэй ижил замаар нээнэ.
+
+let reconciling = false;
+
+export type QpayCheck = { ok: true; status: string } | { ok: false; reason: string };
+
+export async function checkQpay(input: { kind?: "movie" | "sub"; series?: string; purchase?: number }): Promise<QpayCheck> {
+  const { data } = await supa.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { ok: false, reason: "auth" };
+  try {
+    const res = await fetch("/api/pay/byl-check", {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    });
+    const body = (await res.json().catch(() => ({}))) as { status?: string; byl?: string; error?: string };
+    if (!res.ok) return { ok: false, reason: body.error ?? `http_${res.status}` };
+    return { ok: true, status: body.byl && body.status === "pending" ? `pending:${body.byl}` : (body.status ?? "unknown") };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
+function reconcileQpay(items: { kind: "movie" | "sub"; series?: string }[]) {
+  if (reconciling) return;
+  reconciling = true;
+  let left = items;
+  let rounds = 0;
+  const tick = async () => {
+    let unlocked = false;
+    const still: typeof left = [];
+    for (const it of left) {
+      const r = await checkQpay(it);
+      if (r.ok && r.status === "confirmed") unlocked = true;
+      else if (!r.ok || r.status.startsWith("pending")) still.push(it);
+    }
+    left = still;
+    rounds++;
+    if (unlocked) await refreshAccount();
+    if (left.length && rounds < 12) setTimeout(() => void tick(), 15000);
+    else reconciling = false;
+  };
+  setTimeout(() => void tick(), 4000);
+}
+
 // ---------- Серверээс дансаа ачаалах ----------
 
 async function loadServerState(userId: string, anonymous = false, healed = false) {
@@ -209,14 +260,26 @@ async function loadServerState(userId: string, anonymous = false, healed = false
   if (!anonymous && !creating) await adoptStoredGuest();
   const [profRes, buyRes] = await Promise.all([
     supa.from("md_profiles").select("phone, is_admin, full_name, vip_until").eq("id", userId).maybeSingle(),
-    supa.from("md_purchases").select("series_id, status, amount, kind, plan_days").eq("user_id", userId),
+    supa
+      .from("md_purchases")
+      .select("series_id, status, amount, kind, plan_days, pay_checkout_id, created_at")
+      .eq("user_id", userId),
   ]);
 
   const purchased: string[] = [];
   const pendingBuys: string[] = [];
   const payAmounts: Record<string, number> = {};
   let subPending = false;
+  // Саяхан эхлүүлсэн, хараахан нээгдээгүй QPay захиалгууд — Byl-ээс шалгах нөөц замд
+  const qpayWaiting: { kind: "movie" | "sub"; series?: string }[] = [];
   for (const row of buyRes.data ?? []) {
+    if (
+      row.status === "pending" &&
+      row.pay_checkout_id &&
+      Date.now() - new Date(row.created_at).getTime() < 2 * 3600 * 1000
+    ) {
+      qpayWaiting.push(row.kind === "sub" ? { kind: "sub" } : { kind: "movie", series: row.series_id });
+    }
     if (row.kind === "sub") {
       // Сарын эрхийн захиалга — киноны id байхгүй тул тусад нь тэмдэглэнэ
       if (row.status === "pending") {
@@ -231,6 +294,8 @@ async function loadServerState(userId: string, anonymous = false, healed = false
       if (row.amount) payAmounts[row.series_id] = row.amount;
     }
   }
+
+  if (qpayWaiting.length) reconcileQpay(qpayWaiting);
 
   if (profRes.data) {
     commit({

@@ -56,3 +56,12 @@ export async function createCheckout(env, payload) {
   const body = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, body };
 }
+
+/** Checkout-ын одоогийн төлөв (open | pending | complete | expired). Хариу: { ok, status, body } */
+export async function getCheckout(env, checkoutId) {
+  const res = await fetch(`${BYL_API}/projects/${env.BYL_PROJECT_ID}/checkouts/${checkoutId}`, {
+    headers: { Authorization: `Bearer ${env.BYL_TOKEN}`, Accept: "application/json" },
+  });
+  const body = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, body };
+}
