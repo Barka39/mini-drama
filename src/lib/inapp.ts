@@ -10,8 +10,8 @@
 //   - googlechromes://… → Chrome НЭЭГДСЭН (Chrome суусан бол)
 //   - гэхдээ зөвхөн ХҮН ӨӨРӨӨ ДАРВАЛ: хэдэн секундын дараах автомат шилжилтийг хаадаг
 // Тиймээс iPhone-ийн Meta дотоод хөтөчид «Төлбөр төлөх» → «Банкаа сонгож төлөх» (Chrome-д
-// нээнэ; Chrome дотор Byl-ийн банкны товч ажилладаг). Chrome байхгүй бол хэдхэн хормын
-// дараа өмнөх шигээ Byl руу орно.
+// нээнэ; Chrome дотор Byl-ийн банкны товч ажилладаг). Chrome нээгдэхгүй бол «Chrome байхгүй
+// бол энд дарж төлөх» холбоос гарна (автоматаар шилжүүлэхгүй).
 //
 // Жинхэнэ засвар нь Byl талд (window.open → тухайн цонхондоо нээх) — тэдэнд мэдэгдсэн.
 // Android-д банкны апп ихэвчлэн нээгддэг — хөндөхгүй.
@@ -46,46 +46,59 @@ function forced(): boolean {
  */
 export const needsChromeHandoff = (isIOS && isMetaInApp) || forced();
 
-/** Chrome (iOS)-д нээх хаяг: https:// → googlechromes:// (Chrome-ын албан ёсны схем) */
-export function chromeUrl(url: string): string {
-  return url.replace(/^https:\/\//, "googlechromes://");
+/**
+ * Chrome (iOS)-д нээх хаяг. googlechromes:// нь Chrome-ын албан ёсны схем (https:// → googlechromes://).
+ * Byl руу ШУУД биш, манай /pay?u=… хуудсаар дамжуулна: эзний iPhone дээр Chrome нээгдсэн
+ * цорын ганц тохиолдол нь googlechromes://kinomandal.com/… байсан — яг тэр замыг давтана.
+ * Chrome дотор /pay нь Byl-ийн хаягийг шалгаад тийш шилжүүлнэ.
+ */
+export function chromeUrl(payUrl: string): string {
+  return `googlechromes://${window.location.host}/pay?u=${encodeURIComponent(payUrl)}`;
 }
 
-/** Chrome нээгдсэн эсэхийг хүлээх хугацаа (хуудас нуугдвал = апп солигдсон) */
-const CHROME_WAIT_MS = 1800;
+/** Энэ хугацаанд хуудас нуугдаагүй бол «Chrome байхгүй бол энд» холбоос гаргана */
+const CHROME_WAIT_MS = 3000;
+/** Хожуу нээгдэлтийг ч тэмдэглэнэ (Facebook Chrome-г хэдэн секунд саатуулж нээдэг эсэх) */
+const CHROME_LATE_MS = 20000;
 
 /**
- * Chrome-ын холбоосыг ДАРАХ мөчид дуудна. Chrome нээгдвэл (хуудас нуугдвал) юу ч хийхгүй —
- * хэрэглэгч буцаж ирэхэд захиалгыг өөрөө шалгана. Chrome суугаагүй бол хэдхэн хормын
- * дараа Byl-ийн хуудас руу энэ цонхондоо шилжинэ.
+ * Chrome-ын холбоосыг ДАРАХ мөчид дуудна. Хуудас нуугдвал = Chrome нээгдсэн; хэрэглэгч буцаж
+ * ирэхэд захиалгыг өөрөө шалгана. Нуугдаагүй бол `onNoChrome()` — дэлгэц «Chrome байхгүй
+ * бол энд» холбоос гаргана.
+ *
+ * АВТОМАТААР Byl руу ШИЛЖИХГҮЙ (2026-09-27): 1.8 сек-ийн дараа шилжих нь эзний iPhone дээр
+ * Chrome-ын нээгдэлтийг цуцалж байсан бололтой — туршилтын хуудсанд (дараа нь юу ч хийдэггүй)
+ * Chrome нээгдсэн, төлбөрийн урсгалд (шилждэг) нээгдээгүй.
  */
-export function watchChromeHandoff(url: string, kind: "movie" | "sub"): void {
+export function watchChromeHandoff(kind: "movie" | "sub", onNoChrome: () => void): void {
+  const started = Date.now();
   let left = false;
-  const onVis = () => {
-    if (document.visibilityState === "hidden") left = true;
-  };
-  const onHide = () => {
+  let reported = false;
+  const mark = () => {
+    if (left) return;
     left = true;
+    const sec = Math.round((Date.now() - started) / 1000);
+    track("iab_safari", `chrome-ok:${kind}:${reported ? "late" : "fast"}${Math.min(sec, 99)}`);
+  };
+  const onVis = () => {
+    if (document.visibilityState === "hidden") mark();
   };
   document.addEventListener("visibilitychange", onVis);
-  window.addEventListener("pagehide", onHide);
+  window.addEventListener("pagehide", mark);
   track("iab_gate", `chrome:${kind}`);
-  const started = Date.now();
 
   window.setTimeout(() => {
-    document.removeEventListener("visibilitychange", onVis);
-    window.removeEventListener("pagehide", onHide);
-    // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол хэрэглэгч Chrome-д очоод буцсан гэсэн үг
-    if (left || Date.now() - started > CHROME_WAIT_MS + 1500) {
-      track("iab_safari", `chrome-ok:${kind}`);
-      return;
-    }
+    // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол Chrome-д очоод буцсан гэсэн үг
+    if (!left && Date.now() - started > CHROME_WAIT_MS + 1500) mark();
+    if (left) return;
+    reported = true;
     track("iab_retry", `chrome-no:${kind}`);
-    // Хэмжилт илгээгдэж амжих хором өгнө (шууд шилжвэл хүсэлт тасардаг)
-    window.setTimeout(() => {
-      window.location.href = url;
-    }, 250);
+    onNoChrome();
   }, CHROME_WAIT_MS);
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("pagehide", mark);
+  }, CHROME_LATE_MS);
 }
 
 /** Зөвхөн Byl-ийн төлбөрийн хуудас (нээлттэй redirect болгохгүйн тулд) */
