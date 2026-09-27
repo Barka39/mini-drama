@@ -28,6 +28,12 @@ export const isMetaInApp =
   /\bInstagram\b/i.test(ua) ||
   /\bBarcelona\b/.test(ua);
 
+/**
+ * Аль апп-ын дотоод хөтөч вэ (хэмжилтэд): «MessengerForiOS», «FBIOS», «IG» … Facebook апп болон
+ * Messenger апп-ын дотоод хөтөч Chrome руу гаргах эсэх нь ялгаатай байж болно (2026-09-27).
+ */
+export const inAppName = (/FBAN\/(\w+)/.exec(ua)?.[1] ?? (/\bInstagram\b/i.test(ua) ? "IG" : "web")).slice(0, 16);
+
 /** Туршилт: ?iab=1 — ямар ч хөтөч дээр iPhone Messenger-ийн урсгалыг харуулна */
 function forced(): boolean {
   try {
@@ -85,20 +91,20 @@ export function watchChromeHandoff(url: string, kind: "movie" | "sub"): void {
     if (left) return;
     left = true;
     const sec = Math.min(99, Math.round((Date.now() - started) / 1000));
-    track("iab_safari", `chrome-ok:${kind}:${sec}s`);
+    track("iab_safari", `chrome-ok:${kind}:${sec}s:${inAppName}`);
   };
   const onVis = () => {
     if (document.visibilityState === "hidden") mark();
   };
   document.addEventListener("visibilitychange", onVis);
   window.addEventListener("pagehide", mark);
-  track("iab_gate", `chrome3:${kind}`);
+  track("iab_gate", `chrome3:${kind}:${inAppName}`);
 
   window.setTimeout(() => {
     // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол Chrome-д очоод буцсан гэсэн үг
     if (!left && Date.now() - started > CHROME_WAIT_MS + 1500) mark();
     if (left) return;
-    track("iab_retry", `chrome-no:${kind}`);
+    track("iab_retry", `chrome-no:${kind}:${inAppName}`);
     // Хэмжилт илгээгдэж амжих хором өгнө (шууд шилжвэл хүсэлт тасардаг)
     window.setTimeout(() => {
       if (!left) window.location.href = url;

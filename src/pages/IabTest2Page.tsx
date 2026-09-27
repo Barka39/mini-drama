@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isIOS, isMetaInApp } from "../lib/inapp";
+import { inAppName, isIOS, isMetaInApp } from "../lib/inapp";
 import { track } from "../lib/track";
 
 /**
@@ -49,7 +49,7 @@ export function IabTest2Page() {
   }, [arrived, browser]);
 
   function tap(m: Mech) {
-    track("iab_retry", `t2:${m.id}:tap:${isIOS ? "ios" : "x"}${isMetaInApp ? "-fb" : ""}`);
+    track("iab_retry", `t2:${m.id}:tap:${isIOS ? "ios" : "x"}${isMetaInApp ? "-fb" : ""}:${inAppName}`);
     setTapped((prev) => {
       const next = prev.includes(m.id) ? prev : [...prev, m.id];
       try {
