@@ -1,5 +1,6 @@
 import { Crown } from "lucide-react";
-import { openPayPage } from "../lib/inapp";
+import { ChromePayLink } from "./ChromePayLink";
+import { needsChromeHandoff } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -23,9 +24,14 @@ export function VipModal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  // iPhone-ийн Messenger/Facebook: бэлэн болсон төлбөрийн хаяг — «Банкаа сонгож төлөх» (Chrome)
+  const [handoff, setHandoff] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setHandoff(null);
+      return;
+    }
     void loadPlans().then(setPlans);
     void getSettings().then(setBank);
   }, [open]);
@@ -77,8 +83,13 @@ export function VipModal() {
     setMsg(null);
     const pay = await startOnlinePay("sub");
     if (pay.ok) {
-      // iPhone-ийн Messenger дотор Chrome-д нээгдвэл энд үлдэж «хүлээж байна» төлөв харагдана
-      openPayPage(pay.url, "sub", () => setBusy(false));
+      if (needsChromeHandoff) {
+        // Хоёр дахь товчийг хүн өөрөө дарна — тэгэхгүй бол Facebook Chrome-г хаадаг
+        setBusy(false);
+        setHandoff(pay.url);
+        return;
+      }
+      window.location.href = pay.url;
       return;
     }
     setBusy(false);
@@ -109,9 +120,13 @@ export function VipModal() {
             </div>
             {qpay ? (
               <>
-                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
-                </button>
+                {handoff ? (
+                  <ChromePayLink url={handoff} kind="sub" />
+                ) : (
+                  <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                    {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
+                  </button>
+                )}
                 {msg && <p className="msg-err">{msg}</p>}
               </>
             ) : (

@@ -8,9 +8,10 @@
 //   - Safari руу гарах бүх арга (x-safari-https/http, 302, meta refresh, window.open,
 //     instagram://extbrowser) → Facebook хаадаг, юу ч болоогүй
 //   - googlechromes://… → Chrome НЭЭГДСЭН (Chrome суусан бол)
-// Тиймээс iPhone-ийн Meta дотоод хөтөчид төлбөрийн хуудсыг эхлээд Chrome-д нээхийг оролдоно
-// (Chrome дотор Byl-ийн банкны товч ажилладаг). Chrome байхгүй бол хэдхэн хормын дараа
-// өмнөх шигээ Byl руу шууд орно — ямар ч нэмэлт дэлгэц, заавар, үг байхгүй.
+//   - гэхдээ зөвхөн ХҮН ӨӨРӨӨ ДАРВАЛ: хэдэн секундын дараах автомат шилжилтийг хаадаг
+// Тиймээс iPhone-ийн Meta дотоод хөтөчид «Төлбөр төлөх» → «Банкаа сонгож төлөх» (Chrome-д
+// нээнэ; Chrome дотор Byl-ийн банкны товч ажилладаг). Chrome байхгүй бол хэдхэн хормын
+// дараа өмнөх шигээ Byl руу орно.
 //
 // Жинхэнэ засвар нь Byl талд (window.open → тухайн цонхондоо нээх) — тэдэнд мэдэгдсэн.
 // Android-д банкны апп ихэвчлэн нээгддэг — хөндөхгүй.
@@ -26,21 +27,39 @@ export const isMetaInApp =
   /\bInstagram\b/i.test(ua) ||
   /\bBarcelona\b/.test(ua);
 
+/** Туршилт: ?iab=1 — ямар ч хөтөч дээр iPhone Messenger-ийн урсгалыг харуулна */
+function forced(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("iab") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * iPhone-ийн Meta дотоод хөтөч: төлбөрийн хуудсыг Chrome-д нээх товч харуулах уу.
+ *
+ * ЗААВАЛ ХҮН ӨӨРӨӨ ДАРСАН холбоосоор (2026-09-27): «Төлбөр төлөх» → захиалга үүсэх хооронд
+ * хэдэн секунд өнгөрөхөд Facebook «хүн дарсан» гэж тооцохоо больж googlechromes://-ийг
+ * хаадаг (эзний iPhone: оролдлого бүртгэгдсэн ч Chrome нээгдээгүй). Тиймээс захиалга бэлэн
+ * болсны дараа <a href="googlechromes://…"> товч гаргаж хүнээр дарагдана.
+ */
+export const needsChromeHandoff = (isIOS && isMetaInApp) || forced();
+
+/** Chrome (iOS)-д нээх хаяг: https:// → googlechromes:// (Chrome-ын албан ёсны схем) */
+export function chromeUrl(url: string): string {
+  return url.replace(/^https:\/\//, "googlechromes://");
+}
+
 /** Chrome нээгдсэн эсэхийг хүлээх хугацаа (хуудас нуугдвал = апп солигдсон) */
 const CHROME_WAIT_MS = 1800;
 
 /**
- * Төлбөрийн хуудсыг нээнэ.
- * iPhone-ийн Meta дотоод хөтөчид эхлээд Chrome-д нээхийг оролдоно. Chrome нээгдвэл энэ
- * хуудас хэвээр үлдэж `onStayed()` дуудагдана (хүлээлтийн төлөв харуулж, буцаж ирэхэд
- * төлбөрийг өөрөө шалгана). Chrome байхгүй бол Byl руу шууд шилжинэ.
+ * Chrome-ын холбоосыг ДАРАХ мөчид дуудна. Chrome нээгдвэл (хуудас нуугдвал) юу ч хийхгүй —
+ * хэрэглэгч буцаж ирэхэд захиалгыг өөрөө шалгана. Chrome суугаагүй бол хэдхэн хормын
+ * дараа Byl-ийн хуудас руу энэ цонхондоо шилжинэ.
  */
-export function openPayPage(url: string, kind: "movie" | "sub", onStayed: () => void): void {
-  if (!(isIOS && isMetaInApp) || !/^https:\/\//.test(url)) {
-    window.location.href = url;
-    return;
-  }
-
+export function watchChromeHandoff(url: string, kind: "movie" | "sub"): void {
   let left = false;
   const onVis = () => {
     if (document.visibilityState === "hidden") left = true;
@@ -50,10 +69,8 @@ export function openPayPage(url: string, kind: "movie" | "sub", onStayed: () => 
   };
   document.addEventListener("visibilitychange", onVis);
   window.addEventListener("pagehide", onHide);
-
   track("iab_gate", `chrome:${kind}`);
   const started = Date.now();
-  window.location.href = url.replace(/^https:\/\//, "googlechromes://");
 
   window.setTimeout(() => {
     document.removeEventListener("visibilitychange", onVis);
@@ -61,11 +78,13 @@ export function openPayPage(url: string, kind: "movie" | "sub", onStayed: () => 
     // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол хэрэглэгч Chrome-д очоод буцсан гэсэн үг
     if (left || Date.now() - started > CHROME_WAIT_MS + 1500) {
       track("iab_safari", `chrome-ok:${kind}`);
-      onStayed();
       return;
     }
     track("iab_retry", `chrome-no:${kind}`);
-    window.location.href = url;
+    // Хэмжилт илгээгдэж амжих хором өгнө (шууд шилжвэл хүсэлт тасардаг)
+    window.setTimeout(() => {
+      window.location.href = url;
+    }, 250);
   }, CHROME_WAIT_MS);
 }
 

@@ -56,6 +56,8 @@ function pick(html, re) {
 let made = 0;
 for (const s of catalog.series) {
   if (!s.id || hidden.has(s.id)) continue;
+  // Бичлэг нь хараахан R2-т хуулагдаж дуусаагүй (hls-гүй) кино — сайтад гараагүй
+  if (!s.hls && !(s.episodes || []).length) continue;
   const landing = path.join(docs, "k", `${s.id}.html`);
   if (!fs.existsSync(landing)) continue;
   const k = fs.readFileSync(landing, "utf8");

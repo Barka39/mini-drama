@@ -1,5 +1,6 @@
 import { Crown } from "lucide-react";
-import { openPayPage } from "../lib/inapp";
+import { ChromePayLink } from "./ChromePayLink";
+import { needsChromeHandoff } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -54,6 +55,8 @@ export function PurchaseModal() {
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  // iPhone-ийн Messenger/Facebook: бэлэн болсон төлбөрийн хаяг — «Банкаа сонгож төлөх» (Chrome)
+  const [handoff, setHandoff] = useState<string | null>(null);
   const catalog = useCatalog();
   // Хамгийн хямд (ихэвчлэн 1 сарын) багц — оролт болгож харуулна
   const vipPlan = plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
@@ -70,7 +73,10 @@ export function PurchaseModal() {
   const hasAccount = s.signedIn && !s.guest;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setHandoff(null);
+      return;
+    }
     setMsg(null);
     void getSettings().then(setBank);
     void loadPlans().then(setPlans);
@@ -138,8 +144,13 @@ export function PurchaseModal() {
     }
     const pay = await startOnlinePay("movie", series.id);
     if (pay.ok) {
-      // iPhone-ийн Messenger дотор Chrome-д нээгдвэл энд үлдэж «хүлээж байна» төлөв харагдана
-      openPayPage(pay.url, "movie", () => setBusy(false));
+      if (needsChromeHandoff) {
+        // Хоёр дахь товчийг хүн өөрөө дарна — тэгэхгүй бол Facebook Chrome-г хаадаг
+        setBusy(false);
+        setHandoff(pay.url);
+        return;
+      }
+      window.location.href = pay.url;
       return;
     }
     setBusy(false);
@@ -207,9 +218,13 @@ export function PurchaseModal() {
                 <span className="pay-spinner" />
                 <span>Төлбөрийг хүлээж байна…</span>
               </div>
-              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
-              </button>
+              {handoff ? (
+                <ChromePayLink url={handoff} kind="movie" />
+              ) : (
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
+                </button>
+              )}
               {msg && <p className="msg-err">{msg}</p>}
               <p className="muted small">
                 Төлсний дараа кино хэдхэн секундын дотор <strong>автоматаар</strong> нээгдэж, энэ
@@ -225,9 +240,13 @@ export function PurchaseModal() {
                 <li>Кино шууд нээгдэнэ</li>
               </ol>
               {msg && <p className="msg-err">{msg}</p>}
-              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
-              </button>
+              {handoff ? (
+                <ChromePayLink url={handoff} kind="movie" />
+              ) : (
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
+                </button>
+              )}
               {!hasAccount && (
                 <p className="muted small">Бүртгэл шаардлагагүй — кино энэ утсан дээр шууд нээгдэнэ.</p>
               )}

@@ -38,7 +38,12 @@ interface RawEpisode {
 interface RawSeries extends Omit<Series, "episodes"> {
   episodes: RawEpisode[];
 }
-const RAW_SERIES = raw.series as unknown as RawSeries[];
+// Бичлэггүй киног сайтад гаргахгүй. «Цуврал нэмэх» кино бүртгэлийг эхлээд бичээд, бичлэгийг
+// R2 руу хуулж дууссаны ДАРАА `hls`-ийг нэмдэг. Тэр хооронд хийсэн build видеогүй кино
+// гаргаж байсан (2026-09-27, «Хүчирхэг Мужаан»).
+const RAW_SERIES = (raw.series as unknown as RawSeries[]).filter(
+  (s) => Boolean(s.hls) || s.episodes.length > 0,
+);
 
 // Сүүлд нэмсэн кино эхэнд харагдана (catalog.json-д шинэ кино төгсгөлд нэмэгддэг)
 export const CATALOG: Series[] = [...RAW_SERIES].reverse().map((s) => ({

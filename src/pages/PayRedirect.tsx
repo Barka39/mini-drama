@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { BYL_URL, openPayPage } from "../lib/inapp";
+import { ChromePayLink } from "../components/ChromePayLink";
+import { BYL_URL, needsChromeHandoff } from "../lib/inapp";
 
 /**
  * /pay?u=<Byl төлбөрийн хаяг>
  *
- * 2026-09-27-ны хэдэн цагт ашиглагдсан хуучин туслах дэлгэцийн хаяг. Одоо шууд төлбөрийн
- * хуудас руу шилжүүлнэ (iPhone-ийн Messenger дотор эхлээд Chrome-оор). Зөвхөн byl.mn-ийн
- * төлбөрийн хаягийг зөвшөөрнө (өөр сайт руу чиглүүлэх хуурамч линк болгож ашиглах боломжгүй).
+ * 2026-09-27-ны хэдэн цагт ашиглагдсан хуучин туслах дэлгэцийн хаяг. Энгийн хөтөчид шууд
+ * төлбөрийн хуудас руу шилжүүлнэ; iPhone-ийн Messenger дотор «Банкаа сонгож төлөх» (Chrome)
+ * товч гаргана. Зөвхөн byl.mn-ийн төлбөрийн хаягийг зөвшөөрнө (хуурамч линк болгохгүй).
  */
 export function PayRedirect() {
   const [params] = useSearchParams();
@@ -15,7 +16,7 @@ export function PayRedirect() {
   const ok = BYL_URL.test(u);
 
   useEffect(() => {
-    if (ok) openPayPage(u, "movie", () => undefined);
+    if (ok && !needsChromeHandoff) window.location.replace(u);
   }, [ok, u]);
 
   if (!ok) {
@@ -25,6 +26,15 @@ export function PayRedirect() {
         <Link className="btn btn-glass" to="/">
           Нүүр хуудас
         </Link>
+      </div>
+    );
+  }
+  if (needsChromeHandoff) {
+    return (
+      <div className="page center">
+        <div className="modal pay-modal">
+          <ChromePayLink url={u} kind="movie" />
+        </div>
       </div>
     );
   }
