@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { formatDuration, totalSeconds, watchPath } from "../data/catalog";
+import { Play } from "lucide-react";
+import { formatDuration, formatPrice, totalSeconds, watchPath } from "../data/catalog";
 import { useCatalog } from "../lib/seriesAdmin";
 import { claimAccess, useAppState } from "../lib/store";
 import { supa } from "../lib/supa";
+import { openPurchase } from "../lib/ui";
 
 // Бүртгүүлж чаддаггүй хэрэглэгчид зориулсан «нэвтрэх линк».
 // Утас, нууц үг, бүртгэл шаардахгүй — гэхдээ эрхийг хүн ТОВЧ ДАРАХАД л олгоно.
@@ -116,6 +118,39 @@ export function ClaimPage() {
   }
 
   const reason = failed ?? (preview && !preview.ok ? REASONS[preview.reason ?? ""] ?? "Линк ажиллахгүй байна." : null);
+
+  // Линкийн эрх дууссан/хүчингүй ч кино нь мэдэгдэж байвал мухардалд оруулахгүй —
+  // үнэгүй хэсгийг нь үзүүлж, таалагдвал QPay-ээр шууд авах боломж өгнө.
+  // (Эрх нь дууссан линкийг олон хүнд дамжуулахад «ажиллахгүй байна» гэдэг байв.)
+  const linkDone = !!preview?.ok && !!preview.full && !preview.pay;
+  if ((reason || linkDone) && series && !alreadyOwned) {
+    return (
+      <div className="page center claim-page">
+        <img className="claim-poster" src={series.poster} alt={series.title} />
+        <h2 className="claim-title">{series.title}</h2>
+        <p className="muted">
+          {linkDone || /ашигласан/.test(reason ?? "")
+            ? "Энэ линкээр үзэх эрх дууссан байна."
+            : reason}
+        </p>
+        {series.price > 0 && (
+          <p className="muted small">
+            Эхний {series.freeMinutes} минутыг үнэгүй үзээд, таалагдвал QPay-ээр шууд аваарай —
+            бүртгэл шаардлагагүй.
+          </p>
+        )}
+        <button className="btn btn-play claim-btn" onClick={() => navigate(watchPath(series))}>
+          <Play size={18} fill="currentColor" />
+          {series.price > 0 ? "Үнэгүй хэсгийг үзэх" : "Үзэх"}
+        </button>
+        {series.price > 0 && (
+          <button className="btn btn-primary claim-btn" onClick={() => openPurchase(series.id)}>
+            Бүтэн киног авах — {formatPrice(series.price)}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (reason) {
     return (
