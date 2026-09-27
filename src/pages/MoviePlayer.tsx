@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, ShieldAlert, Volume2 } from "lucide-react";
-import { formatPrice, isAdult } from "../data/catalog";
+import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2 } from "lucide-react";
+import { formatPrice } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
 import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
@@ -10,7 +10,7 @@ import { openPurchase, openVip } from "../lib/ui";
 import { cheapestPlan, usePlans } from "../lib/plans";
 
 const SPEEDS = [1, 1.25, 1.5, 2];
-const DEFAULT_TITLE = "Кино Мандал — Монгол хадмалтай кинонууд";
+const DEFAULT_TITLE = "Кино Мандал — Дэлхийн киног Монгол хэлээрээ";
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
@@ -30,59 +30,6 @@ interface HlsLike {
   on(event: string, cb: (e: string, data: { fatal?: boolean; details?: string }) => void): void;
 }
 
-const ADULT_KEY = "md-adult-ok";
-
-function adultConfirmed(): boolean {
-  try {
-    return localStorage.getItem(ADULT_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 18+ кинонд нас баталгаажуулах нэг удаагийн асуулт. Тоглуулагч (бичлэг татах,
- * автоматаар эхлэх) асуултад хариулахаас ӨМНӨ огт ачаалагдахгүй.
- */
-export function MoviePlayer() {
-  const { seriesId } = useParams();
-  const series = useSeriesById(seriesId);
-  const [ok, setOk] = useState(adultConfirmed);
-
-  if (series && isAdult(series) && !ok) {
-    return (
-      <div className="page center">
-        <div className="lock-panel">
-          <div className="lock-icon">
-            <ShieldAlert size={26} />
-          </div>
-          <h3>Насанд хүрэгчдэд зориулсан кино</h3>
-          <p className="muted">
-            «{series.title}» нь 18 ба түүнээс дээш насныханд зориулагдсан. Та 18 нас хүрсэн үү?
-          </p>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              try {
-                localStorage.setItem(ADULT_KEY, "1");
-              } catch {
-                /* хувийн горимд хадгалагдахгүй — энэ удаад л зөвшөөрнө */
-              }
-              setOk(true);
-            }}
-          >
-            Тийм, 18 нас хүрсэн
-          </button>
-          <Link className="btn btn-ghost" to={`/series/${series.id}`}>
-            Үгүй, буцах
-          </Link>
-        </div>
-      </div>
-    );
-  }
-  return <MoviePlayerInner />;
-}
-
 /**
  * Нэг бүтэн киноны тоглуулагч.
  *
@@ -91,7 +38,7 @@ export function MoviePlayer() {
  * төлмөгц (эсвэл сарын эрх идэвхжмэгц) ЯГ ТЭР СЕКУНДЭЭС үргэлжилнэ.
  * Хилийг сервер өөрөө сахидаг — клиент зөвхөн саналыг зөв мөчид харуулна.
  */
-function MoviePlayerInner() {
+export function MoviePlayer() {
   const { seriesId } = useParams();
   const series = useSeriesById(seriesId);
   const s = useAppState();

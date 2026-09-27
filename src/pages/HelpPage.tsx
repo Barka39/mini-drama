@@ -39,7 +39,7 @@ export function HelpPage() {
     document.title = "Тусламж — Кино Мандал";
     void getSettings().then(setBank);
     return () => {
-      document.title = "Кино Мандал — Монгол хадмалтай кинонууд";
+      document.title = "Кино Мандал — Дэлхийн киног Монгол хэлээрээ";
     };
   }, []);
 

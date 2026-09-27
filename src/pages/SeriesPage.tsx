@@ -18,7 +18,7 @@ import { track } from "../lib/track";
 import { openPurchase, openVip } from "../lib/ui";
 import { AccountBadge } from "../components/AccountBadge";
 
-const DEFAULT_TITLE = "Кино Мандал — Монгол хадмалтай кинонууд";
+const DEFAULT_TITLE = "Кино Мандал — Дэлхийн киног Монгол хэлээрээ";
 
 /** Доош гүйлгэхэд дээд мөр бараан шил болно (бичиг товчнуудын ард харагдахгүй) */
 function useScrolled(px = 24): boolean {

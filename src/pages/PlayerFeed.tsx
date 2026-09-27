@@ -34,7 +34,7 @@ export function PlayerFeed() {
   useEffect(() => {
     if (series) document.title = `${series.title} — Кино Мандал`;
     return () => {
-      document.title = "Кино Мандал — Монгол хадмалтай кинонууд";
+      document.title = "Кино Мандал — Дэлхийн киног Монгол хэлээрээ";
     };
   }, [series]);
 
@@ -208,7 +208,7 @@ export function PlayerFeed() {
           <h3>Кино дууслаа 🎬</h3>
           <p className="muted">
             {/* Домэйн солигдвол энэ бичиг худал болохгүйн тулд одоогийн хаягаас авна */}
-            Ийм олон кино <strong>{siteHost()}</strong> дээр байна — монгол хадмалтай,
+            Ийм олон кино <strong>{siteHost()}</strong> дээр байна — Монгол хэлээрээ,
             утсандаа шууд.
           </p>
           <Link className="btn btn-primary" to="/">
