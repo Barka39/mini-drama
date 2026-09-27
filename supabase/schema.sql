@@ -2291,3 +2291,15 @@ end;
 $$;
 grant execute on function public.md_confirm_by_byl(text, text, text, bigint, bigint, numeric, jsonb)
   to anon, authenticated;
+
+-- 2026-09-27: Facebook/Messenger-ийн дотоод хөтчийн төлбөрийн дэлгэцийн хэмжилт
+-- (хэдэн хүнд гарч, аль гарцаар — Safari / дахин / линк хуулах / QR — гарсан)
+drop policy if exists md_events_insert on public.md_events;
+create policy md_events_insert on public.md_events
+  for insert to anon, authenticated
+  with check (
+    event in ('open_series', 'watch_start', 'paywall_hit', 'buy_click', 'order_created', 'share', 'install',
+              'iab_gate', 'iab_safari', 'iab_retry', 'iab_copy', 'iab_qr')
+    and length(sid) between 8 and 40
+    and (series_id is null or length(series_id) <= 40)
+  );

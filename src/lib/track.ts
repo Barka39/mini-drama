@@ -11,7 +11,13 @@ export type TrackEvent =
   | "buy_click" // «Худалдаж авах» дарсан
   | "order_created" // захиалга үүсгэсэн
   | "share" // найздаа хуваалцсан
-  | "install"; // дэлгэцэндээ нэмсэн
+  | "install" // дэлгэцэндээ нэмсэн
+  // Facebook/Messenger-ийн дотоод хөтчийн төлбөрийн дэлгэц (iPhone)
+  | "iab_gate" // дэлгэц гарсан
+  | "iab_safari" // «Safari-д нээж төлөх»
+  | "iab_retry" // «Дахин оролдох»
+  | "iab_copy" // «Линк хуулах»
+  | "iab_qr"; // «QR-аар төлөх»
 
 const SID_KEY = "md-sid";
 const SRC_KEY = "md-src";

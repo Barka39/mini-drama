@@ -145,7 +145,13 @@ else {
     # Хэвтээ кино: босоо 9:13 хүрээг ДҮҮРГЭСЭН poster (голоос нь тайрна). Бүдэг дэвсгэр дээр
     # жижиг хэвтээ зураг тавих нь муухай харагддаг (эзний санал, 2026-09-26).
     # Хар зурвас (letterbox) байвал эхлээд тайрна — эс бөгөөс poster-т хар зураас үлдэнэ.
+    # ffmpeg мэдээллээ stderr-т бичдэг. Скрипт «Stop» горимд тул 2>&1 хийхэд PowerShell 5.1
+    # эхний мөрийг алдаа гэж үзээд бүхэлд нь зогсоодог (2026-09-27-нд Цуврал нэмэх эвдэрсэн) —
+    # тиймээс энэ мөрөнд л «Continue» горимд ажиллуулна.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     $det = & $ff -hide_banner -ss ([math]::Max(0, $posterTime - 2)) -i $full -t 4 -vf "cropdetect=24:2:0" -f null - 2>&1 | Out-String
+    $ErrorActionPreference = $prevEap
     $crops = [regex]::Matches($det, 'crop=(\d+:\d+:\d+:\d+)')
     $pre = if ($crops.Count -gt 0) { "crop=$($crops[$crops.Count - 1].Groups[1].Value)," } else { "" }
     & $ff -v error -y -ss $posterTime -i $full -frames:v 1 -vf `

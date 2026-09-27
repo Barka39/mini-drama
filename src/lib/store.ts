@@ -358,6 +358,16 @@ async function loadServerState(userId: string, anonymous = false, healed = false
   }
 }
 
+// Safari-д (эсвэл банкны апп-д) төлөөд Facebook/хөтөч рүү буцаж ороход хүлээгдэж буй
+// захиалгыг шууд шалгана — хэрэглэгч «шинэчлэх» дарах шаардлагагүй.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && (state.pendingBuys.length > 0 || state.subPending)) {
+      void refreshAccount();
+    }
+  });
+}
+
 supa.auth.onAuthStateChange((_event, session) => {
   if (session?.user) {
     void loadServerState(session.user.id, session.user.is_anonymous === true);

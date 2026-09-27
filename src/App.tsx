@@ -11,6 +11,7 @@ import { HelpPage } from "./pages/HelpPage";
 import { SearchPage } from "./pages/SearchPage";
 import { MyMoviesPage } from "./pages/MyMoviesPage";
 import { ClaimPage } from "./pages/ClaimPage";
+import { PayRedirect } from "./pages/PayRedirect";
 import { BottomNav } from "./components/BottomNav";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
+        <Route path="/pay" element={<PayRedirect />} />
         {/* Буруу/хуучирсан хаяг — хоосон дэлгэц биш, нүүр хуудас */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

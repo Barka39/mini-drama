@@ -1,4 +1,6 @@
 import { Crown } from "lucide-react";
+import { InAppPay } from "./InAppPay";
+import { needsInAppGate } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -22,9 +24,13 @@ export function VipModal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [iabUrl, setIabUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setIabUrl(null);
+      return;
+    }
     void loadPlans().then(setPlans);
     void getSettings().then(setBank);
   }, [open]);
@@ -76,11 +82,26 @@ export function VipModal() {
     setMsg(null);
     const pay = await startOnlinePay("sub");
     if (pay.ok) {
+      if (needsInAppGate()) {
+        setBusy(false);
+        setIabUrl(pay.url);
+        return;
+      }
       window.location.href = pay.url;
       return;
     }
     setBusy(false);
     setMsg(pay.reason);
+  }
+
+  if (iabUrl) {
+    return (
+      <div className="modal-backdrop" onClick={closeModals}>
+        <div className="modal pay-modal" onClick={(e) => e.stopPropagation()}>
+          <InAppPay url={iabUrl} kind="sub" onBack={() => setIabUrl(null)} />
+        </div>
+      </div>
+    );
   }
 
   return (

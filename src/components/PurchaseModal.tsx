@@ -1,4 +1,6 @@
 import { Crown } from "lucide-react";
+import { InAppPay } from "./InAppPay";
+import { needsInAppGate } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -53,6 +55,8 @@ export function PurchaseModal() {
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  // iPhone-ийн Facebook/Messenger дотоод хөтөч: Byl руу шууд биш, туслах дэлгэц (банкны апп нээгддэггүй)
+  const [iabUrl, setIabUrl] = useState<string | null>(null);
   const catalog = useCatalog();
   // Хамгийн хямд (ихэвчлэн 1 сарын) багц — оролт болгож харуулна
   const vipPlan = plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
@@ -69,7 +73,10 @@ export function PurchaseModal() {
   const hasAccount = s.signedIn && !s.guest;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setIabUrl(null);
+      return;
+    }
     setMsg(null);
     void getSettings().then(setBank);
     void loadPlans().then(setPlans);
@@ -137,11 +144,26 @@ export function PurchaseModal() {
     }
     const pay = await startOnlinePay("movie", series.id);
     if (pay.ok) {
+      if (needsInAppGate()) {
+        setBusy(false);
+        setIabUrl(pay.url);
+        return;
+      }
       window.location.href = pay.url;
       return;
     }
     setBusy(false);
     setMsg(pay.reason);
+  }
+
+  if (iabUrl) {
+    return (
+      <div className="modal-backdrop" onClick={closeModals}>
+        <div className="modal pay-modal" onClick={(e) => e.stopPropagation()}>
+          <InAppPay url={iabUrl} kind="movie" onBack={() => setIabUrl(null)} />
+        </div>
+      </div>
+    );
   }
 
   const vipOffer = vipPlan && catalogCount > 2 && (
