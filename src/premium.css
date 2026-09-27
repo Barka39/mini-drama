@@ -1348,3 +1348,129 @@ h3 {
   }
 }
 
+
+/* ============================================================
+   iPhone-ийн Facebook/Messenger: «Safari-д нээнэ үү» том заавар (InAppGuide)
+   ============================================================ */
+.iab-guide {
+  margin: 4px 0 16px;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  background: rgba(226, 173, 77, 0.1);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px rgba(226, 173, 77, 0.08);
+  text-align: left;
+}
+.iab-guide-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.iab-guide-title {
+  margin: 10px 0 6px;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 800;
+  color: var(--text);
+}
+.iab-guide-title strong {
+  color: var(--accent);
+}
+.iab-guide-why {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.iab-guide-steps {
+  margin: 0 0 14px;
+  padding-left: 26px;
+  display: grid;
+  gap: 10px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.iab-guide-steps li::marker {
+  color: var(--accent);
+  font-weight: 800;
+}
+.iab-guide-steps em {
+  font-style: normal;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.iab-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  vertical-align: middle;
+}
+.iab-inline-icon {
+  vertical-align: -2px;
+  color: var(--accent);
+}
+.iab-guide-copy {
+  width: 100%;
+  font-size: 14px;
+}
+
+/* ⋯ товч руу заасан сум — апп-ын хөтчийн баруун дээд буланд (хуудасны гадна, дээд талд) */
+.iab-arrow {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 6px);
+  right: 14px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #111;
+  pointer-events: none;
+  animation: iab-bounce 1.1s ease-in-out infinite;
+}
+.iab-arrow > svg {
+  background: var(--gold-grad);
+  border-radius: 50%;
+  padding: 6px;
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.iab-arrow > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-grad);
+  border-radius: 10px;
+  padding: 1px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+@keyframes iab-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iab-arrow {
+    animation: none;
+  }
+}
+.iab-guide-copy + .iab-guide-copy {
+  margin-top: 8px;
+}

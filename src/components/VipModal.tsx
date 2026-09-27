@@ -1,6 +1,6 @@
 import { Crown } from "lucide-react";
-import { ChromePayButton } from "./ChromePayButton";
-import { needsChromeHandoff } from "../lib/inapp";
+import { InAppGuide } from "./InAppGuide";
+import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -24,15 +24,14 @@ export function VipModal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  // iPhone-ийн Messenger/Facebook: багц сонгоход бэлэн болсон төлбөрийн хаяг — «Төлбөр төлөх»
-  // нь тэгвэл шууд Chrome-ын холбоос (Facebook зөвхөн хүн өөрөө дарсан холбоосоор Chrome-г нээдэг)
-  const [handoff, setHandoff] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setHandoff(null);
+      if (needsBrowserGuide) markModalInUrl("vip", null);
       return;
     }
+    // Safari-д нээгдэхэд сарын эрхийн цонх өөрөө нээгдэнэ (App.tsx)
+    if (needsBrowserGuide) markModalInUrl("vip", "1");
     void loadPlans().then(setPlans);
     void getSettings().then(setBank);
   }, [open]);
@@ -84,12 +83,6 @@ export function VipModal() {
     setMsg(null);
     const pay = await startOnlinePay("sub");
     if (pay.ok) {
-      if (needsChromeHandoff) {
-        // «Төлбөр төлөх»-ийг хүн өөрөө дарна — тэгэхгүй бол Facebook Chrome-г хаадаг
-        setBusy(false);
-        setHandoff(pay.url);
-        return;
-      }
       window.location.href = pay.url;
       return;
     }
@@ -113,6 +106,9 @@ export function VipModal() {
             Таны сарын эрх идэвхтэй —{" "}
             {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл
           </p>
+        ) : qpay && needsBrowserGuide ? (
+          // iPhone-ийн Facebook/Messenger: энд төлбөр ажиллахгүй — Safari/Chrome-д нээх заавар
+          <InAppGuide kind="sub" chromePath={`${window.location.pathname}?vip=1`} />
         ) : !needAccount && s.subPending ? (
           <>
             <div className="pay-status">
@@ -121,13 +117,9 @@ export function VipModal() {
             </div>
             {qpay ? (
               <>
-                {handoff ? (
-                  <ChromePayButton url={handoff} kind="sub" label={`Төлбөр төлөх — ${formatPrice(payAmount)}`} />
-                ) : (
-                  <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                    {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
-                  </button>
-                )}
+                <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
+                </button>
                 {msg && <p className="msg-err">{msg}</p>}
               </>
             ) : (

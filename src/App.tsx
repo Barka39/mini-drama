@@ -2,6 +2,10 @@ import { useEffect } from "react";
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { PATH_MODE } from "./lib/routing";
 import { loadSeriesMeta } from "./lib/seriesAdmin";
+import { getSeries } from "./data/catalog";
+import { isMetaInApp, markModalInUrl } from "./lib/inapp";
+import { track } from "./lib/track";
+import { openPurchase, openVip } from "./lib/ui";
 import { Home } from "./pages/Home";
 import { SeriesPage } from "./pages/SeriesPage";
 import { MoviePlayer } from "./pages/MoviePlayer";
@@ -29,6 +33,23 @@ export default function App() {
     void loadSeriesMeta();
   }, []);
 
+  // iPhone-ийн Facebook/Messenger-ээс «Safari-д нээх»-ээр ирсэн: худалдан авах цонхыг өөрөө нээнэ
+  // (InAppGuide цонх нээлттэй байхад хаягт ?buy=<кино> / ?vip=1 нэмдэг)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const buy = q.get("buy");
+    const vip = q.get("vip");
+    if (buy && getSeries(buy)) {
+      if (!isMetaInApp) track("iab_safari", "guide-arrived:movie");
+      markModalInUrl("buy", null);
+      openPurchase(buy);
+    } else if (vip === "1") {
+      if (!isMetaInApp) track("iab_safari", "guide-arrived:sub");
+      markModalInUrl("vip", null);
+      openVip();
+    }
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -42,7 +63,6 @@ export default function App() {
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
         <Route path="/pay" element={<PayRedirect />} />
-        <Route path="/pay/:id/:token" element={<PayRedirect />} />
         <Route path="/t/iab" element={<IabTestPage />} />
         <Route path="/t/iab2" element={<IabTest2Page />} />
         {/* Буруу/хуучирсан хаяг — хоосон дэлгэц биш, нүүр хуудас */}

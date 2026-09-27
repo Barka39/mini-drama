@@ -1,7 +1,7 @@
 import { Crown } from "lucide-react";
-import { ChromePayButton } from "./ChromePayButton";
-import { needsChromeHandoff } from "../lib/inapp";
-import { useEffect, useRef, useState } from "react";
+import { InAppGuide } from "./InAppGuide";
+import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
+import { useEffect, useState } from "react";
 import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
@@ -55,13 +55,6 @@ export function PurchaseModal() {
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
-  // iPhone-ийн Messenger/Facebook: цонх нээгдмэгц захиалга + төлбөрийн хуудсыг урьдчилан
-  // бэлдэнэ — «Төлбөр төлөх» нь тэгвэл шууд Chrome-ын холбоос болж НЭГ дарахад нээгдэнэ
-  // (Facebook зөвхөн хүн өөрөө дарсан холбоосоор Chrome-г нээдэг; хүлээлгээд нээвэл хаадаг).
-  const [prep, setPrep] = useState<string | null>(null);
-  const [prepFailed, setPrepFailed] = useState(false);
-  const [tapped, setTapped] = useState(false);
-  const preparing = useRef(false);
   const catalog = useCatalog();
   // Хамгийн хямд (ихэвчлэн 1 сарын) багц — оролт болгож харуулна
   const vipPlan = plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
@@ -79,15 +72,16 @@ export function PurchaseModal() {
 
   useEffect(() => {
     if (!open) {
-      setPrep(null);
-      setPrepFailed(false);
-      setTapped(false);
+      if (needsBrowserGuide) markModalInUrl("buy", null);
       return;
     }
     setMsg(null);
+    // iPhone-ийн Facebook/Messenger: ⋯ → «Safari-д нээх» нь ОДООГИЙН хаягийг нээдэг тул хаягт
+    // ?buy=<кино> нэмнэ — Safari-д нээгдэхэд энэ цонх өөрөө нээгдэнэ (App.tsx)
+    if (needsBrowserGuide && seriesId) markModalInUrl("buy", seriesId);
     void getSettings().then(setBank);
     void loadPlans().then(setPlans);
-  }, [open]);
+  }, [open, seriesId]);
 
   // Хүлээгдэж байгаа үед баталгаажилтыг өөрөө шалгана — хэрэглэгч юу ч дарах шаардлагагүй
   useEffect(() => {
@@ -95,57 +89,6 @@ export function PurchaseModal() {
     const t = setInterval(() => void refreshAccount(), 10000);
     return () => clearInterval(t);
   }, [open, status]);
-
-  // Захиалга + Byl-ийн төлбөрийн хуудсыг үүсгэнэ. Хаяг, эсвэл null (алдааг msg-д бичнэ).
-  // Сессгүй бол зочны сесс нээнэ. Төлсний дараа кино автоматаар нээгдэнэ (Byl-ийн мэдэгдэл
-  // ихэвчлэн түрүүлж ирдэг; үгүй бол 10 сек тутам шалгана).
-  async function prepareQpay(): Promise<string | null> {
-    if (!series) return null;
-    const sess = await ensureSession();
-    if (!sess.ok) {
-      setMsg(sess.reason);
-      return null;
-    }
-    if (status !== "pending") {
-      const res = await requestPurchase(series.id);
-      if (res.ok) track("order_created", series.id);
-      if (res.ok || res.code === "pending") {
-        // Захиалгын дараах шинэчлэлт зочны киног данс руу шилжүүлж, кино аль хэдийн
-        // нээгдсэн байж болно — тэгвэл төлбөрийн хуудас хэрэггүй.
-        if (canWatchNow(series.id)) return null;
-      } else if (res.code === "owned") {
-        // Аль хэдийн нээлттэй (дансаа шинэчилсэн тул цонх «нээгдсэн» болж харагдана)
-        return null;
-      } else {
-        setMsg(res.reason);
-        return null;
-      }
-    }
-    const pay = await startOnlinePay("movie", series.id);
-    if (pay.ok) return pay.url;
-    setMsg(pay.reason);
-    return null;
-  }
-
-  const wantPrep =
-    open && needsChromeHandoff && !!qpay && !!series && status !== "owned" && !prep && !prepFailed;
-  useEffect(() => {
-    if (!wantPrep || preparing.current) return;
-    preparing.current = true;
-    void prepareQpay().then((url) => {
-      preparing.current = false;
-      if (url) setPrep(url);
-      else setPrepFailed(true);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantPrep]);
-
-  // Бэлдсэн хаяг 15 минутын дараа шинэчлэгдэнэ (хуучирсан төлбөрийн хуудас руу явуулахгүй)
-  useEffect(() => {
-    if (!prep) return;
-    const t = setTimeout(() => setPrep(null), 15 * 60 * 1000);
-    return () => clearTimeout(t);
-  }, [prep]);
 
   if (!open || !series) return null;
 
@@ -167,28 +110,46 @@ export function PurchaseModal() {
     else if (res.code !== "pending") setMsg(res.reason);
   }
 
-  // QPay (энгийн хөтөч): захиалга үүсгээд Byl-ийн төлбөрийн хуудас руу шилжинэ
+  // QPay: сессгүй бол зочны сесс нээж, захиалга үүсгээд Byl-ийн төлбөрийн хуудас руу
+  // шилжинэ. Төлсний дараа хэрэглэгч яг энэ хуудас руугаа буцаж, кино нь аль хэдийн
+  // нээгдсэн байна (Byl-ийн мэдэгдэл ихэвчлэн түрүүлж ирдэг; үгүй бол 10 сек тутам шалгана).
   async function payQpay() {
+    if (!series) return;
     setBusy(true);
     setMsg(null);
-    const url = await prepareQpay();
-    if (url) {
-      window.location.href = url;
+    const sess = await ensureSession();
+    if (!sess.ok) {
+      setBusy(false);
+      setMsg(sess.reason);
+      return;
+    }
+    if (status !== "pending") {
+      const res = await requestPurchase(series.id);
+      if (res.ok) track("order_created", series.id);
+      if (res.ok || res.code === "pending") {
+        // Захиалгын дараах шинэчлэлт зочны киног данс руу шилжүүлж, кино аль хэдийн
+        // нээгдсэн байж болно — тэгвэл төлбөрийн хуудас руу явуулахгүй.
+        if (canWatchNow(series.id)) {
+          setBusy(false);
+          return;
+        }
+      } else if (res.code === "owned") {
+        // Аль хэдийн нээлттэй (дансаа шинэчилсэн тул цонх «нээгдсэн» болж харагдана)
+        setBusy(false);
+        return;
+      } else if (res.code !== "pending") {
+        setBusy(false);
+        setMsg(res.reason);
+        return;
+      }
+    }
+    const pay = await startOnlinePay("movie", series.id);
+    if (pay.ok) {
+      window.location.href = pay.url;
       return;
     }
     setBusy(false);
-  }
-
-  // iPhone-ийн Messenger: Chrome-оос буцаж ирэхэд «хүлээж байна» төлөв харуулж, төлбөрийг шалгана
-  function markReturned() {
-    setTapped(true);
-    void refreshAccount();
-  }
-
-  // iPhone-ийн Messenger: урьдчилан бэлдэх алдаатай болсон бол дахин оролдоно
-  function retryPrep() {
-    setMsg(null);
-    setPrepFailed(false);
+    setMsg(pay.reason);
   }
 
   const vipOffer = vipPlan && catalogCount > 2 && (
@@ -245,31 +206,23 @@ export function PurchaseModal() {
           </>
         ) : !bank ? (
           <p className="muted small">Ачаалж байна…</p>
+        ) : qpay && needsBrowserGuide ? (
+          // iPhone-ийн Facebook/Messenger: энд банкны апп нээгддэггүй (бодит утсан дээр батлагдсан) —
+          // төлбөрийн товч харуулахгүй, Safari/Chrome-д нээх ТОМ заавар л харуулна (эзний шийдвэр)
+          <>
+            <InAppGuide kind="movie" chromePath={`/series/${series.id}?buy=${series.id}`} />
+            {vipOffer}
+          </>
         ) : qpay ? (
-          // iPhone-ийн Messenger-т захиалга цонх нээгдмэгц үүсдэг тул «хүлээж байна»-г зөвхөн
-          // «Төлбөр төлөх» дарсны дараа харуулна
-          status === "pending" && (!needsChromeHandoff || tapped) ? (
+          status === "pending" ? (
             <>
               <div className="pay-status">
                 <span className="pay-spinner" />
                 <span>Төлбөрийг хүлээж байна…</span>
               </div>
-              {needsChromeHandoff && !prepFailed ? (
-                <ChromePayButton
-                  url={prep}
-                  kind="movie"
-                  label={`Төлбөр төлөх — ${formatPrice(payAmount)}`}
-                  onReturn={markReturned}
-                />
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  disabled={busy}
-                  onClick={needsChromeHandoff ? retryPrep : payQpay}
-                >
-                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
-                </button>
-              )}
+              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
+              </button>
               {msg && <p className="msg-err">{msg}</p>}
               <p className="muted small">
                 Төлсний дараа кино хэдхэн секундын дотор <strong>автоматаар</strong> нээгдэж, энэ
@@ -285,22 +238,9 @@ export function PurchaseModal() {
                 <li>Кино шууд нээгдэнэ</li>
               </ol>
               {msg && <p className="msg-err">{msg}</p>}
-              {needsChromeHandoff && !prepFailed ? (
-                <ChromePayButton
-                  url={prep}
-                  kind="movie"
-                  label={`Төлбөр төлөх — ${formatPrice(series.price)}`}
-                  onReturn={markReturned}
-                />
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  disabled={busy}
-                  onClick={needsChromeHandoff ? retryPrep : payQpay}
-                >
-                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
-                </button>
-              )}
+              <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
+                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
+              </button>
               {!hasAccount && (
                 <p className="muted small">Бүртгэл шаардлагагүй — кино энэ утсан дээр шууд нээгдэнэ.</p>
               )}
