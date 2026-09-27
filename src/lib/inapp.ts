@@ -25,9 +25,15 @@ function forced(): boolean {
   }
 }
 
-/** Byl руу шууд явуулахын оронд туслах дэлгэц харуулах уу */
+/**
+ * Byl руу шууд явуулахын оронд туслах дэлгэц харуулах уу.
+ * 2026-09-27: УНТРААСАН — эзний iPhone дээр «Safari-д нээх» (x-safari) Facebook-т хаагдсан
+ * байсан, «Safari» гэх үг хүмүүсийг эргэлзүүлдэг. Зөвхөн ?iab=1 туршилтад.
+ */
 export function needsInAppGate(): boolean {
-  return (isIOS && isMetaInApp) || forced();
+  void isIOS;
+  void isMetaInApp;
+  return forced();
 }
 
 /** Зөвхөн Byl-ийн төлбөрийн хуудас (нээлттэй redirect болгохгүйн тулд) */

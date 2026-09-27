@@ -228,7 +228,7 @@ export function PurchaseModal() {
                 <span>Төлбөрийг хүлээж байна…</span>
               </div>
               <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
+                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
               </button>
               {msg && <p className="msg-err">{msg}</p>}
               <p className="muted small">
@@ -240,13 +240,13 @@ export function PurchaseModal() {
           ) : (
             <>
               <ol className="pay-steps">
-                <li>«QPay-ээр төлөх» дарна</li>
+                <li>«Төлбөр төлөх» дарна</li>
                 <li>Банкны аппаа сонгож эсвэл QR уншуулж төлнө</li>
                 <li>Кино шууд нээгдэнэ</li>
               </ol>
               {msg && <p className="msg-err">{msg}</p>}
               <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(series.price)}`}
+                {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
               </button>
               {!hasAccount && (
                 <p className="muted small">Бүртгэл шаардлагагүй — кино энэ утсан дээр шууд нээгдэнэ.</p>

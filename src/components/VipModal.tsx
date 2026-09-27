@@ -129,7 +129,7 @@ export function VipModal() {
             {qpay ? (
               <>
                 <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
-                  {busy ? "Түр хүлээнэ үү…" : `QPay-ээр төлөх — ${formatPrice(payAmount)}`}
+                  {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}
                 </button>
                 {msg && <p className="msg-err">{msg}</p>}
               </>
