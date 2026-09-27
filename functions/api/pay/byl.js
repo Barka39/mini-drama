@@ -131,7 +131,7 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify({ p_secret: env.BANK_HOOK_SECRET, p_purchase: buy.id }),
     });
     const token = link.ok ? await link.json().catch(() => null) : null;
-    if (typeof token === "string" && /^[0-9a-f]{32}$/.test(token)) success = `${origin}/#/u/${token}`;
+    if (typeof token === "string" && /^[0-9a-f]{32}$/.test(token)) success = `${origin}/u/${token}`;
   }
   const created = await createCheckout(env, {
     items: [

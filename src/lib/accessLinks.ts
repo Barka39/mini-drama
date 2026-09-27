@@ -1,5 +1,6 @@
 // Нэвтрэх линк — эзэн чатаар илгээх, бүртгэлгүй хүн дарж үздэг.
 // Линк бүр ЗӨВХӨН нэг кинотой холбогдоно.
+import { PATH_MODE } from "./routing";
 import { supa } from "./supa";
 
 export interface AccessLink {
@@ -21,8 +22,13 @@ export const SITE =
     ? window.location.origin
     : (import.meta.env.VITE_SITE_URL ?? "https://kinomandal.com");
 
+/**
+ * «#»-гүй (kinomandal.com/u/<токен>): Facebook/Messenger «#»-ийн араас юу ч уншдаггүй тул
+ * хуучин /#/u/… линкэнд киноны нэр, зураг гардаггүй байв. /u/<токен>-ийг сервер (functions/u)
+ * тухайн киноны карттай хуудас болгож буцаана. GitHub-ийн нөөц хаяг л хуучнаараа #/.
+ */
 export function linkUrl(token: string): string {
-  return `${SITE}/#/u/${token}`;
+  return PATH_MODE ? `${SITE}/u/${token}` : `${SITE}/#/u/${token}`;
 }
 
 /** Хаягийг хүнд харуулах хэлбэр: «kinomandal.com» */
