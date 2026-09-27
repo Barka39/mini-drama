@@ -13,6 +13,7 @@ import { MyMoviesPage } from "./pages/MyMoviesPage";
 import { ClaimPage } from "./pages/ClaimPage";
 import { PayRedirect } from "./pages/PayRedirect";
 import { IabTestPage } from "./pages/IabTestPage";
+import { IabTest2Page } from "./pages/IabTest2Page";
 import { BottomNav } from "./components/BottomNav";
 import { PurchaseModal } from "./components/PurchaseModal";
 import { AuthModal } from "./components/AuthModal";
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/u/:token" element={<ClaimPage />} />
         <Route path="/pay" element={<PayRedirect />} />
         <Route path="/t/iab" element={<IabTestPage />} />
+        <Route path="/t/iab2" element={<IabTest2Page />} />
         {/* Буруу/хуучирсан хаяг — хоосон дэлгэц биш, нүүр хуудас */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
