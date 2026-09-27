@@ -50,6 +50,11 @@ catch {
 
 Write-Host "1/5 Зарын хуудсууд + build хийж байна..."
 & (Join-Path $PSScriptRoot "make-landing.ps1") -SiteUrl $siteUrl
+# Линк явуулахад гарах premium зурагнууд (нүүр + кино бүр) — ffmpeg-ийн энгийн зургийг дарна.
+# Python/Pillow байхгүй бол энгийн зураг хэвээр үлдэнэ (сайт гарахад саад болохгүй).
+$env:PYTHONIOENCODING = "utf-8"
+python (Join-Path $PSScriptRoot "make-og.py")
+if ($LASTEXITCODE -ne 0) { Write-Host "   (premium линкийн зураг үүссэнгүй — энгийн зураг хэвээр)" }
 npm run build
 if ($LASTEXITCODE -ne 0) { Write-Error "Build амжилтгүй — дээрх алдааг засна уу"; exit 1 }
 # Кино бүрийн хуваалцах хуудас (/series/<id>, /movie/<id>) — хуулсан линкэнд нэр, зураг гарна

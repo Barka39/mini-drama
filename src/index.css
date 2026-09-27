@@ -1,13 +1,21 @@
 :root {
-  --bg: #0b0b12;
-  --bg-card: #15151f;
-  --bg-elevated: #1d1d2b;
-  --text: #eceaf2;
-  --text-muted: #9a95ab;
-  --accent: #ff3d6e;
-  --accent-2: #ff8a3d;
-  --border: #262636;
+  /* Premium загвар (2026-09-27): гүн хар, алтан өнгө нь гол үйлдэл, цагаан нь «Үзэх» */
+  --bg: #07080b;
+  --bg-card: #12141a;
+  --bg-elevated: #181b23;
+  --surface-3: #20242e;
+  --text: #f3f3f6;
+  --text-muted: #9ba0ad;
+  --text-dim: #6c7180;
+  --accent: #e2ad4d;
+  --accent-2: #f6d58e;
+  --gold-deep: #a87320;
+  --gold-grad: linear-gradient(135deg, #f7dc9a 0%, #e3b04f 48%, #c48a2c 100%);
+  --danger: #e5484d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
   --radius: 14px;
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -21,7 +29,9 @@ html,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-family: "Inter Variable", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
 }
 

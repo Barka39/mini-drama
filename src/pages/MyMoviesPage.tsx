@@ -61,17 +61,18 @@ export function MyMoviesPage() {
       {!s.signedIn && (
         <section className="empty-block">
           <p className="muted">
-            Худалдаж авсан кинонуудаа харахын тулд утасны дугаараараа нэвтэрнэ үү.
+            Энд таны авсан болон үзэж эхэлсэн кинонууд харагдана. Өмнө нь утасны дугаараараа
+            бүртгүүлсэн бол нэвтэрнэ үү.
           </p>
-          <button className="btn btn-primary" onClick={openAuth}>
-            Нэвтрэх / Бүртгүүлэх
+          <button className="btn btn-glass" onClick={openAuth}>
+            Нэвтрэх
           </button>
         </section>
       )}
 
       {pending.length > 0 && (
         <section className="my-block">
-          <h2 className="row-title">⏳ Төлбөр хүлээгдэж байна</h2>
+          <h2 className="row-title">Төлбөр хүлээгдэж байна</h2>
           {pending.map((x) => (
             <button key={x.id} className="my-row" onClick={() => openPurchase(x.id)}>
               <img src={x.poster} alt="" />
@@ -86,7 +87,7 @@ export function MyMoviesPage() {
 
       {owned.length > 0 && (
         <section className="my-block">
-          <h2 className="row-title">✅ Нээлттэй кинонууд</h2>
+          <h2 className="row-title">Нээлттэй кинонууд</h2>
           {owned.map((x) => {
             const at = s.progress[x.id] ?? 1;
             return (
@@ -106,7 +107,7 @@ export function MyMoviesPage() {
 
       {watching.length > 0 && (
         <section className="my-block">
-          <h2 className="row-title">👀 Үзэж эхэлсэн</h2>
+          <h2 className="row-title">Үзэж эхэлсэн</h2>
           {watching.map((x) => {
             const at = s.progress[x.id] ?? 1;
             return (

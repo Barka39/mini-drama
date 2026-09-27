@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
+import { Clapperboard, House, MessageCircleQuestion, Search } from "lucide-react";
 
 // Доод цэс — апп мэт мэдрэмж өгнө, гол хэсгүүд нэг товшилтын зайд байна
 const TABS = [
-  { to: "/", icon: "🏠", label: "Нүүр" },
-  { to: "/search", icon: "🔍", label: "Хайх" },
-  { to: "/my", icon: "🎬", label: "Миний" },
-  { to: "/help", icon: "💬", label: "Тусламж" },
+  { to: "/", Icon: House, label: "Нүүр" },
+  { to: "/search", Icon: Search, label: "Хайх" },
+  { to: "/my", Icon: Clapperboard, label: "Миний" },
+  { to: "/help", Icon: MessageCircleQuestion, label: "Тусламж" },
 ];
 
 export function BottomNav() {
@@ -15,12 +16,12 @@ export function BottomNav() {
 
   return (
     <nav className="bottom-nav">
-      {TABS.map((t) => {
-        const active = t.to === "/" ? pathname === "/" : pathname.startsWith(t.to);
+      {TABS.map(({ to, Icon, label }) => {
+        const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
         return (
-          <Link key={t.to} to={t.to} className={`bn-item ${active ? "bn-on" : ""}`}>
-            <span className="bn-icon">{t.icon}</span>
-            <span className="bn-label">{t.label}</span>
+          <Link key={to} to={to} className={`bn-item ${active ? "bn-on" : ""}`}>
+            <Icon className="bn-icon" size={22} strokeWidth={active ? 2.3 : 1.8} />
+            <span className="bn-label">{label}</span>
           </Link>
         );
       })}

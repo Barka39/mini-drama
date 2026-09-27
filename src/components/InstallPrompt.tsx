@@ -55,6 +55,16 @@ export function InstallPrompt() {
   const [ready, setReady] = useState(!!deferred);
   const [hidden, setHidden] = useState(true);
   const [iosHelp, setIosHelp] = useState(false);
+  // Эхний дэлгэцийн «Үзэх / Авах» товчнуудыг таглахгүй — доош гүйлгэсний дараа л
+  const [scrolledEnough, setScrolledEnough] = useState(false);
+  useEffect(() => {
+    const f = () => {
+      if (window.scrollY > 420) setScrolledEnough(true);
+    };
+    f();
+    window.addEventListener("scroll", f, { passive: true });
+    return () => window.removeEventListener("scroll", f);
+  }, []);
 
   useEffect(() => {
     const onReady = () => setReady(true);
@@ -72,7 +82,7 @@ export function InstallPrompt() {
     if (ready || isIos()) setHidden(false);
   }, [engaged, ready]);
 
-  if (hidden) return null;
+  if (hidden || !scrolledEnough) return null;
 
   function dismiss() {
     try {
@@ -102,7 +112,7 @@ export function InstallPrompt() {
   return (
     <div className="install-bar" role="dialog" aria-label="Дэлгэцэндээ нэмэх">
       <div className="install-text">
-        <strong>📲 Кино Мандалыг дэлгэцэндээ нэм</strong>
+        <strong>Кино Мандалыг дэлгэцэндээ нэм</strong>
         {iosHelp ? (
           <span className="muted small">
             Доод талын <b>Хуваалцах</b> (□↑) товчийг дараад <b>«Add to Home Screen»</b>-ийг сонгоно.

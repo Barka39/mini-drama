@@ -1,3 +1,4 @@
+import { Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -85,7 +86,9 @@ export function VipModal() {
   return (
     <div className="modal-backdrop" onClick={closeModals}>
       <div className="modal pay-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="pay-title">⭐ Сарын эрх</h3>
+        <h3 className="pay-title pay-title-icon">
+          <Crown size={20} /> Сарын эрх
+        </h3>
         <p className="muted small">
           Сайт дээрх <strong>бүх киног хязгааргүй</strong> үзнэ. Шинэ кино нэмэгдэх бүрд
           нэмэлт төлбөргүйгээр нээлттэй.
@@ -93,7 +96,7 @@ export function VipModal() {
 
         {vip ? (
           <p className="msg-ok">
-            ✅ Таны сарын эрх идэвхтэй —{" "}
+            Таны сарын эрх идэвхтэй —{" "}
             {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл
           </p>
         ) : !needAccount && s.subPending ? (
@@ -162,7 +165,7 @@ export function VipModal() {
                 </>
               )}
             </div>
-            {copied && <p className="msg-ok">{copied} хуулагдлаа ✅</p>}
+            {copied && <p className="msg-ok">{copied} хуулагдлаа</p>}
             </>
             )}
             <p className="muted small">
@@ -196,7 +199,7 @@ export function VipModal() {
             {msg && <p className="msg-err">{msg}</p>}
             {needAccount && (
               <p className="hint-box">
-                📱 Сарын эрх утасны дугаарт тань холбогдоно — өөр утаснаас ч нэвтэрч үзнэ. Багц
+                Сарын эрх утасны дугаарт тань холбогдоно — өөр утаснаас ч нэвтэрч үзнэ. Багц
                 сонгоход бүртгүүлэх цонх гарна
                 {s.guest && s.purchased.length > 0
                   ? "; энэ утсан дээр авсан кинонууд тань бүртгэлд тань шилжинэ."

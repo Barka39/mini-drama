@@ -47,13 +47,13 @@ export function SearchPage() {
               <div className="card-poster">
                 <img src={series.poster} alt={series.title} loading="lazy" />
                 <span className="card-eps">{formatDuration(totalSeconds(series))}</span>
-                {isAdult(series) && <span className="badge badge-adult">18+</span>}
+                {isAdult(series) && <span className="km-18">18+</span>}
               </div>
               <div className="card-body">
                 <h3>{series.title}</h3>
                 <p className="card-genre">
                   {seriesCategories(series).join(" · ")} ·{" "}
-                  {series.price <= 0 ? "Үнэгүй" : owned ? "✅ Нээлттэй" : formatPrice(series.price)}
+                  {series.price <= 0 ? "Үнэгүй" : owned ? "Нээлттэй" : formatPrice(series.price)}
                 </p>
               </div>
             </Link>

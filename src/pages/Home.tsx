@@ -1,5 +1,6 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Check, Crown, Infinity as InfinityIcon, Play, Plus, Search, ShieldCheck, Zap } from "lucide-react";
 import {
   allCategories,
   formatDuration,
@@ -22,8 +23,9 @@ import { openVip } from "../lib/ui";
 import { useCatalog } from "../lib/seriesAdmin";
 import { cheapestPlan, usePlans, vipPhase } from "../lib/plans";
 import { AccountBadge } from "../components/AccountBadge";
+import { Brand } from "../components/Brand";
 
-/** Киноны id нь огноотой (series-YYMMDD-HHMM) — сүүлийн 14 хоногт нэмэгдсэн бол «ШИНЭ» */
+/** Киноны id нь огноотой (series-YYMMDD-HHMM) — сүүлийн 14 хоногт нэмэгдсэн бол «шинэ» */
 function isNew(id: string): boolean {
   const m = /^series-(\d{2})(\d{2})(\d{2})-/.exec(id);
   if (!m) return false;
@@ -43,18 +45,28 @@ function progressOf(s: AppState, series: Series): { pct: number; label: string }
   return { pct: at / series.episodes.length, label: `${at}/${series.episodes.length} анги` };
 }
 
-function priceLabel(s: AppState, series: Series): string {
-  if (series.price <= 0) return "Үнэгүй";
-  if (hasVip(s) || buyStatus(s, series.id) === "owned") return "✅ Нээлттэй";
-  return formatPrice(series.price);
+function isOpen(s: AppState, series: Series): boolean {
+  return series.price <= 0 || hasVip(s) || buyStatus(s, series.id) === "owned";
+}
+
+/** Картын доорх жижиг мөр: үнэ эсвэл «Нээлттэй» */
+function Meta({ s, series }: { s: AppState; series: Series }) {
+  if (series.price <= 0) return <span className="hm-meta hm-meta-open">Үнэгүй</span>;
+  if (isOpen(s, series))
+    return (
+      <span className="hm-meta hm-meta-open">
+        <Check size={12} strokeWidth={3} /> Нээлттэй
+      </span>
+    );
+  return <span className="hm-meta">{formatPrice(series.price)}</span>;
 }
 
 /** Хэвтээ гүйдэг эгнээ — Netflix маягийн үндсэн нэгж */
 function Row({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="row-block">
-      <h2 className="row-title">{title}</h2>
-      <div className="row-scroll">{children}</div>
+    <section className="hm-row">
+      <h2 className="hm-row-title">{title}</h2>
+      <div className="hm-row-scroll">{children}</div>
     </section>
   );
 }
@@ -62,22 +74,32 @@ function Row({ title, children }: { title: string; children: ReactNode }) {
 function PosterCard({ series, s, to }: { series: Series; s: AppState; to?: string }) {
   const prog = progressOf(s, series);
   return (
-    <Link to={to ?? `/series/${series.id}`} className="row-card">
-      <span className="row-card-img">
+    <Link to={to ?? `/series/${series.id}`} className="hm-card">
+      <span className="hm-card-img">
         <img src={series.poster} alt={series.title} loading="lazy" />
-        {isNew(series.id) && <span className="badge badge-new">ШИНЭ</span>}
-        {series.price <= 0 && <span className="badge badge-free">ҮНЭГҮЙ</span>}
-        {isAdult(series) && <span className="badge badge-adult">18+</span>}
+        {isAdult(series) && <span className="km-18">18+</span>}
+        {prog && (
+          <span className="hm-card-bar">
+            <span style={{ width: `${prog.pct * 100}%` }} />
+          </span>
+        )}
       </span>
-      {prog && (
-        <div className="row-card-bar">
-          <div className="row-card-fill" style={{ width: `${prog.pct * 100}%` }} />
-        </div>
-      )}
-      <span className="row-card-title">{series.title}</span>
-      <span className="row-card-sub">{prog ? prog.label : priceLabel(s, series)}</span>
+      <span className="hm-card-title">{series.title}</span>
+      {prog ? <span className="hm-meta">{prog.label}</span> : <Meta s={s} series={series} />}
     </Link>
   );
+}
+
+/** Дээд цэс: эхэндээ тунгалаг, доош гүйлгэхэд бараан шил болно */
+function useScrolled(px = 40): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const f = () => setOn(window.scrollY > px);
+    f();
+    window.addEventListener("scroll", f, { passive: true });
+    return () => window.removeEventListener("scroll", f);
+  }, [px]);
+  return on;
 }
 
 export function Home() {
@@ -85,6 +107,7 @@ export function Home() {
   const catalog = useCatalog();
   const navigate = useNavigate();
   const plan = cheapestPlan(usePlans());
+  const scrolled = useScrolled();
 
   const featured = catalog[0];
   const categories = useMemo(() => allCategories(catalog), [catalog]);
@@ -102,6 +125,7 @@ export function Home() {
     () => catalog.filter((x) => x.price > 0 && s.purchased.includes(x.id)),
     [catalog, s.purchased],
   );
+  const fresh = useMemo(() => catalog.filter((x) => isNew(x.id)).slice(0, 12), [catalog]);
 
   if (!featured) {
     return <div className="page center">Ачаалж байна…</div>;
@@ -111,201 +135,201 @@ export function Home() {
   const featuredProg = progressOf(s, featured);
   const inList = s.myList.includes(featured.id);
   const vip = hasVip(s);
+  const featuredCats = seriesCategories(featured).filter((c) => c !== "18+");
 
   return (
-    <div className="page home">
-      <header className="topbar topbar-over">
-        <div className="brand">
-          <span className="brand-mark">▶</span> Кино Мандал
+    <div className="hm">
+      <header className={`hm-header ${scrolled ? "hm-header-on" : ""}`}>
+        <Brand />
+        <div className="hm-header-right">
+          <Link to="/search" className="icon-btn" aria-label="Хайх">
+            <Search size={20} />
+          </Link>
+          <AccountBadge />
         </div>
-        <AccountBadge />
       </header>
 
       {/* Онцлох кино — нүүрний хамгийн том зай хамгийн шинэ кинонд */}
-      <section className="billboard" style={{ backgroundImage: `url(${featured.poster})` }}>
-        <div className="billboard-shade" />
-        <div className="billboard-body">
-          {isNew(featured.id) && <span className="badge badge-new">ШИНЭ</span>}
-          <h1>{featured.title}</h1>
-          <p className="billboard-meta">
-            {featured.genre} · {formatDuration(totalSeconds(featured))} ·{" "}
-            {priceLabel(s, featured)}
-          </p>
-          {featured.tagline && <p className="billboard-tagline">{featured.tagline}</p>}
-          <div className="billboard-actions">
-            <button
-              className="btn btn-primary"
-              onClick={() =>
-                navigate(watchPath(featured, s.progress[featured.id] ?? 1))
-              }
-            >
-              ▶ {featuredProg ? "Үргэлжлүүлэх" : "Үзэх"}
-            </button>
-            <button className="btn btn-glass" onClick={() => toggleMyList(featured.id)}>
-              {inList ? "✓ Жагсаалтад" : "+ Жагсаалт"}
-            </button>
-            <Link className="btn btn-glass" to={`/series/${featured.id}`}>
-              ℹ
-            </Link>
+      <section className="hm-hero">
+        <div className="hm-hero-ambient" style={{ backgroundImage: `url(${featured.poster})` }} />
+        <div className="hm-hero-inner">
+          <Link to={`/series/${featured.id}`} className="hm-hero-art" aria-label={featured.title}>
+            <img src={featured.poster} alt={featured.title} />
+            {isAdult(featured) && <span className="km-18 km-18-lg">18+</span>}
+          </Link>
+          <div className="hm-hero-info">
+            {isNew(featured.id) && <span className="km-kicker">Шинэ кино</span>}
+            <h1 className="hm-hero-title">{featured.title}</h1>
+            <p className="hm-hero-meta">
+              {featuredCats.map((c) => (
+                <span key={c}>{c}</span>
+              ))}
+              <span>{formatDuration(totalSeconds(featured))}</span>
+            </p>
+            {featured.tagline && <p className="hm-hero-tagline">{featured.tagline}</p>}
+            <div className="hm-hero-actions">
+              <button
+                className="btn btn-play"
+                onClick={() => navigate(watchPath(featured, s.progress[featured.id] ?? 1))}
+              >
+                <Play size={18} fill="currentColor" /> {featuredProg ? "Үргэлжлүүлэх" : "Үзэх"}
+              </button>
+              <button className="btn btn-glass" onClick={() => toggleMyList(featured.id)}>
+                {inList ? <Check size={18} /> : <Plus size={18} />} Жагсаалт
+              </button>
+            </div>
+            {!isOpen(s, featured) && (
+              <p className="hm-hero-free">
+                Эхний {featured.freeMinutes} минут үнэгүй · Бүтэн кино {formatPrice(featured.price)}
+              </p>
+            )}
           </div>
-          {featured.price > 0 && !vip && buyStatus(s, featured.id) !== "owned" && (
-            <p className="billboard-free">Эхний {featured.freeMinutes} минут үнэгүй</p>
-          )}
         </div>
       </section>
 
-      {continueList.length > 0 && (
-        <Row title="Үргэлжлүүлэн үзэх">
-          {continueList.map((x) => (
-            <PosterCard
-              key={x.id}
-              series={x}
-              s={s}
-              to={watchPath(x, s.progress[x.id] ?? 1)}
-            />
-          ))}
-        </Row>
-      )}
+      <div className="hm-body">
+        {continueList.length > 0 && (
+          <Row title="Үргэлжлүүлэн үзэх">
+            {continueList.map((x) => (
+              <PosterCard key={x.id} series={x} s={s} to={watchPath(x, s.progress[x.id] ?? 1)} />
+            ))}
+          </Row>
+        )}
 
-      {/* Сарын эрх: үе шат бүрд өөр мессеж — орлогын ихэнх нь эндээс ордог */}
-      {phase.kind === "ending" && (
-        <button className="vip-banner vip-banner-warn" onClick={openVip}>
-          <span className="vip-banner-text">
-            <strong>⏳ Сарын эрх {phase.daysLeft} хоногийн дараа дуусна</strong>
-            <span className="muted small">
-              Одоо сунгавал үлдсэн хоног дээр чинь нэмэгдэнэ — юу ч алдахгүй
+        {/* Сарын эрх: үе шат бүрд өөр мессеж — орлогын ихэнх нь эндээс ордог */}
+        {phase.kind === "active" ? (
+          <button className="km-vip km-vip-on" onClick={openVip}>
+            <Crown size={22} className="km-vip-icon" />
+            <span className="km-vip-text">
+              <strong>Сарын эрх идэвхтэй</strong>
+              <span>
+                {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл бүх кино нээлттэй
+              </span>
             </span>
-          </span>
-          <span className="vip-banner-cta">Сунгах →</span>
-        </button>
-      )}
-      {phase.kind === "lapsed" && (
-        <button className="vip-banner vip-banner-warn" onClick={openVip}>
-          <span className="vip-banner-text">
-            <strong>Сарын эрх тань дууссан</strong>
-            <span className="muted small">
-              Сэргээвэл бүх {catalog.length} кино дахин нээгдэнэ — үзэж байсан газраасаа
+            <span className="km-vip-cta km-vip-cta-ghost">Сунгах</span>
+          </button>
+        ) : (
+          <button className="km-vip" onClick={openVip}>
+            <Crown size={22} className="km-vip-icon" />
+            <span className="km-vip-text">
+              {phase.kind === "ending" ? (
+                <>
+                  <strong>Сарын эрх {phase.daysLeft} хоногийн дараа дуусна</strong>
+                  <span>Одоо сунгавал үлдсэн хоног дээр чинь нэмэгдэнэ</span>
+                </>
+              ) : phase.kind === "lapsed" ? (
+                <>
+                  <strong>Сарын эрх тань дууссан</strong>
+                  <span>Сэргээвэл бүх {catalog.length} кино дахин нээгдэнэ</span>
+                </>
+              ) : (
+                <>
+                  <strong>Бүх {catalog.length} кино нэг эрхээр</strong>
+                  <span>
+                    {plan ? `Сард ${formatPrice(plan.price)}` : "Хязгааргүй"} · шинэ кино нэмэгдэх бүрд
+                  </span>
+                </>
+              )}
             </span>
-          </span>
-          <span className="vip-banner-cta">Сэргээх →</span>
-        </button>
-      )}
-      {phase.kind === "none" && (
-        <button className="vip-banner" onClick={openVip}>
-          <span className="vip-banner-text">
-            <strong>⭐ Бүх {catalog.length} кино — нэг сарын эрхээр</strong>
-            <span className="muted small">
-              {plan ? `${formatPrice(plan.price)}-өөр хязгааргүй` : "Хязгааргүй"} · шинэ кино
-              нэмэгдэх бүрд нээлттэй
+            <span className="km-vip-cta">
+              {phase.kind === "ending" ? "Сунгах" : phase.kind === "lapsed" ? "Сэргээх" : "Эрх авах"}
             </span>
-          </span>
-          <span className="vip-banner-cta">Авах →</span>
-        </button>
-      )}
-      {phase.kind === "active" && (
-        <button className="vip-banner vip-banner-on" onClick={openVip}>
-          <span className="vip-banner-text">
-            <strong>⭐ Сарын эрх идэвхтэй</strong>
-            <span className="muted small">
-              {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл — бүх кино
-              нээлттэй
-            </span>
-          </span>
-          <span className="vip-banner-cta">Сунгах</span>
-        </button>
-      )}
+          </button>
+        )}
 
-      {myList.length > 0 && (
-        <Row title="Миний жагсаалт">
-          {myList.map((x) => (
-            <PosterCard key={x.id} series={x} s={s} />
-          ))}
-        </Row>
-      )}
-
-      <Row title="Шинээр нэмэгдсэн">
-        {catalog.slice(0, 10).map((x) => (
-          <PosterCard key={x.id} series={x} s={s} />
-        ))}
-      </Row>
-
-      {owned.length > 0 && !vip && (
-        <Row title="Миний авсан кинонууд">
-          {owned.map((x) => (
-            <PosterCard key={x.id} series={x} s={s} />
-          ))}
-        </Row>
-      )}
-
-      {/* Ангилал бүр нэг эгнээ (ганц кинотой ангиллыг эгнээ болгохгүй) */}
-      {categories
-        .map((c) => ({ c, items: catalog.filter((x) => seriesCategories(x).includes(c)) }))
-        .filter((g) => g.items.length >= 2 && g.items.length < catalog.length)
-        .map((g) => (
-          <Row key={g.c} title={g.c === "18+" ? "Насанд хүрэгчдэд · 18+" : g.c}>
-            {g.items.map((x) => (
+        {myList.length > 0 && (
+          <Row title="Миний жагсаалт">
+            {myList.map((x) => (
               <PosterCard key={x.id} series={x} s={s} />
             ))}
           </Row>
-        ))}
-
-      <section className="row-block">
-        <h2 className="row-title">Бүх кино</h2>
-      </section>
-      <section className="grid">
-        {catalog.map((series) => (
-          <Link key={series.id} to={`/series/${series.id}`} className="card">
-            <div className="card-poster">
-              <img src={series.poster} alt={series.title} loading="lazy" />
-              <span className="card-eps">{formatDuration(totalSeconds(series))}</span>
-              {isNew(series.id) && <span className="badge badge-new">ШИНЭ</span>}
-              {isAdult(series) && <span className="badge badge-adult">18+</span>}
-            </div>
-            <div className="card-body">
-              <h3>{series.title}</h3>
-              <p className="card-genre">
-                {series.genre} · {priceLabel(s, series)}
-              </p>
-              <p className="card-tagline">{series.tagline}</p>
-            </div>
-          </Link>
-        ))}
-      </section>
-
-      <section className="trust-strip">
-        <div className="trust-item">
-          <span className="trust-icon">🎬</span>
-          <span>Кино бүрийн эхний хэсэг үнэгүй</span>
-        </div>
-        <div className="trust-item">
-          <span className="trust-icon">♾️</span>
-          <span>Нэг удаа төлөөд хязгааргүй үзнэ</span>
-        </div>
-        <div className="trust-item">
-          <span className="trust-icon">⚡</span>
-          <span>Төлбөр баталгаажмагц шууд нээгдэнэ</span>
-        </div>
-        <Link className="btn btn-outline" to="/help">
-          Хэрхэн ажилладаг вэ? →
-        </Link>
-      </section>
-
-      <footer className="foot">
-        {s.signedIn && !s.guest ? (
-          <>
-            {s.phone} гэж нэвтэрсэн ·{" "}
-            <button className="link-btn" onClick={() => void signOut()}>
-              Гарах
-            </button>
-            {" · "}
-          </>
-        ) : (
-          "Кино Мандал · "
         )}
-        <Link className="link-btn" to="/help">
-          Тусламж
-        </Link>
-      </footer>
+
+        <Row title={fresh.length >= 4 ? "Шинээр нэмэгдсэн" : "Сүүлд нэмэгдсэн"}>
+          {(fresh.length >= 4 ? fresh : catalog.slice(0, 10)).map((x) => (
+            <PosterCard key={x.id} series={x} s={s} />
+          ))}
+        </Row>
+
+        {owned.length > 0 && !vip && (
+          <Row title="Миний авсан кинонууд">
+            {owned.map((x) => (
+              <PosterCard key={x.id} series={x} s={s} />
+            ))}
+          </Row>
+        )}
+
+        {/* Ангилал бүр нэг эгнээ (ганц кинотой ангиллыг эгнээ болгохгүй) */}
+        {categories
+          .map((c) => ({ c, items: catalog.filter((x) => seriesCategories(x).includes(c)) }))
+          .filter((g) => g.items.length >= 2 && g.items.length < catalog.length)
+          .map((g) => (
+            <Row key={g.c} title={g.c === "18+" ? "Насанд хүрэгчдэд · 18+" : g.c}>
+              {g.items.map((x) => (
+                <PosterCard key={x.id} series={x} s={s} />
+              ))}
+            </Row>
+          ))}
+
+        <section className="hm-all">
+          <h2 className="hm-row-title">Бүх кино · {catalog.length}</h2>
+          <div className="hm-grid">
+            {catalog.map((x) => (
+              <PosterCard key={x.id} series={x} s={s} />
+            ))}
+          </div>
+        </section>
+
+        <section className="hm-perks">
+          <div className="hm-perk">
+            <Play size={20} />
+            <span>
+              <strong>Эхлээд үнэгүй үз</strong>
+              Кино бүрийн эхний хэсэг бүртгэлгүй, үнэгүй
+            </span>
+          </div>
+          <div className="hm-perk">
+            <InfinityIcon size={20} />
+            <span>
+              <strong>Нэг төлөөд хязгааргүй</strong>
+              Авсан кино тань хэзээ ч, хэдэн ч удаа
+            </span>
+          </div>
+          <div className="hm-perk">
+            <Zap size={20} />
+            <span>
+              <strong>QPay-ээр шууд</strong>
+              Төлмөгц хэдхэн секундэд нээгдэнэ
+            </span>
+          </div>
+          <div className="hm-perk">
+            <ShieldCheck size={20} />
+            <span>
+              <strong>Хаанаас ч үз</strong>
+              Утас, таблет, компьютер — апп суулгах шаардлагагүй
+            </span>
+          </div>
+        </section>
+
+        <footer className="hm-foot">
+          <Brand compact />
+          <p>
+            {s.signedIn && !s.guest ? (
+              <>
+                {s.phone} гэж нэвтэрсэн ·{" "}
+                <button className="link-btn" onClick={() => void signOut()}>
+                  Гарах
+                </button>
+                {" · "}
+              </>
+            ) : null}
+            <Link className="link-btn" to="/help">
+              Тусламж
+            </Link>
+          </p>
+          <p className="hm-foot-copy">© {new Date().getFullYear()} Кино Мандал · kinomandal.com</p>
+        </footer>
+      </div>
     </div>
   );
 }

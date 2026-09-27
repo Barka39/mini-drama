@@ -34,7 +34,7 @@ export function PlayerFeed() {
   useEffect(() => {
     if (series) document.title = `${series.title} — Кино Мандал`;
     return () => {
-      document.title = "Кино Мандал — богино драм монголоор";
+      document.title = "Кино Мандал — Монгол хадмалтай кинонууд";
     };
   }, [series]);
 

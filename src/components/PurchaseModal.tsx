@@ -1,3 +1,4 @@
+import { Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
@@ -153,7 +154,7 @@ export function PurchaseModal() {
         <strong>бүх {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
       </p>
       <button className="btn btn-outline" onClick={openVip}>
-        ⭐ Сарын эрх авах
+        <Crown size={17} /> Сарын эрх авах
       </button>
     </div>
   );
@@ -177,8 +178,8 @@ export function PurchaseModal() {
           <>
             <p className="msg-ok">
               {hasVip(s) && !s.purchased.includes(series.id)
-                ? "⭐ Таны сарын эрх идэвхтэй — энэ кино танд нээлттэй!"
-                : "✅ Төлбөр баталгаажлаа — кино бүрэн нээгдсэн!"}
+                ? "Таны сарын эрх идэвхтэй — энэ кино танд нээлттэй!"
+                : "Төлбөр баталгаажлаа — кино бүрэн нээгдсэн!"}
             </p>
             <button className="btn btn-primary" onClick={closeModals}>
               Үзэж эхлэх
@@ -293,7 +294,7 @@ export function PurchaseModal() {
               </div>
             </div>
 
-            {copied && <p className="msg-ok">{copied} хуулагдлаа ✅</p>}
+            {copied && <p className="msg-ok">{copied} хуулагдлаа</p>}
 
             <p className="muted small">
               Гүйлгээний утганд утасны дугаараа бичвэл таны захиалгыг таньж кино нээгдэнэ, энэ

@@ -75,7 +75,7 @@ foreach ($s in $catalog.series) {
     <meta property="og:title" content="$title — Кино Мандал" />
     <meta property="og:description" content="$descE" />
     <meta property="og:url" content="$SiteUrl/k/$id" />
-    <meta property="og:image" content="$SiteUrl/og/$id.jpg" />
+    <meta property="og:image" content="$SiteUrl/og/$id.jpg?v=2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -84,7 +84,7 @@ foreach ($s in $catalog.series) {
       body { margin:0; background:#0b0b12; color:#f4f4f8;
              font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
              display:flex; align-items:center; justify-content:center; height:100vh; }
-      a { color:#ff2d6f; }
+      a { color:#e3b04f; }
     </style>
     <script>
       // Зар дээр дарсан хүнийг шууд киноны хуудас руу оруулна.

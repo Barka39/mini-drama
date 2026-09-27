@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, ShieldAlert, Volume2 } from "lucide-react";
 import { formatPrice, isAdult } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
 import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
@@ -9,7 +10,7 @@ import { openPurchase, openVip } from "../lib/ui";
 import { cheapestPlan, usePlans } from "../lib/plans";
 
 const SPEEDS = [1, 1.25, 1.5, 2];
-const DEFAULT_TITLE = "Кино Мандал — богино драм монголоор";
+const DEFAULT_TITLE = "Кино Мандал — Монгол хадмалтай кинонууд";
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
@@ -52,7 +53,9 @@ export function MoviePlayer() {
     return (
       <div className="page center">
         <div className="lock-panel">
-          <div className="lock-icon">🔞</div>
+          <div className="lock-icon">
+            <ShieldAlert size={26} />
+          </div>
           <h3>Насанд хүрэгчдэд зориулсан кино</h3>
           <p className="muted">
             «{series.title}» нь 18 ба түүнээс дээш насныханд зориулагдсан. Та 18 нас хүрсэн үү?
@@ -390,8 +393,8 @@ function MoviePlayerInner() {
         )}
 
         <div className={`movie-top ${showCtl || walled || ended ? "vctl-on" : ""}`}>
-          <Link to={`/series/${series.id}`} className="back">
-            ←
+          <Link to={`/series/${series.id}`} className="back" aria-label="Буцах">
+            <ChevronLeft size={22} />
           </Link>
           <span className="movie-top-title">{series.title}</span>
         </div>
@@ -412,13 +415,16 @@ function MoviePlayerInner() {
         {walled && !failed && (
           <div className="movie-overlay">
             <div className="lock-panel">
+              <div className="lock-icon">
+                <Lock size={24} />
+              </div>
               <h3>Үнэгүй хэсэг дууслаа</h3>
               <p className="muted">
                 Үргэлжлэлийг яг эндээс нь үзнэ — төлбөр баталгаажмагц кино өөрөө цааш тоглоно.
               </p>
               {status === "pending" ? (
                 <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
-                  ⏳ Төлбөр хүлээгдэж байна
+                  <Clock size={17} /> Төлбөр хүлээгдэж байна
                 </button>
               ) : (
                 <>
@@ -431,7 +437,7 @@ function MoviePlayerInner() {
                       openVip();
                     }}
                   >
-                    ⭐ Бүх {movieCount} кино{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
+                    <Crown size={17} /> Бүх {movieCount} кино{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
                   </button>
                   <button
                     className="btn btn-outline"
@@ -451,17 +457,17 @@ function MoviePlayerInner() {
         {ended && !walled && (
           <div className="movie-overlay">
             <div className="lock-panel">
-              <h3>Кино дууслаа 🎬</h3>
-              <Link className="btn btn-primary" to="/">
+              <h3>Кино дууслаа</h3>
+              <Link className="btn btn-play" to="/">
                 Бусад кино үзэх →
               </Link>
               {!hasVip(s) && (
                 <button className="btn btn-outline" onClick={openVip}>
-                  ⭐ Сарын эрх — бүх кино
+                  <Crown size={17} /> Сарын эрх — бүх кино
                 </button>
               )}
               <button className="btn btn-ghost" onClick={() => seekTo(0)}>
-                Дахин үзэх
+                <RotateCcw size={16} /> Дахин үзэх
               </button>
             </div>
           </div>
@@ -475,17 +481,19 @@ function MoviePlayerInner() {
                 onClick={() => seekTo(cur - 10)}
                 aria-label="10 секунд ухраах"
               >
-                ⏪ 10
+                <RotateCcw size={22} />
+                <span className="vctl-sec">10</span>
               </button>
               <button className="vctl-btn vctl-play" onClick={togglePlay}>
-                {playing ? "⏸" : "▶"}
+                {playing ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" />}
               </button>
               <button
                 className="vctl-btn"
                 onClick={() => seekTo(cur + 10)}
                 aria-label="10 секунд урагшлах"
               >
-                10 ⏩
+                <RotateCw size={22} />
+                <span className="vctl-sec">10</span>
               </button>
             </div>
 
@@ -513,7 +521,7 @@ function MoviePlayerInner() {
                 {speed}×
               </button>
               <button className="vctl-mini" onClick={toggleFullscreen} aria-label="Бүтэн дэлгэц">
-                ⛶
+                <Maximize size={18} />
               </button>
             </div>
           </div>
@@ -521,7 +529,7 @@ function MoviePlayerInner() {
 
         {muted && !walled && !ended && !failed && (
           <button className="movie-unmute" onClick={unmute}>
-            🔊 Дуу асаах
+            <Volume2 size={16} /> Дуу асаах
           </button>
         )}
       </div>
