@@ -1,5 +1,5 @@
 import { Crown } from "lucide-react";
-import { ChromePayLink } from "./ChromePayLink";
+import { ChromePayButton } from "./ChromePayButton";
 import { needsChromeHandoff } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../data/catalog";
@@ -24,7 +24,8 @@ export function VipModal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  // iPhone-ийн Messenger/Facebook: бэлэн болсон төлбөрийн хаяг — «Банкаа сонгож төлөх» (Chrome)
+  // iPhone-ийн Messenger/Facebook: багц сонгоход бэлэн болсон төлбөрийн хаяг — «Төлбөр төлөх»
+  // нь тэгвэл шууд Chrome-ын холбоос (Facebook зөвхөн хүн өөрөө дарсан холбоосоор Chrome-г нээдэг)
   const [handoff, setHandoff] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export function VipModal() {
     const pay = await startOnlinePay("sub");
     if (pay.ok) {
       if (needsChromeHandoff) {
-        // Хоёр дахь товчийг хүн өөрөө дарна — тэгэхгүй бол Facebook Chrome-г хаадаг
+        // «Төлбөр төлөх»-ийг хүн өөрөө дарна — тэгэхгүй бол Facebook Chrome-г хаадаг
         setBusy(false);
         setHandoff(pay.url);
         return;
@@ -121,7 +122,7 @@ export function VipModal() {
             {qpay ? (
               <>
                 {handoff ? (
-                  <ChromePayLink url={handoff} kind="sub" />
+                  <ChromePayButton url={handoff} kind="sub" label={`Төлбөр төлөх — ${formatPrice(payAmount)}`} />
                 ) : (
                   <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
                     {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(payAmount)}`}

@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChromePayLink } from "../components/ChromePayLink";
+import { ChromePayButton } from "../components/ChromePayButton";
 import { BYL_URL, needsChromeHandoff } from "../lib/inapp";
 
 /**
  * /pay?u=<Byl төлбөрийн хаяг>
  *
  * 2026-09-27-ны хэдэн цагт ашиглагдсан хуучин туслах дэлгэцийн хаяг. Энгийн хөтөчид шууд
- * төлбөрийн хуудас руу шилжүүлнэ; iPhone-ийн Messenger дотор «Банкаа сонгож төлөх» (Chrome)
+ * төлбөрийн хуудас руу шилжүүлнэ; iPhone-ийн Messenger дотор «Төлбөр төлөх» (Chrome-д нээнэ)
  * товч гаргана. Зөвхөн byl.mn-ийн төлбөрийн хаягийг зөвшөөрнө (хуурамч линк болгохгүй).
  */
 export function PayRedirect() {
@@ -33,7 +33,7 @@ export function PayRedirect() {
     return (
       <div className="page center">
         <div className="modal pay-modal">
-          <ChromePayLink url={u} kind="movie" />
+          <ChromePayButton url={u} kind="movie" label="Төлбөр төлөх" />
         </div>
       </div>
     );

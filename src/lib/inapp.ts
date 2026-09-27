@@ -9,9 +9,10 @@
 //     instagram://extbrowser) → Facebook хаадаг, юу ч болоогүй
 //   - googlechromes://… → Chrome НЭЭГДСЭН (Chrome суусан бол)
 //   - гэхдээ зөвхөн ХҮН ӨӨРӨӨ ДАРВАЛ: хэдэн секундын дараах автомат шилжилтийг хаадаг
-// Тиймээс iPhone-ийн Meta дотоод хөтөчид «Төлбөр төлөх» → «Банкаа сонгож төлөх» (Chrome-д
-// нээнэ; Chrome дотор Byl-ийн банкны товч ажилладаг). Chrome нээгдэхгүй бол «Chrome байхгүй
-// бол энд дарж төлөх» холбоос гарна (автоматаар шилжүүлэхгүй).
+// Тиймээс iPhone-ийн Meta дотоод хөтөчид худалдан авах цонх нээгдмэгц захиалгыг урьдчилан
+// бэлдэж, «Төлбөр төлөх» товчийг шууд Chrome-ын холбоос болгоно — НЭГ дарахад Chrome нээгдэж
+// Byl руу орно (эзний шаардлага: завсрын товч, нэмэлт бичиг байхгүй). Chrome байхгүй бол 5 сек-
+// ийн дараа энэ цонхондоо Byl руу орно.
 //
 // Жинхэнэ засвар нь Byl талд (window.open → тухайн цонхондоо нээх) — тэдэнд мэдэгдсэн.
 // Android-д банкны апп ихэвчлэн нээгддэг — хөндөхгүй.
@@ -56,29 +57,24 @@ export function chromeUrl(payUrl: string): string {
   return `googlechromes://${window.location.host}/pay?u=${encodeURIComponent(payUrl)}`;
 }
 
-/** Энэ хугацаанд хуудас нуугдаагүй бол «Chrome байхгүй бол энд» холбоос гаргана */
-const CHROME_WAIT_MS = 3000;
-/** Хожуу нээгдэлтийг ч тэмдэглэнэ (Facebook Chrome-г хэдэн секунд саатуулж нээдэг эсэх) */
+/** Chrome нээгдэхийг хүлээх хугацаа. Хэт богино бол удаан нээгдэж буй Chrome-г цуцалдаг. */
+const CHROME_WAIT_MS = 5000;
+/** Хожуу нээгдэлтийг ч тэмдэглэнэ */
 const CHROME_LATE_MS = 20000;
 
 /**
  * Chrome-ын холбоосыг ДАРАХ мөчид дуудна. Хуудас нуугдвал = Chrome нээгдсэн; хэрэглэгч буцаж
- * ирэхэд захиалгыг өөрөө шалгана. Нуугдаагүй бол `onNoChrome()` — дэлгэц «Chrome байхгүй
- * бол энд» холбоос гаргана.
- *
- * АВТОМАТААР Byl руу ШИЛЖИХГҮЙ (2026-09-27): 1.8 сек-ийн дараа шилжих нь эзний iPhone дээр
- * Chrome-ын нээгдэлтийг цуцалж байсан бололтой — туршилтын хуудсанд (дараа нь юу ч хийдэггүй)
- * Chrome нээгдсэн, төлбөрийн урсгалд (шилждэг) нээгдээгүй.
+ * ирэхэд захиалгыг өөрөө шалгана. 5 секундэд нуугдаагүй бол (Chrome суугаагүй) энэ цонхондоо
+ * Byl руу орно.
  */
-export function watchChromeHandoff(kind: "movie" | "sub", onNoChrome: () => void): void {
+export function watchChromeHandoff(url: string, kind: "movie" | "sub"): void {
   const started = Date.now();
   let left = false;
-  let reported = false;
   const mark = () => {
     if (left) return;
     left = true;
-    const sec = Math.round((Date.now() - started) / 1000);
-    track("iab_safari", `chrome-ok:${kind}:${reported ? "late" : "fast"}${Math.min(sec, 99)}`);
+    const sec = Math.min(99, Math.round((Date.now() - started) / 1000));
+    track("iab_safari", `chrome-ok:${kind}:${sec}s`);
   };
   const onVis = () => {
     if (document.visibilityState === "hidden") mark();
@@ -91,9 +87,11 @@ export function watchChromeHandoff(kind: "movie" | "sub", onNoChrome: () => void
     // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол Chrome-д очоод буцсан гэсэн үг
     if (!left && Date.now() - started > CHROME_WAIT_MS + 1500) mark();
     if (left) return;
-    reported = true;
     track("iab_retry", `chrome-no:${kind}`);
-    onNoChrome();
+    // Хэмжилт илгээгдэж амжих хором өгнө (шууд шилжвэл хүсэлт тасардаг)
+    window.setTimeout(() => {
+      if (!left) window.location.href = url;
+    }, 300);
   }, CHROME_WAIT_MS);
   window.setTimeout(() => {
     document.removeEventListener("visibilitychange", onVis);
