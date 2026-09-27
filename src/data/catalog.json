@@ -1,343 +1,407 @@
 {
-  "videoBase": "",
-  "series": [
-    {
-      "id": "series-260802-0128",
-      "title": "Гэнэтийн гэр бүл",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260802-0128.jpg",
-      "price": 3500,
-      "freeMinutes": 20,
-      "episodes": [],
-      "hls": {
-        "duration": 5020.7
-      }
-    },
-    {
-      "id": "series-260802-0147",
-      "title": "Эмээгийн нууц (ачлалгүй хүүхдүүд)",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260802-0147.jpg",
-      "price": 3500,
-      "freeMinutes": 20,
-      "episodes": [],
-      "hls": {
-        "duration": 3923.6
-      }
-    },
-    {
-      "id": "series-260803-1323",
-      "title": "Бирдийн сүүлчийн хүсэл",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260803-1323.jpg",
-      "price": 3800,
-      "freeMinutes": 25,
-      "episodes": [],
-      "hls": {
-        "duration": 4429.2
-      }
-    },
-    {
-      "id": "series-260804-0210",
-      "title": "A Bittersweet Life",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260804-0210.jpg",
-      "price": 4800,
-      "freeMinutes": 20,
-      "episodes": [],
-      "hls": {
-        "duration": 7161.2
-      }
-    },
-    {
-      "id": "series-260804-2214",
-      "title": "Хүүгээ хүлээх ээж",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260804-2214.jpg",
-      "price": 3800,
-      "freeMinutes": 15,
-      "episodes": [],
-      "hls": {
-        "duration": 7938
-      }
-    },
-    {
-      "id": "series-260805-1359",
-      "title": "Цэвэрлэгчтэй учирсан хуульч",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260805-1359.jpg",
-      "price": 3800,
-      "freeMinutes": 15,
-      "episodes": [],
-      "hls": {
-        "duration": 7220.2
-      }
-    },
-    {
-      "id": "series-260805-1502",
-      "title": "Амлалтаа Биелүүлэх Цаг Ирлээ",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260805-1502.jpg",
-      "price": 3800,
-      "freeMinutes": 15,
-      "episodes": [],
-      "hls": {
-        "duration": 5729
-      }
-    },
-    {
-      "id": "series-260807-0153",
-      "title": "Аавын түшиг болсон охин",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260807-0153.jpg",
-      "price": 3800,
-      "freeMinutes": 15,
-      "episodes": [],
-      "hls": {
-        "duration": 7742.4
-      }
-    },
-    {
-      "id": "series-260809-2107",
-      "title": "Дүрээ нууцалсан нөхрийн нууц",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260809-2107.jpg",
-      "price": 3800,
-      "freeMinutes": 18,
-      "episodes": [],
-      "hls": {
-        "duration": 7283.9
-      }
-    },
-    {
-      "id": "series-260812-1814",
-      "title": "Сэргэлэн охин",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260812-1814.jpg",
-      "price": 3800,
-      "freeMinutes": 15,
-      "episodes": [],
-      "hls": {
-        "duration": 9819.4
-      }
-    },
-    {
-      "id": "series-260921-1306",
-      "title": "Асрагчын нууц хүүхэд",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260921-1306.jpg",
-      "price": 3800,
-      "freeMinutes": 11,
-      "episodes": [],
-      "hls": {
-        "duration": 5527.2
-      }
-    },
-    {
-      "id": "series-260921-1402",
-      "title": "Boyka!",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260921-1402-2.jpg",
-      "price": 3800,
-      "freeMinutes": 4,
-      "episodes": [],
-      "hls": {
-        "duration": 5545.7
-      }
-    },
-    {
-      "id": "series-260923-1825",
-      "title": "Ариун шөнө (Чөтгөрийн ангуучид)",
-      "tagline": "Сөүл хотод чөтгөр шүтэх гэмт бүлэглэл гарч, хотыг эмх замбараагүй байдалд оруулна. Цагдаагийн байгууллага энэ хяналтаас гарсан нөхцөл байдлыг таслан зогсоохын тулд Holy Night нэртэй, чөтгөрийн ангуучдыг дуудах болно.",
-      "genre": "Драм",
-      "poster": "posters/series-260923-1825-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 5503.9
-      }
-    },
-    {
-      "id": "series-260923-2317",
-      "title": "Би чамайг хүсэж байна",
-      "tagline": "Гэнэн цайлган нэгэн залуу нэр хүндтэй, өдөөн хатгасан бүтээлүүдээрээ алдартай уран бүтээлчийн бэлгийн сэдэл төрүүлэгч муз болсноор мөрөөдлийн ажил нь удалгүй аюултай болж хувирна. Тэрээр эрх мэдэл, урвалт, аллагаар дүүрэн хэт шунан дурласан ертөнцөд улам гүн татагдан орно.",
-      "genre": "Драм",
-      "poster": "posters/series-260923-2317-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 5422.6
-      }
-    },
-    {
-      "id": "series-260924-1805",
-      "title": "Мангар тулаанч",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260924-1805.jpg",
-      "price": 3800,
-      "freeMinutes": 12,
-      "episodes": [],
-      "hls": {
-        "duration": 7381.5
-      }
-    },
-    {
-      "id": "series-260926-1620",
-      "title": "Гийчин",
-      "tagline": "Машин нь эвдэрч хөдөө гацсан залуу хэвтэрийн өвчтэй Дамдин гэх айлд хэд хононо. Айлын гэргийтэй хайр дурлалд автаж, учир битүүлэг зүйлс ар араасаа цуварч эхэлнэ",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1620-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 2945.3
-      }
-    },
-    {
-      "id": "series-260926-1901",
-      "title": "Хортой харилцаа",
-      "tagline": "Зулаа багын найз Оюунаагийн гэрт хэд хоног байрлахыг хүсэхэд Оюунаа татгалзсангүй. Харин Зулаа зүгээр нэг зочин биш — нөхөрт нь санаархаж эхэлнэ.",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1901-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 2782.8
-      }
-    },
-    {
-      "id": "series-260926-1902",
-      "title": "Өнчин охин",
-      "tagline": "Хотод дөнгөж ирсэн өнчин охин Нандин хамаатныдаа байрлана. Гэрийн эзний хоёр нүүр, эхнэрийнх нь хардлагын дунд тэрээр бие, сэтгэлийн хүнд дарамтад орно.",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1902-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 3604.7
-      }
-    },
-    {
-      "id": "series-260926-1903",
-      "title": "Худгийн эмэгтэй",
-      "tagline": "Сургалтын төлбөрөө олохын тулд худагт ажилладаг охин аавынх нь хуучны найзын харгис үйлдлийн золиос болж, айдас, дарамтаас гарах замаа хайна.",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1903-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 3688.1
-      }
-    },
-    {
-      "id": "series-260926-1904",
-      "title": "Дагавар эгч",
-      "tagline": "Танилцаад удаагүй хос дагавар хүүхдүүдээ гэртээ үлдээж аялалд гарна. Гэртээ үлдсэн эгч дүү хоёрын зөрчил адал явдал болон хувирна.",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1904-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 3063
-      }
-    },
-    {
-      "id": "series-260926-1905",
-      "title": "Шифү",
-      "tagline": "Нэгдүгээр курсын оюутан хөөрхөн найз охинтой ч сургуульд нь шинээр ирсэн багшид сэтгэлээ алдана. Дөрвөн хүний харилцаа хаашаа эргэх бол?",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1905-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 2716
-      }
-    },
-    {
-      "id": "series-260926-1906",
-      "title": "Бид 4-ийн хүсэл",
-      "tagline": "Зуслангийн байшингаас олдсон хачирхалтай зүйл дөрвөн найзын далд хүслийг ил болгож, хосуудын харилцааг сүйрлийн ирмэгт авчирна.",
-      "genre": "Драм · 18+",
-      "poster": "posters/series-260926-1906-2.jpg",
-      "price": 3800,
-      "freeMinutes": 5,
-      "episodes": [],
-      "hls": {
-        "duration": 2705.9
-      }
-    },
-    {
-      "id": "series-260926-1907",
-      "title": "Айрагны охин",
-      "tagline": "Оюутан Бадамаа хөдөө ахынхаа ажилд тусалж айраг зарахаар очиход нутгийн хоёр залуу түүнд дурлаж, өрсөлдөөн эхэлнэ.",
-      "genre": "Романс · 18+",
-      "poster": "posters/series-260926-1907-2.jpg",
-      "price": 3800,
-      "freeMinutes": 3,
-      "episodes": [],
-      "hls": {
-        "duration": 991.3
-      }
-    },
-    {
-      "id": "series-260926-1908",
-      "title": "Гэр бүлээ алдсан бяцхан цэрэг",
-      "tagline": "Оросын кино, монгол хадмалтай.",
-      "genre": "Тулаант",
-      "poster": "posters/series-260926-1908-2.jpg",
-      "price": 3800,
-      "freeMinutes": 10,
-      "episodes": [],
-      "hls": {
-        "duration": 5111.4
-      }
-    },
-    {
-      "id": "series-260926-1909",
-      "title": "Хятадаас ирсэн бие хамгаалагч",
-      "tagline": "Монгол хадмалтай тулаант кино.",
-      "genre": "Тулаант",
-      "poster": "posters/series-260926-1909-2.jpg",
-      "price": 3800,
-      "freeMinutes": 10,
-      "episodes": [],
-      "hls": {
-        "duration": 5460.2
-      }
-    },
-    {
-      "id": "series-260927-1733",
-      "title": "Эх Мангас 2",
-      "tagline": "",
-      "genre": "Драм",
-      "poster": "posters/series-260927-1733-2.jpg",
-      "price": 3800,
-      "freeMinutes": 8,
-      "episodes": [],
-      "hls": {
-        "duration": 1709.2
-      }
-    }
-  ]
+    "videoBase":  "",
+    "series":  [
+                   {
+                       "id":  "series-260802-0128",
+                       "title":  "Гэнэтийн гэр бүл",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260802-0128.jpg",
+                       "price":  3500,
+                       "freeMinutes":  20,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5020.7
+                               }
+                   },
+                   {
+                       "id":  "series-260802-0147",
+                       "title":  "Эмээгийн нууц (ачлалгүй хүүхдүүд)",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260802-0147.jpg",
+                       "price":  3500,
+                       "freeMinutes":  20,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  3923.6
+                               }
+                   },
+                   {
+                       "id":  "series-260803-1323",
+                       "title":  "Бирдийн сүүлчийн хүсэл",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260803-1323.jpg",
+                       "price":  3800,
+                       "freeMinutes":  25,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  4429.2
+                               }
+                   },
+                   {
+                       "id":  "series-260804-0210",
+                       "title":  "A Bittersweet Life",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260804-0210.jpg",
+                       "price":  4800,
+                       "freeMinutes":  20,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7161.2
+                               }
+                   },
+                   {
+                       "id":  "series-260804-2214",
+                       "title":  "Хүүгээ хүлээх ээж",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260804-2214.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7938
+                               }
+                   },
+                   {
+                       "id":  "series-260805-1359",
+                       "title":  "Цэвэрлэгчтэй учирсан хуульч",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260805-1359.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7220.2
+                               }
+                   },
+                   {
+                       "id":  "series-260805-1502",
+                       "title":  "Амлалтаа Биелүүлэх Цаг Ирлээ",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260805-1502.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5729
+                               }
+                   },
+                   {
+                       "id":  "series-260807-0153",
+                       "title":  "Аавын түшиг болсон охин",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260807-0153.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7742.4
+                               }
+                   },
+                   {
+                       "id":  "series-260809-2107",
+                       "title":  "Дүрээ нууцалсан нөхрийн нууц",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260809-2107.jpg",
+                       "price":  3800,
+                       "freeMinutes":  18,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7283.9
+                               }
+                   },
+                   {
+                       "id":  "series-260812-1814",
+                       "title":  "Сэргэлэн охин",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260812-1814.jpg",
+                       "price":  3800,
+                       "freeMinutes":  15,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  9819.4
+                               }
+                   },
+                   {
+                       "id":  "series-260921-1306",
+                       "title":  "Асрагчын нууц хүүхэд",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260921-1306.jpg",
+                       "price":  3800,
+                       "freeMinutes":  11,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5527.2
+                               }
+                   },
+                   {
+                       "id":  "series-260921-1402",
+                       "title":  "Boyka!",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260921-1402-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  4,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5545.7
+                               }
+                   },
+                   {
+                       "id":  "series-260923-1825",
+                       "title":  "Ариун шөнө (Чөтгөрийн ангуучид)",
+                       "tagline":  "Сөүл хотод чөтгөр шүтэх гэмт бүлэглэл гарч, хотыг эмх замбараагүй байдалд оруулна. Цагдаагийн байгууллага энэ хяналтаас гарсан нөхцөл байдлыг таслан зогсоохын тулд Holy Night нэртэй, чөтгөрийн ангуучдыг дуудах болно.",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260923-1825-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5503.9
+                               }
+                   },
+                   {
+                       "id":  "series-260923-2317",
+                       "title":  "Би чамайг хүсэж байна",
+                       "tagline":  "Гэнэн цайлган нэгэн залуу нэр хүндтэй, өдөөн хатгасан бүтээлүүдээрээ алдартай уран бүтээлчийн бэлгийн сэдэл төрүүлэгч муз болсноор мөрөөдлийн ажил нь удалгүй аюултай болж хувирна. Тэрээр эрх мэдэл, урвалт, аллагаар дүүрэн хэт шунан дурласан ертөнцөд улам гүн татагдан орно.",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260923-2317-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5422.6
+                               }
+                   },
+                   {
+                       "id":  "series-260924-1805",
+                       "title":  "Мангар тулаанч",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260924-1805.jpg",
+                       "price":  3800,
+                       "freeMinutes":  12,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  7381.5
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1620",
+                       "title":  "Гийчин",
+                       "tagline":  "Машин нь эвдэрч хөдөө гацсан залуу хэвтэрийн өвчтэй Дамдин гэх айлд хэд хононо. Айлын гэргийтэй хайр дурлалд автаж, учир битүүлэг зүйлс ар араасаа цуварч эхэлнэ",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1620-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  2945.3
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1901",
+                       "title":  "Хортой харилцаа",
+                       "tagline":  "Зулаа багын найз Оюунаагийн гэрт хэд хоног байрлахыг хүсэхэд Оюунаа татгалзсангүй. Харин Зулаа зүгээр нэг зочин биш — нөхөрт нь санаархаж эхэлнэ.",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1901-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  2782.8
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1902",
+                       "title":  "Өнчин охин",
+                       "tagline":  "Хотод дөнгөж ирсэн өнчин охин Нандин хамаатныдаа байрлана. Гэрийн эзний хоёр нүүр, эхнэрийнх нь хардлагын дунд тэрээр бие, сэтгэлийн хүнд дарамтад орно.",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1902-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  3604.7
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1903",
+                       "title":  "Худгийн эмэгтэй",
+                       "tagline":  "Сургалтын төлбөрөө олохын тулд худагт ажилладаг охин аавынх нь хуучны найзын харгис үйлдлийн золиос болж, айдас, дарамтаас гарах замаа хайна.",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1903-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  3688.1
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1904",
+                       "title":  "Дагавар эгч",
+                       "tagline":  "Танилцаад удаагүй хос дагавар хүүхдүүдээ гэртээ үлдээж аялалд гарна. Гэртээ үлдсэн эгч дүү хоёрын зөрчил адал явдал болон хувирна.",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1904-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  3063
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1905",
+                       "title":  "Шифү",
+                       "tagline":  "Нэгдүгээр курсын оюутан хөөрхөн найз охинтой ч сургуульд нь шинээр ирсэн багшид сэтгэлээ алдана. Дөрвөн хүний харилцаа хаашаа эргэх бол?",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1905-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  2716
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1906",
+                       "title":  "Бид 4-ийн хүсэл",
+                       "tagline":  "Зуслангийн байшингаас олдсон хачирхалтай зүйл дөрвөн найзын далд хүслийг ил болгож, хосуудын харилцааг сүйрлийн ирмэгт авчирна.",
+                       "genre":  "Драм · 18+",
+                       "poster":  "posters/series-260926-1906-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  5,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  2705.9
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1907",
+                       "title":  "Айрагны охин",
+                       "tagline":  "Оюутан Бадамаа хөдөө ахынхаа ажилд тусалж айраг зарахаар очиход нутгийн хоёр залуу түүнд дурлаж, өрсөлдөөн эхэлнэ.",
+                       "genre":  "Романс · 18+",
+                       "poster":  "posters/series-260926-1907-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  3,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  991.3
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1908",
+                       "title":  "Гэр бүлээ алдсан бяцхан цэрэг",
+                       "tagline":  "Оросын кино, монгол хадмалтай.",
+                       "genre":  "Тулаант",
+                       "poster":  "posters/series-260926-1908-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  10,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5111.4
+                               }
+                   },
+                   {
+                       "id":  "series-260926-1909",
+                       "title":  "Хятадаас ирсэн бие хамгаалагч",
+                       "tagline":  "Монгол хадмалтай тулаант кино.",
+                       "genre":  "Тулаант",
+                       "poster":  "posters/series-260926-1909-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  10,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  5460.2
+                               }
+                   },
+                   {
+                       "id":  "series-260927-1733",
+                       "title":  "Эх Мангас 2",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260927-1733-2.jpg",
+                       "price":  3800,
+                       "freeMinutes":  8,
+                       "episodes":  [
+
+                                    ],
+                       "hls":  {
+                                   "duration":  1709.2
+                               }
+                   },
+                   {
+                       "id":  "series-260927-2034",
+                       "title":  "Хүчирхэг Мужаан",
+                       "tagline":  "",
+                       "genre":  "Драм",
+                       "poster":  "posters/series-260927-2034.jpg",
+                       "price":  3800,
+                       "freeMinutes":  10,
+                       "episodes":  [
+
+                                    ]
+                   }
+               ]
 }

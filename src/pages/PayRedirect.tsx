@@ -1,25 +1,22 @@
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { InAppPay } from "../components/InAppPay";
-import { BYL_URL, needsInAppGate } from "../lib/inapp";
+import { BYL_URL, openPayPage } from "../lib/inapp";
 
 /**
  * /pay?u=<Byl төлбөрийн хаяг>
  *
- * Facebook/Messenger-ийн дотоод хөтчийн «⋯ → Open in external browser» нь ОДООГИЙН хаягийг
- * Safari-д нээдэг. Туслах дэлгэц нээлттэй байхад хаяг нь энэ /pay болсон байдаг тул Safari
- * шууд Byl-ийн төлбөрийн хуудас руу орно. Зөвхөн byl.mn-ийн төлбөрийн хаягийг зөвшөөрнө
- * (өөр сайт руу чиглүүлэх хуурамч линк болгож ашиглах боломжгүй).
+ * 2026-09-27-ны хэдэн цагт ашиглагдсан хуучин туслах дэлгэцийн хаяг. Одоо шууд төлбөрийн
+ * хуудас руу шилжүүлнэ (iPhone-ийн Messenger дотор эхлээд Chrome-оор). Зөвхөн byl.mn-ийн
+ * төлбөрийн хаягийг зөвшөөрнө (өөр сайт руу чиглүүлэх хуурамч линк болгож ашиглах боломжгүй).
  */
 export function PayRedirect() {
   const [params] = useSearchParams();
   const u = params.get("u") ?? "";
   const ok = BYL_URL.test(u);
-  const gate = ok && needsInAppGate();
 
   useEffect(() => {
-    if (ok && !gate) window.location.replace(u);
-  }, [ok, gate, u]);
+    if (ok) openPayPage(u, "movie", () => undefined);
+  }, [ok, u]);
 
   if (!ok) {
     return (
@@ -28,15 +25,6 @@ export function PayRedirect() {
         <Link className="btn btn-glass" to="/">
           Нүүр хуудас
         </Link>
-      </div>
-    );
-  }
-  if (gate) {
-    return (
-      <div className="page center">
-        <div className="modal pay-modal iab-page">
-          <InAppPay url={u} kind="movie" />
-        </div>
       </div>
     );
   }
