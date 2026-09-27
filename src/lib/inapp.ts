@@ -49,12 +49,23 @@ export const needsChromeHandoff = (isIOS && isMetaInApp) || forced();
 
 /**
  * Chrome (iOS)-д нээх хаяг. googlechromes:// нь Chrome-ын албан ёсны схем (https:// → googlechromes://).
- * Byl руу ШУУД биш, манай /pay?u=… хуудсаар дамжуулна: эзний iPhone дээр Chrome нээгдсэн
- * цорын ганц тохиолдол нь googlechromes://kinomandal.com/… байсан — яг тэр замыг давтана.
- * Chrome дотор /pay нь Byl-ийн хаягийг шалгаад тийш шилжүүлнэ.
+ *
+ * Эзний iPhone дээр Chrome нээгдсэн цорын ганц тохиолдол бол энгийн googlechromes://kinomandal.com/t/iab2?…
+ * байсан (/t/iab2 1-р товч). Төлбөрийн урсгалын `…/pay?u=https%3A%2F%2Fbyl.mn…` (хаяг ДОТОРХ өөр
+ * хаяг — Facebook луйврын шинж гэж хааж магадгүй) Chrome суусан утсан дээр нээгдээгүй. Тиймээс
+ * хаягийг туршилтынх шиг энгийн болгоно: googlechromes://kinomandal.com/pay/<дугаар>/<токен>.
+ * Chrome дотор /pay/<дугаар>/<токен> нь Byl-ийн хаягийг сэргээгээд тийш шилжүүлнэ.
  */
 export function chromeUrl(payUrl: string): string {
+  const m = /^https:\/\/byl\.mn\/h\/checkout\/(\d+)\/([A-Za-z0-9]{16,64})$/.exec(payUrl);
+  if (m) return `googlechromes://${window.location.host}/pay/${m[1]}/${m[2]}`;
   return `googlechromes://${window.location.host}/pay?u=${encodeURIComponent(payUrl)}`;
+}
+
+/** /pay/<дугаар>/<токен> → Byl-ийн төлбөрийн хуудасны хаяг (checkout) */
+export function bylCheckoutUrl(id: string, token: string): string | null {
+  if (!/^\d{1,12}$/.test(id) || !/^[A-Za-z0-9]{16,64}$/.test(token)) return null;
+  return `https://byl.mn/h/checkout/${id}/${token}`;
 }
 
 /** Chrome нээгдэхийг хүлээх хугацаа. Хэт богино бол удаан нээгдэж буй Chrome-г цуцалдаг. */
@@ -81,7 +92,7 @@ export function watchChromeHandoff(url: string, kind: "movie" | "sub"): void {
   };
   document.addEventListener("visibilitychange", onVis);
   window.addEventListener("pagehide", mark);
-  track("iab_gate", `chrome:${kind}`);
+  track("iab_gate", `chrome3:${kind}`);
 
   window.setTimeout(() => {
     // Апп солигдоход таймер зогсдог — хугацаа хэтэрсэн бол Chrome-д очоод буцсан гэсэн үг

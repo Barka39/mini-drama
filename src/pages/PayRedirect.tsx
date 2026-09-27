@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ChromePayButton } from "../components/ChromePayButton";
-import { BYL_URL, needsChromeHandoff } from "../lib/inapp";
+import { BYL_URL, bylCheckoutUrl, needsChromeHandoff } from "../lib/inapp";
 
 /**
  * /pay?u=<Byl төлбөрийн хаяг>
@@ -12,7 +12,9 @@ import { BYL_URL, needsChromeHandoff } from "../lib/inapp";
  */
 export function PayRedirect() {
   const [params] = useSearchParams();
-  const u = params.get("u") ?? "";
+  const { id, token } = useParams();
+  // /pay/<дугаар>/<токен> (Chrome-д нээх энгийн хаяг) эсвэл хуучин /pay?u=<хаяг>
+  const u = (id && token ? bylCheckoutUrl(id, token) : params.get("u")) ?? "";
   const ok = BYL_URL.test(u);
 
   useEffect(() => {

@@ -42,6 +42,7 @@ export default function App() {
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
         <Route path="/pay" element={<PayRedirect />} />
+        <Route path="/pay/:id/:token" element={<PayRedirect />} />
         <Route path="/t/iab" element={<IabTestPage />} />
         <Route path="/t/iab2" element={<IabTest2Page />} />
         {/* Буруу/хуучирсан хаяг — хоосон дэлгэц биш, нүүр хуудас */}

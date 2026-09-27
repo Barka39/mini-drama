@@ -179,6 +179,12 @@ export function PurchaseModal() {
     setBusy(false);
   }
 
+  // iPhone-ийн Messenger: Chrome-оос буцаж ирэхэд «хүлээж байна» төлөв харуулж, төлбөрийг шалгана
+  function markReturned() {
+    setTapped(true);
+    void refreshAccount();
+  }
+
   // iPhone-ийн Messenger: урьдчилан бэлдэх алдаатай болсон бол дахин оролдоно
   function retryPrep() {
     setMsg(null);
@@ -253,7 +259,7 @@ export function PurchaseModal() {
                   url={prep}
                   kind="movie"
                   label={`Төлбөр төлөх — ${formatPrice(payAmount)}`}
-                  onTap={() => setTapped(true)}
+                  onReturn={markReturned}
                 />
               ) : (
                 <button
@@ -284,7 +290,7 @@ export function PurchaseModal() {
                   url={prep}
                   kind="movie"
                   label={`Төлбөр төлөх — ${formatPrice(series.price)}`}
-                  onTap={() => setTapped(true)}
+                  onReturn={markReturned}
                 />
               ) : (
                 <button
