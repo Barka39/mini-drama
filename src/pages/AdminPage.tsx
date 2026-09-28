@@ -20,11 +20,17 @@ import {
   type SiteSettings,
 } from "../lib/settings";
 import {
+  addedAt,
+  deleteSeries,
   loadSeriesMeta,
+  purgeSeriesFiles,
+  restoreSeries,
   saveSeriesMeta,
+  seriesUsage,
   uploadPoster,
   useCatalog,
   type SeriesMeta,
+  type SeriesUsage,
 } from "../lib/seriesAdmin";
 import { useAppState } from "../lib/store";
 import { openAuth } from "../lib/ui";
@@ -41,6 +47,13 @@ interface AdminPurchase {
   plan_code: string | null;
   pay_checkout_id: number | null;
   paid_via: string | null;
+}
+
+/** 2026.09.28 19:58 — addedAt()-тай ижил хэлбэр */
+function stamp(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 const FUNNEL_STEPS = [
@@ -60,6 +73,14 @@ export function AdminPage() {
   const [editing, setEditing] = useState<SeriesMeta | null>(null);
   const [savingSeries, setSavingSeries] = useState(false);
   const [posterBusy, setPosterBusy] = useState<string | null>(null);
+  // Кино устгах: эхлээд хэдэн хүн худалдаж авсныг харуулаад, хаашаа шилжүүлэхийг асууна
+  const [deleting, setDeleting] = useState<SeriesMeta | null>(null);
+  const [usage, setUsage] = useState<SeriesUsage | null>(null);
+  const [replacement, setReplacement] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [purging, setPurging] = useState<{ id: string; files: number } | null>(null);
+  const liveMetas = metas.filter((m) => !m.deleted_at);
+  const deletedMetas = metas.filter((m) => m.deleted_at);
 
   const seriesTitle = useCallback(
     (id: string) => metas.find((m) => m.id === id)?.title || catalog.find((c) => c.id === id)?.title || id,
@@ -196,6 +217,90 @@ export function AdminPage() {
     } else {
       setMsg("Алдаа: " + res.reason);
     }
+  }
+
+  async function reloadMetas() {
+    const rows = await loadSeriesMeta(true);
+    setMetas([...rows].sort((a, b) => b.sort_order - a.sort_order || a.id.localeCompare(b.id)));
+  }
+
+  async function startDelete(m: SeriesMeta) {
+    setEditing(null);
+    setDeleting(m);
+    setUsage(null);
+    // Ижил нэртэй, дараа нь оруулсан кино (засварласан хувилбар) — худалдан авагчдын зөв газар
+    const title = m.title.trim().toLowerCase();
+    const twin = catalog
+      .filter((c) => c.id !== m.id && c.title.trim().toLowerCase() === title)
+      .sort((a, b) => b.id.localeCompare(a.id))[0];
+    setReplacement(twin?.id ?? "");
+    setUsage(await seriesUsage(m.id));
+  }
+
+  const DELETE_ERRORS: Record<string, string> = {
+    bad_replacement:
+      "Шилжүүлэх кино сайтад хараахан гараагүй байна — «Сайт шинэчлэх» дууссаны дараа дахин оролдоно уу.",
+    already_deleted: "Энэ кино аль хэдийн устгагдсан байна.",
+    not_admin: "Админ эрхээр нэвтэрнэ үү.",
+    purged: "Бичлэг нь бүрмөсөн устсан тул сэргээх боломжгүй.",
+  };
+  const reasonText = (reason = "") =>
+    Object.entries(DELETE_ERRORS).find(([code]) => reason.includes(code))?.[1] ?? reason;
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    const people = (usage?.buyers ?? 0) + (usage?.pending ?? 0);
+    if (
+      !replacement &&
+      people > 0 &&
+      !confirm(
+        `${people} хүн энэ киног төлсөн эсвэл төлж байна. Шилжүүлэх кино сонгоогүй тул тэд үзэх эрхээ алдана.\n\nҮнэхээр устгах уу?`,
+      )
+    ) {
+      return;
+    }
+    setDeleteBusy(true);
+    const res = await deleteSeries(deleting.id, replacement);
+    setDeleteBusy(false);
+    if (!res.ok) {
+      setMsg("Устгаж чадсангүй: " + reasonText(res.reason));
+      return;
+    }
+    const moved = res.moved;
+    setMsg(
+      `«${deleting.title || deleting.id}» устгагдлаа ✅` +
+        (replacement && moved
+          ? ` ${moved.buyers} худалдан авалт, ${moved.pending} захиалга, ${moved.links} линк «${seriesTitle(replacement)}» руу шилжлээ.`
+          : ""),
+    );
+    setDeleting(null);
+    await reloadMetas();
+  }
+
+  async function restore(m: SeriesMeta) {
+    if (!confirm(`«${m.title || m.id}» киног сэргээх үү?\n\nШилжүүлсэн худалдан авалт, линк буцаж энэ кинонд очно.`)) return;
+    const res = await restoreSeries(m.id);
+    setMsg(res.ok ? `«${m.title || m.id}» сэргээгдлээ ✅` : "Сэргээж чадсангүй: " + reasonText(res.reason));
+    if (res.ok) await reloadMetas();
+  }
+
+  async function purge(m: SeriesMeta) {
+    if (
+      !confirm(
+        `«${m.title || m.id}» (${addedAt(m.id)})-ийн бичлэгийн файлуудыг БҮРМӨСӨН устгах уу?\n\nЭнэ үйлдлийг буцаах боломжгүй — дараа нь киног сэргээж чадахгүй.`,
+      )
+    ) {
+      return;
+    }
+    setPurging({ id: m.id, files: 0 });
+    const res = await purgeSeriesFiles(m.id, (files) => setPurging({ id: m.id, files }));
+    setPurging(null);
+    setMsg(
+      res.ok
+        ? `Бичлэг бүрмөсөн устгагдлаа (${res.files ?? 0} файл) ✅`
+        : `Устгаж дуусаагүй (${res.files ?? 0} файл устсан): ${reasonText(res.reason)} — дахин дарна уу.`,
+    );
+    if (res.ok) await reloadMetas();
   }
 
   async function persistSettings() {
@@ -337,10 +442,65 @@ export function AdminPage() {
         </>
       )}
 
-      <h3 className="admin-h">Кинонууд ({metas.length})</h3>
+      <h3 className="admin-h">Кинонууд ({liveMetas.length})</h3>
       {metas.length === 0 && <p className="muted small">Ачаалж байна…</p>}
-      {metas.map((m) =>
-        editing?.id === m.id ? (
+      {liveMetas.map((m) =>
+        deleting?.id === m.id ? (
+          <div key={m.id} className="series-edit delete-panel">
+            <strong>«{m.title || m.id}» устгах уу?</strong>
+            <span className="muted small">Нэмсэн: {addedAt(m.id)}</span>
+            <p className="small">
+              {usage
+                ? `Худалдаж авсан ${usage.buyers} хүн · төлөгдөж буй ${usage.pending} захиалга · ${usage.links} линк`
+                : "Худалдан авагчдыг тоолж байна…"}
+            </p>
+            <label className="series-field">
+              <span className="pay-label">
+                Худалдаж авсан хүмүүс, линк, зар/постын хаягийг аль кино руу шилжүүлэх вэ?
+              </span>
+              <select
+                className="code-input"
+                value={replacement}
+                onChange={(e) => setReplacement(e.target.value)}
+              >
+                <option value="">— Шилжүүлэхгүй —</option>
+                {catalog
+                  .filter((c) => c.id !== m.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title} · {addedAt(c.id)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {!replacement && usage && usage.buyers + usage.pending > 0 && (
+              <p className="small delete-warn">
+                ⚠️ Шилжүүлэх кино сонгоогүй бол {usage.buyers + usage.pending} хүн төлсөн киногоо үзэх
+                эрхээ алдана.
+              </p>
+            )}
+            <p className="muted small">
+              Кино сайтаас шууд алга болно.
+              {replacement
+                ? " Хуучин хаяг, зар, ботын карт, линкээр орсон хүн сонгосон кино руу орно."
+                : ""}{" "}
+              Бичлэгийн файл нь «Устгасан кинонууд» хэсэгт үлдэнэ — тэндээс сэргээх эсвэл бүрмөсөн
+              устгана.
+            </p>
+            <div className="admin-actions">
+              <button
+                className="btn btn-danger"
+                disabled={deleteBusy || !usage}
+                onClick={confirmDelete}
+              >
+                {deleteBusy ? "Устгаж байна…" : "Устгах"}
+              </button>
+              <button className="btn btn-outline" onClick={() => setDeleting(null)}>
+                Болих
+              </button>
+            </div>
+          </div>
+        ) : editing?.id === m.id ? (
           <div key={m.id} className="series-edit">
             <div className="poster-edit">
               <img
@@ -456,16 +616,69 @@ export function AdminPage() {
               <div className="muted small">
                 {m.genre || "ангилалгүй"} ·{" "}
                 {m.price > 0 ? formatPrice(m.price) : "Үнэгүй"} · эхний {m.free_minutes} мин үнэгүй
-                {m.sort_order !== 0 && ` · эрэмбэ ${m.sort_order}`}
+                {m.sort_order !== 0 && ` · эрэмбэ ${m.sort_order}`} · нэмсэн {addedAt(m.id)}
               </div>
             </div>
-            <div className="admin-actions">
-              <button className="btn btn-outline" onClick={() => setEditing({ ...m })}>
+            <div className="admin-actions admin-actions-stack">
+              <button
+                className="btn btn-outline"
+                onClick={() => {
+                  setDeleting(null);
+                  setEditing({ ...m });
+                }}
+              >
                 Засах
+              </button>
+              <button className="copy-btn danger-btn" onClick={() => void startDelete(m)}>
+                Устгах
               </button>
             </div>
           </div>
         ),
+      )}
+      {deletedMetas.length > 0 && (
+        <>
+          <h4 className="admin-sub">Устгасан кинонууд ({deletedMetas.length})</h4>
+          {deletedMetas.map((m) => (
+            <div key={m.id} className="admin-row admin-row-deleted">
+              <img
+                className="admin-poster-mini"
+                src={m.poster_url || `posters/${m.id}.jpg`}
+                alt=""
+              />
+              <div>
+                <strong>{m.title || m.id}</strong>
+                <div className="muted small">
+                  нэмсэн {addedAt(m.id)}
+                  {m.deleted_at && ` · устгасан ${stamp(m.deleted_at)}`}
+                  {m.replaced_by &&
+                    ` · худалдан авагчид → «${seriesTitle(m.replaced_by)}» (${addedAt(m.replaced_by)})`}
+                  {m.purged_at && " · бичлэг нь бүрмөсөн устсан"}
+                </div>
+              </div>
+              {!m.purged_at && (
+                <div className="admin-actions">
+                  <button
+                    className="btn btn-outline"
+                    disabled={purging !== null}
+                    onClick={() => void restore(m)}
+                  >
+                    Сэргээх
+                  </button>
+                  <button
+                    className="copy-btn danger-btn"
+                    disabled={purging !== null}
+                    onClick={() => void purge(m)}
+                  >
+                    {purging?.id === m.id
+                      ? `Устгаж байна… ${purging.files}`
+                      : "Бичлэгийг бүрмөсөн устгах"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </>
       )}
       <p className="muted small">
         Шинэ кино нэмэх бол Desktop дээрх «Мини Драм — Цуврал нэмэх» товчлуулыг ашиглана

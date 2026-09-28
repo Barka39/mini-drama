@@ -1474,3 +1474,35 @@ h3 {
 .iab-guide-copy + .iab-guide-copy {
   margin-top: 8px;
 }
+
+/* Кино устгах (админ, 2026-09-28) — улаан: сэргээж болох ч анхаарал татна */
+.btn.btn-danger {
+  background: #c93c3c;
+  color: #fff;
+  border: 0;
+}
+.btn.btn-danger:disabled {
+  opacity: 0.6;
+}
+.delete-panel {
+  border-color: #c93c3c;
+}
+.delete-warn {
+  color: #f0b45a;
+}
+.admin-row-deleted {
+  opacity: 0.8;
+}
+/* Засах/Устгах товч дээр доороо — нэр, тайлбар өргөн байна */
+.admin-actions.admin-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+/* Устгасан киноны товчнууд доод мөрөнд */
+.admin-row-deleted {
+  flex-wrap: wrap;
+}
+.admin-row-deleted .admin-actions {
+  width: 100%;
+  justify-content: flex-end;
+}

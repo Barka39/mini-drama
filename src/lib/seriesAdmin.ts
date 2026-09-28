@@ -14,6 +14,11 @@ export interface SeriesMeta {
   sort_order: number;
   hidden: boolean;
   poster_url: string | null;
+  // Устгасан кино (админ): сайтаас алга, худалдан авагчид нь replaced_by руу шилжсэн.
+  // purged_at = бичлэгийн файл нь бүрмөсөн устсан (сэргээх боломжгүй).
+  deleted_at: string | null;
+  replaced_by: string | null;
+  purged_at: string | null;
 }
 
 let overrides: Record<string, SeriesMeta> = {};
@@ -38,7 +43,9 @@ export async function loadSeriesMeta(force = false): Promise<SeriesMeta[]> {
   if (loaded && !force) return Object.values(overrides);
   const { data } = await supa
     .from("md_series")
-    .select("id, title, tagline, genre, price, free_minutes, sort_order, hidden, poster_url");
+    .select(
+      "id, title, tagline, genre, price, free_minutes, sort_order, hidden, poster_url, deleted_at, replaced_by, purged_at",
+    );
   const next: Record<string, SeriesMeta> = {};
   for (const row of (data ?? []) as SeriesMeta[]) {
     next[row.id] = { ...row, free_minutes: Number(row.free_minutes) };
@@ -58,6 +65,92 @@ export function useCatalog(): Series[] {
 export function useSeriesById(id: string | undefined): Series | undefined {
   const list = useCatalog();
   return useMemo(() => (id ? list.find((s) => s.id === id) : undefined), [list, id]);
+}
+
+/** Устгасан киноны оронд шилжүүлсэн кино (гинжийг дагана, эргэлдэхгүй) —
+ * хуучин зар, пост, ботын карт, /u/ линк шинэ кино руу орно. */
+export function replacementOf(
+  metas: Record<string, SeriesMeta>,
+  id: string | undefined,
+): string | undefined {
+  let at = id;
+  for (let hop = 0; at && hop < 5; hop++) {
+    const next = metas[at]?.deleted_at ? metas[at]?.replaced_by : null;
+    if (!next || next === id) break;
+    at = next;
+  }
+  return at && at !== id ? at : undefined;
+}
+
+export function useReplacement(id: string | undefined): string | undefined {
+  const o = useSeriesOverrides();
+  return useMemo(() => replacementOf(o, id), [o, id]);
+}
+
+/** «series-260928-1940» → «2026.09.28 19:40» — ижил нэртэй хоёр киног ялгана. */
+export function addedAt(id: string): string {
+  const m = /^series-(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})$/.exec(id);
+  return m ? `20${m[1]}.${m[2]}.${m[3]} ${m[4]}:${m[5]}` : id;
+}
+
+export interface SeriesUsage {
+  buyers: number;
+  pending: number;
+  links: number;
+}
+
+export async function seriesUsage(id: string): Promise<SeriesUsage | null> {
+  const { data, error } = await supa.rpc("md_admin_series_usage", { p_series: id });
+  return error ? null : (data as SeriesUsage);
+}
+
+export async function deleteSeries(
+  id: string,
+  replacement: string,
+): Promise<{ ok: boolean; reason?: string; moved?: SeriesUsage & { left: number } }> {
+  const { data, error } = await supa.rpc("md_admin_delete_series", {
+    p_series: id,
+    p_replacement: replacement || null,
+  });
+  if (error) return { ok: false, reason: error.message };
+  await loadSeriesMeta(true);
+  return { ok: true, moved: data as SeriesUsage & { left: number } };
+}
+
+export async function restoreSeries(
+  id: string,
+): Promise<{ ok: boolean; reason?: string; back?: { purchases: number; links: number } }> {
+  const { data, error } = await supa.rpc("md_admin_restore_series", { p_series: id });
+  if (error) return { ok: false, reason: error.message };
+  await loadSeriesMeta(true);
+  return { ok: true, back: data as { purchases: number; links: number } };
+}
+
+/** Устгасан киноны бичлэгийг R2-оос бүрмөсөн устгана (functions/api/admin/purge.js),
+ * хэсэг хэсгээр — дуусталаа. Буцаах боломжгүй. */
+export async function purgeSeriesFiles(
+  id: string,
+  onProgress: (files: number) => void,
+): Promise<{ ok: boolean; reason?: string; files?: number }> {
+  const { data: sess } = await supa.auth.getSession();
+  const token = sess.session?.access_token;
+  if (!token) return { ok: false, reason: "Нэвтрээгүй байна" };
+  let files = 0;
+  for (let round = 0; round < 400; round++) {
+    const res = await fetch(`/api/admin/purge?series=${encodeURIComponent(id)}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const out = (await res.json().catch(() => ({}))) as { deleted?: number; more?: boolean; error?: string };
+    if (!res.ok) return { ok: false, reason: out.error || `алдаа ${res.status}`, files };
+    files += Number(out.deleted || 0);
+    onProgress(files);
+    if (!out.more) break;
+  }
+  const { error } = await supa.rpc("md_admin_mark_purged", { p_series: id });
+  if (error) return { ok: false, reason: error.message, files };
+  await loadSeriesMeta(true);
+  return { ok: true, files };
 }
 
 // Постерыг утаснаас шууд солино: зургийг багасгаад сервер рүү явуулж,

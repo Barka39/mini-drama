@@ -1,7 +1,15 @@
-import { useEffect } from "react";
-import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
+import {
+  BrowserRouter,
+  HashRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { PATH_MODE } from "./lib/routing";
-import { loadSeriesMeta } from "./lib/seriesAdmin";
+import { loadSeriesMeta, useReplacement } from "./lib/seriesAdmin";
 import { getSeries } from "./data/catalog";
 import { isMetaInApp, markModalInUrl } from "./lib/inapp";
 import { track } from "./lib/track";
@@ -26,6 +34,20 @@ import { InstallPrompt } from "./components/InstallPrompt";
 
 // Үндсэн домэйнд #-гүй хаяг (BrowserRouter), GitHub-ийн нөөц хаягт HashRouter
 const Router = PATH_MODE ? BrowserRouter : HashRouter;
+
+/** Устгасан киноны хуучин хаяг (зар, пост, ботын карт, хуваалцсан линк) —
+ * админ худалдан авагчдыг нь шилжүүлсэн кино руу автоматаар орно (?src= хэвээр). */
+function Moved({ children }: { children: ReactNode }) {
+  const { seriesId } = useParams();
+  const location = useLocation();
+  const target = useReplacement(seriesId);
+  if (!seriesId || !target) return <>{children}</>;
+  const path = location.pathname
+    .split("/")
+    .map((part) => (part === seriesId ? target : part))
+    .join("/");
+  return <Navigate to={`${path}${location.search}`} replace />;
+}
 
 export default function App() {
   // Админы засварыг (нэр, ангилал, үнэ, эрэмбэ) ачаална
@@ -54,9 +76,9 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/series/:seriesId" element={<SeriesPage />} />
-        <Route path="/watch/:seriesId/:epIndex" element={<PlayerFeed />} />
-        <Route path="/movie/:seriesId" element={<MoviePlayer />} />
+        <Route path="/series/:seriesId" element={<Moved><SeriesPage /></Moved>} />
+        <Route path="/watch/:seriesId/:epIndex" element={<Moved><PlayerFeed /></Moved>} />
+        <Route path="/movie/:seriesId" element={<Moved><MoviePlayer /></Moved>} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/search" element={<SearchPage />} />
