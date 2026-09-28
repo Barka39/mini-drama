@@ -690,6 +690,8 @@ export function AdminPage() {
       <p className="muted small">
         Бүртгүүлж чаддаггүй хүнд зориулав. Линк дээр дарахад л <strong>тухайн кино</strong>{" "}
         нээгдэнэ — утас, нууц үг шаардахгүй. Линк бүр зөвхөн сонгосон кинонд хүчинтэй.
+        Шинэ линк <strong>7 хоног</strong> хүчинтэй, түүгээр нээгдсэн эрх 7 хоногийн дараа
+        хаагдана. «Хуулах» нь линкийг «✅ Төлбөр төлөгдсөн» мессежтэй нь хуулна.
       </p>
       <div className="link-form">
         <select
@@ -755,8 +757,11 @@ export function AdminPage() {
                 <button
                   className="copy-btn"
                   onClick={() => {
-                    void navigator.clipboard?.writeText(linkUrl(l.token));
-                    setMsg("Линк хуулагдлаа ✅");
+                    // төлсөн хүнд явуулах мессежтэй нь (ботын карттай адил үг — эзэн 2026-09-28)
+                    void navigator.clipboard?.writeText(
+                      `✅ Төлбөр төлөгдсөн! Киногоо доорх линкээр шууд үзээрэй 🍿\n${linkUrl(l.token)}`,
+                    );
+                    setMsg("Линк мессежтэйгээ хуулагдлаа ✅");
                   }}
                 >
                   Хуулах

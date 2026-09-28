@@ -2673,3 +2673,292 @@ update md_access_links set expires_at = least(expires_at, created_at + interval 
  where note like 'bot:%' or note like 'receipt:%' or note like 'transfer:%';
 
 notify pgrst, 'reload schema';
+
+-- Ботын линкээр нээгдсэн ҮЗЭХ ЭРХ ч 7 хоног (эзэн 2026-09-28: «үзэх эрх ч үлдэх
+-- хэрэггүй — бүхэл 7 хоногт үзчихсэн байх»). Ботын линк (bot:/receipt:/transfer:)
+-- нээгдэхэд худалдан авалтын мөр paid_via = 'bot7:<note>' гэж тэмдэглэгдэнэ; нээснээс
+-- хойш 7 хоногийн дараа тэр мөр устана. Сайтын өөрийн худалдан авалт, админы
+-- гараар өгсөн линкэнд хүрэхгүй.
+CREATE OR REPLACE FUNCTION public.md_claim_access(p_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_link md_access_links%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select * into v_link from md_access_links where token = p_token for update;
+  if v_link.token is null then raise exception 'bad_link'; end if;
+  if v_link.revoked then raise exception 'revoked'; end if;
+  if v_link.expires_at is not null and v_link.expires_at < now() then
+    raise exception 'expired';
+  end if;
+
+  -- Профайл байхгүй бол үүсгэнэ (утасны дугааргүй байж болно)
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
+  -- Аль хэдийн энэ эрхтэй бол дахин тоолохгүй (нэг хүн дахин нээхэд)
+  if v_link.series_id is not null
+     and exists (select 1 from md_purchases
+                 where user_id = auth.uid() and series_id = v_link.series_id
+                   and status = 'confirmed') then
+    return jsonb_build_object('ok', true, 'series_id', v_link.series_id, 'repeat', true);
+  end if;
+
+  if v_link.purchase_id is not null
+     and not exists (select 1 from md_purchases
+                      where id = v_link.purchase_id and status = 'confirmed') then
+    raise exception 'not_paid_yet';
+  end if;
+
+  if v_link.claims >= v_link.max_claims then
+    raise exception 'used_up';
+  end if;
+
+  if v_link.series_id is not null then
+    insert into md_purchases (user_id, series_id, price, amount, status, decided_at, paid_via)
+    values (auth.uid(), v_link.series_id, 0, 0, 'confirmed', now(),
+            case when v_link.purchase_id is not null then 'link:' || v_link.purchase_id
+                 -- Messenger ботын линк: эрх нь 7 хоног (md__bot_prune)
+                 when v_link.note like 'bot:%' or v_link.note like 'receipt:%' or v_link.note like 'transfer:%'
+                   then left('bot7:' || v_link.note, 60)
+                 else null end)
+    on conflict do nothing;
+  end if;
+
+  if v_link.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_link.plan_days || ' days')::interval
+     where id = auth.uid();
+  end if;
+
+  update md_access_links set claims = claims + 1 where token = p_token;
+
+  return jsonb_build_object('ok', true, 'series_id', v_link.series_id,
+                            'plan_days', v_link.plan_days);
+end;
+$function$;
+
+-- Цэвэрлэгээ: 7 хоног болсон ботын эрх, хугацаа дууссан автомат линкүүд
+create or replace function public.md__bot_prune()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_access integer;
+  v_links integer;
+  v_qpay integer;
+begin
+  delete from md_purchases
+   where paid_via like 'bot7:%' and coalesce(decided_at, created_at) < now() - interval '7 days';
+  get diagnostics v_access = row_count;
+  delete from md_access_links
+   where (note like 'bot:%' or note like 'receipt:%' or note like 'transfer:%') and expires_at < now();
+  get diagnostics v_links = row_count;
+  delete from md_access_links l
+   where l.note = 'QPay' and l.created_at < now() - interval '7 days'
+     and exists (select 1 from md_purchases p where p.id = l.purchase_id and p.status = 'confirmed'
+                  and coalesce(p.decided_at, p.created_at) < now() - interval '7 days');
+  get diagnostics v_qpay = row_count;
+  return jsonb_build_object('access', v_access, 'links', v_links, 'qpay_links', v_qpay);
+end;
+$$;
+revoke all on function public.md__bot_prune() from public, anon, authenticated;
+
+-- Бот цаг тутам дууддаг (нууц үгтэй)
+create or replace function public.md_bot_prune(p_secret text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  return public.md__bot_prune();
+end;
+$$;
+revoke all on function public.md_bot_prune(text) from public;
+grant execute on function public.md_bot_prune(text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
+
+-- Админы «бүртгэлгүй хүнд» линк ч 7 хоног (эзэн 2026-09-28: «угаас төлбөр төлсөн
+-- хүмүүст л явуулдаг»): ШИНЭЭР үүсгэх линк 7 хоногийн дараа устана, түүгээр нээгдсэн
+-- эрх нээснээс 7 хоногийн дараа хаагдана. Хуучин (хугацаагүй) линкүүд хэвээр.
+CREATE OR REPLACE FUNCTION public.md_create_links(p_series text, p_count integer DEFAULT 1, p_max_claims integer DEFAULT 1, p_note text DEFAULT ''::text)
+ RETURNS SETOF text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  i integer;
+  v_token text;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  if p_count < 1 or p_count > 50 then
+    raise exception 'bad_count';
+  end if;
+  for i in 1..p_count loop
+    -- pgcrypto өөр схемд байдаг тул суурь функцээр богино санамсаргүй токен үүсгэнэ
+    v_token := substr(md5(random()::text || clock_timestamp()::text || i::text), 1, 10);
+    insert into md_access_links (token, series_id, max_claims, note, expires_at)
+    values (v_token, p_series, greatest(1, p_max_claims), p_note, now() + interval '7 days');
+    return next v_token;
+  end loop;
+end;
+$function$;
+
+-- Нээхэд: хугацаатай, QPay-ийн биш линк (бот ба шинэ админы линк) → эрх 7 хоног
+CREATE OR REPLACE FUNCTION public.md_claim_access(p_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_link md_access_links%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'not_signed_in';
+  end if;
+
+  select * into v_link from md_access_links where token = p_token for update;
+  if v_link.token is null then raise exception 'bad_link'; end if;
+  if v_link.revoked then raise exception 'revoked'; end if;
+  if v_link.expires_at is not null and v_link.expires_at < now() then
+    raise exception 'expired';
+  end if;
+
+  -- Профайл байхгүй бол үүсгэнэ (утасны дугааргүй байж болно)
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
+  -- Аль хэдийн энэ эрхтэй бол дахин тоолохгүй (нэг хүн дахин нээхэд)
+  if v_link.series_id is not null
+     and exists (select 1 from md_purchases
+                 where user_id = auth.uid() and series_id = v_link.series_id
+                   and status = 'confirmed') then
+    return jsonb_build_object('ok', true, 'series_id', v_link.series_id, 'repeat', true);
+  end if;
+
+  if v_link.purchase_id is not null
+     and not exists (select 1 from md_purchases
+                      where id = v_link.purchase_id and status = 'confirmed') then
+    raise exception 'not_paid_yet';
+  end if;
+
+  if v_link.claims >= v_link.max_claims then
+    raise exception 'used_up';
+  end if;
+
+  if v_link.series_id is not null then
+    insert into md_purchases (user_id, series_id, price, amount, status, decided_at, paid_via)
+    values (auth.uid(), v_link.series_id, 0, 0, 'confirmed', now(),
+            case when v_link.purchase_id is not null then 'link:' || v_link.purchase_id
+                 -- 7 хоногийн линк (Messenger бот, шинэ админы линк): эрх нь 7 хоног (md__bot_prune)
+                 when v_link.expires_at is not null
+                   then left('bot7:' || coalesce(nullif(v_link.note, ''), 'admin'), 60)
+                 else null end)
+    on conflict do nothing;
+  end if;
+
+  if v_link.plan_days is not null then
+    update md_profiles
+       set vip_until = greatest(coalesce(vip_until, now()), now())
+                       + (v_link.plan_days || ' days')::interval
+     where id = auth.uid();
+  end if;
+
+  update md_access_links set claims = claims + 1 where token = p_token;
+
+  return jsonb_build_object('ok', true, 'series_id', v_link.series_id,
+                            'plan_days', v_link.plan_days);
+end;
+$function$;
+
+-- Цэвэрлэгээ: хугацаа нь дууссан бүх 7 хоногийн линк (бот ба шинэ админы)
+create or replace function public.md__bot_prune()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_access integer;
+  v_links integer;
+  v_qpay integer;
+begin
+  delete from md_purchases
+   where paid_via like 'bot7:%' and coalesce(decided_at, created_at) < now() - interval '7 days';
+  get diagnostics v_access = row_count;
+  delete from md_access_links
+   where purchase_id is null and expires_at is not null and expires_at < now();
+  get diagnostics v_links = row_count;
+  delete from md_access_links l
+   where l.note = 'QPay' and l.created_at < now() - interval '7 days'
+     and exists (select 1 from md_purchases p where p.id = l.purchase_id and p.status = 'confirmed'
+                  and coalesce(p.decided_at, p.created_at) < now() - interval '7 days');
+  get diagnostics v_qpay = row_count;
+  return jsonb_build_object('access', v_access, 'links', v_links, 'qpay_links', v_qpay);
+end;
+$$;
+revoke all on function public.md__bot_prune() from public, anon, authenticated;
+
+notify pgrst, 'reload schema';
+
+-- Автомат линк 7 хоног (эзэн 2026-09-28): бүртгэлгүй хүнд чатаар/QPay-ээр өгсөн
+-- линк 7 хоногийн дараа устана — удаан байх хэрэггүй, өгөгдөл эзэлдэг. Үзэх эрх нь
+-- (md_purchases мөр) хэвээр: линк устахад зөвхөн шинэ төхөөрөмжөөр нээх боломж хаагдана.
+-- Админы гараар үүсгэсэн линкэнд хүрэхгүй.
+create or replace function public.md_bot_movie_link(p_secret text, p_series text, p_note text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+  v_series text := p_series;
+  v_next text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  -- хугацаа нь дууссан 7 хоногийн линк, эрхийг цэвэрлэнэ (md__bot_prune)
+  perform public.md__bot_prune();
+  for hop in 1..5 loop
+    select replaced_by into v_next from md_series where id = v_series and deleted_at is not null;
+    exit when v_next is null;
+    v_series := v_next;
+  end loop;
+  if p_note is null or length(p_note) < 4
+     or not exists (select 1 from md_series where id = v_series and deleted_at is null and not hidden) then
+    return null;
+  end if;
+  select token into v_token from md_access_links where note = p_note and not revoked limit 1;
+  if v_token is not null then
+    return v_token;
+  end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at)
+  values (v_token, v_series, 1, p_note, now() + interval '7 days');
+  return v_token;
+end;
+$$;
+revoke all on function public.md_bot_movie_link(text, text, text) from public;
+grant execute on function public.md_bot_movie_link(text, text, text) to anon, authenticated;
+
+
+notify pgrst, 'reload schema';
