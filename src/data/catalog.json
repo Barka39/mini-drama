@@ -351,6 +351,19 @@
       "hls": {
         "duration": 5742.9
       }
+    },
+    {
+      "id": "series-260928-1940",
+      "title": "Хүчирхэг Мужаан",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260928-1940.jpg",
+      "price": 3800,
+      "freeMinutes": 8,
+      "episodes": [],
+      "hls": {
+        "duration": 5742.8
+      }
     }
   ]
 }

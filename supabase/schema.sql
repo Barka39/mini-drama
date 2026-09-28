@@ -2303,3 +2303,71 @@ create policy md_events_insert on public.md_events
     and length(sid) between 8 and 40
     and (series_id is null or length(series_id) <= 40)
   );
+
+-- ============================================================================
+-- Кино Мандал Messenger bot (2026-09-28, owner-approved): movie links in chat.
+-- Two functions, secret-checked like md_create_pay_link (md__secret_ok). The
+-- site's pages and code are unchanged.
+--
+-- A bot link opens ONE device (max_claims 1) — the owner: "it must not be
+-- possible to log in on another device with that link, or pass it to others".
+-- One link per note: asking twice for the same checkout/receipt gives the
+-- same link, never a second one.
+-- ============================================================================
+
+create or replace function public.md_bot_movie_link(p_secret text, p_series text, p_note text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  if p_note is null or length(p_note) < 4 or not exists (select 1 from md_series where id = p_series) then
+    return null;
+  end if;
+  select token into v_token from md_access_links where note = p_note and not revoked limit 1;
+  if v_token is not null then
+    return v_token;
+  end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at)
+  values (v_token, p_series, 1, p_note, now() + interval '30 days');
+  return v_token;
+end;
+$$;
+revoke all on function public.md_bot_movie_link(text, text, text) from public;
+grant execute on function public.md_bot_movie_link(text, text, text) to anon, authenticated;
+
+-- Paid movie orders near a receipt's amount and time — the bot finds whose
+-- receipt it is (a person who paid by QPay on the site and lost the page).
+-- `linked` = the bot already gave this order its link (note 'receipt:md-<id>').
+create or replace function public.md_bot_find_paid(p_secret text, p_amount integer, p_from timestamptz, p_to timestamptz)
+returns table (purchase_id bigint, series_id text, title text, paid_at timestamptz, linked boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  return query
+    select p.id, p.series_id, s.title, coalesce(p.decided_at, p.created_at),
+           exists (select 1 from md_access_links l where l.note = 'receipt:md-' || p.id)
+      from md_purchases p
+      left join md_series s on s.id = p.series_id
+     where p.status = 'confirmed'
+       and coalesce(p.kind, 'movie') = 'movie'
+       and coalesce(p.amount, p.price) between p_amount - 150 and p_amount + 150
+       and coalesce(p.decided_at, p.created_at) between p_from and p_to
+     order by coalesce(p.decided_at, p.created_at) desc
+     limit 10;
+end;
+$$;
+revoke all on function public.md_bot_find_paid(text, integer, timestamptz, timestamptz) from public;
+grant execute on function public.md_bot_find_paid(text, integer, timestamptz, timestamptz) to anon, authenticated;
