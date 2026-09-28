@@ -2371,3 +2371,251 @@ end;
 $$;
 revoke all on function public.md_bot_find_paid(text, integer, timestamptz, timestamptz) from public;
 grant execute on function public.md_bot_find_paid(text, integer, timestamptz, timestamptz) to anon, authenticated;
+-- ============================================================================
+-- Кино устгах (эзэн 2026-09-28): «админ хэсэгт киног устгах боломж».
+--
+-- Устгах = сайтаас алга болгох + худалдаж авсан хүмүүсийг (төлсөн, төлөгдөж
+-- буй захиалга, /u/ линкүүд) сонгосон кино руу шилжүүлэх. Хуучин хаяг (зар,
+-- пост, бот) шинэ кино руу дамжина (replaced_by). Бичлэгийн файл «Устгасан
+-- кинонууд» хэсгээс эзэн бүрмөсөн устгах хүртэл хадгалагдана — тэр хүртэл
+-- «Сэргээх» нь бүх шилжүүлгийг буцаана (md_series_moves).
+--
+-- md_series мөрийг өөрийг нь УСТГАХГҮЙ: «Сайт шинэчлэх» catalog.json-оос
+-- кинонуудыг дахин бүртгэдэг тул мөр алга болвол кино амилна. deleted_at +
+-- hidden нь тэр бүртгэлд хөндөгддөггүй.
+-- ============================================================================
+
+alter table public.md_series add column if not exists deleted_at timestamptz;
+alter table public.md_series add column if not exists replaced_by text;
+alter table public.md_series add column if not exists purged_at timestamptz;
+
+create table if not exists public.md_series_moves (
+  id bigserial primary key,
+  series_id text not null,
+  replacement text,
+  purchase_ids bigint[] not null default '{}',
+  link_tokens text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  undone_at timestamptz
+);
+alter table public.md_series_moves enable row level security;
+-- Бодлого байхгүй = зөвхөн доорх функцээр
+
+-- Устгахын өмнө эзэнд харуулах тоо
+create or replace function public.md_admin_series_usage(p_series text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  return jsonb_build_object(
+    'buyers', (select count(*) from md_purchases where series_id = p_series and status = 'confirmed'),
+    'pending', (select count(*) from md_purchases where series_id = p_series and status = 'pending'),
+    'links', (select count(*) from md_access_links where series_id = p_series and not revoked)
+  );
+end;
+$$;
+revoke all on function public.md_admin_series_usage(text) from public, anon;
+grant execute on function public.md_admin_series_usage(text) to authenticated;
+
+create or replace function public.md_admin_delete_series(p_series text, p_replacement text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row md_series;
+  v_to md_series;
+  v_confirmed bigint[] := '{}';
+  v_pending bigint[] := '{}';
+  v_links text[] := '{}';
+  v_left integer := 0;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  select * into v_row from md_series where id = p_series for update;
+  if not found then
+    raise exception 'unknown_series';
+  end if;
+  if v_row.deleted_at is not null then
+    raise exception 'already_deleted';
+  end if;
+
+  if nullif(p_replacement, '') is not null then
+    select * into v_to from md_series where id = p_replacement;
+    -- шилжүүлэх кино нь сайтад гарсан, тоглодог байх ёстой
+    if not found or v_to.id = p_series or v_to.deleted_at is not null or v_to.hidden
+       or not (coalesce(v_to.hls, false) or coalesce(array_length(v_to.ep_durations, 1), 0) > 0) then
+      raise exception 'bad_replacement';
+    end if;
+
+    -- Төлсөн хүмүүс (шинэ киног аль хэдийн эзэмшдэгийг нь хөндөхгүй — давхардахгүй)
+    with moved as (
+      update md_purchases g set series_id = p_replacement
+       where g.series_id = p_series and g.status = 'confirmed'
+         and not exists (select 1 from md_purchases t
+                          where t.user_id = g.user_id and t.series_id = p_replacement
+                            and t.status = 'confirmed')
+      returning g.id
+    )
+    select coalesce(array_agg(id), '{}') into v_confirmed from moved;
+
+    -- Төлөгдөж буй захиалга: мөнгө нь орвол шинэ кино нээгдэнэ
+    with moved as (
+      update md_purchases g set series_id = p_replacement
+       where g.series_id = p_series and g.status = 'pending'
+         and not exists (select 1 from md_purchases t
+                          where t.user_id = g.user_id and t.series_id = p_replacement
+                            and t.status in ('pending', 'confirmed'))
+      returning g.id
+    )
+    select coalesce(array_agg(id), '{}') into v_pending from moved;
+
+    -- /u/ линкүүд (QPay, бот, админы линк) — нээхэд шинэ кино
+    with moved as (
+      update md_access_links set series_id = p_replacement
+       where series_id = p_series
+      returning token
+    )
+    select coalesce(array_agg(token), '{}') into v_links from moved;
+
+    select count(*) into v_left from md_purchases
+     where series_id = p_series and status in ('confirmed', 'pending');
+  end if;
+
+  update md_series
+     set hidden = true, deleted_at = now(), replaced_by = nullif(p_replacement, '')
+   where id = p_series;
+  insert into md_series_moves (series_id, replacement, purchase_ids, link_tokens)
+  values (p_series, nullif(p_replacement, ''), v_confirmed || v_pending, v_links);
+
+  return jsonb_build_object(
+    'ok', true,
+    'buyers', coalesce(array_length(v_confirmed, 1), 0),
+    'pending', coalesce(array_length(v_pending, 1), 0),
+    'links', coalesce(array_length(v_links, 1), 0),
+    'left', v_left
+  );
+end;
+$$;
+revoke all on function public.md_admin_delete_series(text, text) from public, anon;
+grant execute on function public.md_admin_delete_series(text, text) to authenticated;
+
+-- Сэргээх: кино буцаж гарна, шилжүүлсэн бүхэн буцна (бичлэг нь устаагүй бол)
+create or replace function public.md_admin_restore_series(p_series text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row md_series;
+  v_move md_series_moves;
+  v_moved boolean;
+  v_back integer := 0;
+  v_links integer := 0;
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  select * into v_row from md_series where id = p_series for update;
+  if not found or v_row.deleted_at is null then
+    raise exception 'not_deleted';
+  end if;
+  if v_row.purged_at is not null then
+    raise exception 'purged';
+  end if;
+
+  select * into v_move from md_series_moves
+   where series_id = p_series and undone_at is null
+   order by id desc limit 1;
+  v_moved := found;
+  if v_moved and v_move.replacement is not null then
+    update md_purchases g set series_id = p_series
+     where g.id = any(v_move.purchase_ids) and g.series_id = v_move.replacement
+       and not exists (select 1 from md_purchases t
+                        where t.user_id = g.user_id and t.series_id = p_series
+                          and t.status = g.status);
+    get diagnostics v_back = row_count;
+    update md_access_links set series_id = p_series
+     where token = any(v_move.link_tokens) and series_id = v_move.replacement;
+    get diagnostics v_links = row_count;
+  end if;
+  if v_moved then
+    update md_series_moves set undone_at = now() where id = v_move.id;
+  end if;
+
+  update md_series set hidden = false, deleted_at = null, replaced_by = null where id = p_series;
+  return jsonb_build_object('ok', true, 'purchases', v_back, 'links', v_links);
+end;
+$$;
+revoke all on function public.md_admin_restore_series(text) from public, anon;
+grant execute on function public.md_admin_restore_series(text) to authenticated;
+
+-- Бичлэгийн файлыг бүрмөсөн устгасны тэмдэг (functions/api/admin/purge.js-ийн дараа)
+create or replace function public.md_admin_mark_purged(p_series text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.md_is_admin() then
+    raise exception 'not_admin';
+  end if;
+  update md_series set purged_at = now() where id = p_series and deleted_at is not null;
+  if not found then
+    raise exception 'not_deleted';
+  end if;
+end;
+$$;
+revoke all on function public.md_admin_mark_purged(text) from public, anon;
+grant execute on function public.md_admin_mark_purged(text) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- Ботын линк устгасан кинонд хэзээ ч үүсэхгүй (2026-09-28): кино устгагдаж
+-- шилжсэн бол (replaced_by) шинэ кинонд үүснэ; шилжүүлэлтгүй устгасан бол үүсэхгүй.
+create or replace function public.md_bot_movie_link(p_secret text, p_series text, p_note text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+  v_series text := p_series;
+  v_next text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  for hop in 1..5 loop
+    select replaced_by into v_next from md_series where id = v_series and deleted_at is not null;
+    exit when v_next is null;
+    v_series := v_next;
+  end loop;
+  if p_note is null or length(p_note) < 4
+     or not exists (select 1 from md_series where id = v_series and deleted_at is null and not hidden) then
+    return null;
+  end if;
+  select token into v_token from md_access_links where note = p_note and not revoked limit 1;
+  if v_token is not null then
+    return v_token;
+  end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at)
+  values (v_token, v_series, 1, p_note, now() + interval '30 days');
+  return v_token;
+end;
+$$;
+revoke all on function public.md_bot_movie_link(text, text, text) from public;
+grant execute on function public.md_bot_movie_link(text, text, text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
