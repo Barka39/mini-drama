@@ -62,6 +62,9 @@ export async function listLinks(seriesId?: string): Promise<AccessLink[]> {
     .select("token, series_id, max_claims, claims, note, revoked, created_at")
     // QPay-ийн дараа автоматаар үүсдэг төлбөрийн линкүүдийг жагсаалтад холихгүй
     .is("purchase_id", null)
+    // Messenger ботын автомат линкүүд ч (чатаар төлсөн, баримтаар олдсон) — эзэнд харуулах
+    // шаардлагагүй (эзэн 2026-09-28); тэд 7 хоногийн дараа өөрсдөө устдаг
+    .or("note.is.null,and(note.not.like.bot:*,note.not.like.receipt:*,note.not.like.transfer:*)")
     .order("created_at", { ascending: false })
     .limit(60);
   if (seriesId) q = q.eq("series_id", seriesId);

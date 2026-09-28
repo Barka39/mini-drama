@@ -50,6 +50,18 @@ export async function onRequestGet({ request, env, params }) {
     html = html
       .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${self}" />`)
       .replace(/<link rel="canonical"[^>]*>\s*/, "");
+    if (id) {
+      // Энэ бол ТӨЛСӨН хүний линк: карт нь киноны борлуулалтын линкээс өөр харагдах ёстой
+      // (эзэн 2026-09-28: адилхан картыг хүмүүс «дахин төлүүлэх гэж байна» гэж ойлгодог)
+      const name = (/<meta property="og:title" content="([^"]*)"/.exec(html)?.[1] || "").replace(/\s*[—-]\s*Кино Мандал\s*$/, "");
+      const title = `✅ Төлбөр төлөгдсөн — ${name ? `«${name}» ` : ""}▶️ Шууд үзэх`;
+      const text = "Энэ линкээр киногоо шууд бүтнээр нь үзнэ — дахин төлөх шаардлагагүй.";
+      html = html
+        .replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`)
+        .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${title}" />`)
+        .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${text}" />`)
+        .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${text}" />`);
+    }
   }
   return new Response(html, {
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },

@@ -2619,3 +2619,57 @@ revoke all on function public.md_bot_movie_link(text, text, text) from public;
 grant execute on function public.md_bot_movie_link(text, text, text) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- Автомат линк 7 хоног (эзэн 2026-09-28): бүртгэлгүй хүнд чатаар/QPay-ээр өгсөн
+-- линк 7 хоногийн дараа устана — удаан байх хэрэггүй, өгөгдөл эзэлдэг. Үзэх эрх нь
+-- (md_purchases мөр) хэвээр: линк устахад зөвхөн шинэ төхөөрөмжөөр нээх боломж хаагдана.
+-- Админы гараар үүсгэсэн линкэнд хүрэхгүй.
+create or replace function public.md_bot_movie_link(p_secret text, p_series text, p_note text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+  v_series text := p_series;
+  v_next text;
+begin
+  if not public.md__secret_ok(p_secret) then
+    raise exception 'bad_secret';
+  end if;
+  -- хугацаа нь дууссан автомат линкүүдийг цэвэрлэнэ (бот, баримт, шилжүүлэг, сайтын QPay)
+  delete from md_access_links
+   where (note like 'bot:%' or note like 'receipt:%' or note like 'transfer:%')
+     and expires_at < now();
+  delete from md_access_links l
+   where l.note = 'QPay' and l.created_at < now() - interval '7 days'
+     and exists (select 1 from md_purchases p where p.id = l.purchase_id and p.status = 'confirmed'
+                  and coalesce(p.decided_at, p.created_at) < now() - interval '7 days');
+  for hop in 1..5 loop
+    select replaced_by into v_next from md_series where id = v_series and deleted_at is not null;
+    exit when v_next is null;
+    v_series := v_next;
+  end loop;
+  if p_note is null or length(p_note) < 4
+     or not exists (select 1 from md_series where id = v_series and deleted_at is null and not hidden) then
+    return null;
+  end if;
+  select token into v_token from md_access_links where note = p_note and not revoked limit 1;
+  if v_token is not null then
+    return v_token;
+  end if;
+  v_token := replace(gen_random_uuid()::text, '-', '');
+  insert into md_access_links (token, series_id, max_claims, note, expires_at)
+  values (v_token, v_series, 1, p_note, now() + interval '7 days');
+  return v_token;
+end;
+$$;
+revoke all on function public.md_bot_movie_link(text, text, text) from public;
+grant execute on function public.md_bot_movie_link(text, text, text) to anon, authenticated;
+
+-- өмнө нь 30 хоногоор үүссэн автомат линкүүд: 7 хоног болгоно
+update md_access_links set expires_at = least(expires_at, created_at + interval '7 days')
+ where note like 'bot:%' or note like 'receipt:%' or note like 'transfer:%';
+
+notify pgrst, 'reload schema';
