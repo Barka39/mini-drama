@@ -47,7 +47,7 @@ export function InAppGuide({ kind, chromePath }: { kind: "movie" | "sub"; chrome
           <span>iPhone хэрэглэгч анхаараарай</span>
         </div>
         <p className="iab-guide-title">
-          Төлбөр төлөхийн тулд сайтаа <strong>Safari</strong> эсвэл <strong>Chrome</strong>-д нээнэ үү
+          Төлбөр төлөхийн тулд сайтаа утасныхаа <strong>хөтчид</strong> (Safari, Chrome) нээнэ үү
         </p>
         <p className="iab-guide-why">
           Facebook, Messenger дотроос банкны апп нээгддэггүй тул энд төлбөр ажиллахгүй.
@@ -62,9 +62,9 @@ export function InAppGuide({ kind, chromePath }: { kind: "movie" | "sub"; chrome
           </li>
           <li>
             <strong>
-              <Compass size={15} className="iab-inline-icon" /> «Safari-д нээх»
+              <Compass size={15} className="iab-inline-icon" /> «Open in external browser»
             </strong>{" "}
-            (<em>Open in Safari</em> / <em>Open in external browser</em>) гэснийг сонгоно
+            гэснийг сонгоно
           </li>
           <li>
             Нээгдсэн хуудсан дээр <strong>«Төлбөр төлөх»</strong> дарж банкаа сонгоно
@@ -78,7 +78,7 @@ export function InAppGuide({ kind, chromePath }: { kind: "movie" | "sub"; chrome
           <Globe size={16} /> Chrome байгаа бол: Chrome-оор нээх
         </a>
         <button className="btn btn-glass iab-guide-copy" onClick={copyLink}>
-          <Copy size={16} /> {copied ? "Хуулагдлаа — Safari-д буулгана уу" : "Эсвэл линк хуулаад Safari-д буулгах"}
+          <Copy size={16} /> {copied ? "Хуулагдлаа — хөтчийнхөө хаягийн мөрөнд буулгана уу" : "Эсвэл линк хуулаад хөтчид буулгах"}
         </button>
       </div>
     </>
