@@ -364,6 +364,19 @@
       "hls": {
         "duration": 5742.8
       }
+    },
+    {
+      "id": "series-260930-1255",
+      "title": "Мафийн боссын босс болсон нь",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260930-1255.jpg",
+      "price": 3800,
+      "freeMinutes": 8,
+      "episodes": [],
+      "hls": {
+        "duration": 8531.6
+      }
     }
   ]
 }
