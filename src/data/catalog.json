@@ -390,6 +390,19 @@
       "hls": {
         "duration": 5874.6
       }
+    },
+    {
+      "id": "series-260930-2331",
+      "title": "Хаягдсан Луугын хаан",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260930-2331.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 6163.5
+      }
     }
   ]
 }
