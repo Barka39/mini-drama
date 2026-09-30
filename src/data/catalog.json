@@ -377,6 +377,19 @@
       "hls": {
         "duration": 8531.6
       }
+    },
+    {
+      "id": "series-260930-2312",
+      "title": "Хүний ертөнцийн Асура",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-260930-2312.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 5874.6
+      }
     }
   ]
 }
