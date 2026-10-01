@@ -403,6 +403,19 @@
       "hls": {
         "duration": 6163.5
       }
+    },
+    {
+      "id": "series-261001-1651",
+      "title": "Итгэл алдарсан хайр",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261001-1651.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 4507.3
+      }
     }
   ]
 }

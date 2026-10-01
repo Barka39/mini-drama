@@ -20,8 +20,11 @@ param(
     # Анхдагчаар бичлэгийн хэлбэрийг ХЭВЭЭР нь хадгална (16:9, 4:3, босоо бүгд болно).
     # Зөвхөн энэ сонголтыг өгвөл хэвтээ бичлэгийг голоос нь босоо болгож тайрна.
     [switch]$Crop9x16,
-    # Шахалтыг бүрмөсөн болиулах (эх бичлэг аль хэдийн сайн шахагдсан гэдэгт итгэлтэй бол)
-    [switch]$NoCompress
+    # Шахалтыг бүрмөсөн болиулах (эх бичлэг аль хэдийн сайн шахагдсан гэдэгт итгэлтэй бол).
+    # H.264 биш бичлэг (VP9/HEVC) энэ сонголттой ч дахин кодлогдоно — эс бөгөөс утсанд тоглохгүй.
+    [switch]$NoCompress,
+    # Intel GPU (QuickSync)-ийг ашиглахгүй, зөвхөн CPU (libx264)-ээр кодлох
+    [switch]$NoGpu
 )
 
 $ErrorActionPreference = "Stop"
@@ -77,18 +80,48 @@ $shortSide = [math]::Min($w, $h)
 $downscale = (-not $NoCompress) -and ($shortSide -gt $maxShort)
 $scaleFilter = if ($w -le $h) { "scale=${maxShort}:-2:flags=lanczos" } else { "scale=-2:${maxShort}:flags=lanczos" }
 
+# Формат: сайт бүх утсанд зөвхөн H.264 (+AAC)-аар найдвартай тоглоно. VP9/HEVC/AV1-ийг
+# тэр чигээр нь хуулбал iPhone-ийн өөрийн HLS тоглуулагч (FB/Messenger доторх хөтөч ч мөн)
+# дүрсийг тоглуулахгүй. 2026-09-30-нд bitrate бага 2 VP9 кино ингэж хуулагдсан.
+$vcodec = "$(& $ffp -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 $Video)".Trim()
+$acodec = "$(& $ffp -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 $Video)".Trim()
+$mustEncode = $vcodec -ne "h264"
+
 # Зорилтот bitrate: 720p босоо бичлэгт 1400k хангалттай.
 $targetK = 1400
 # 1.3 дахин илүү байж байж шахна — 1600 kbps-ийг 1400 болгох нь ашиггүй чанарын алдагдал.
-$needCompress = (-not $NoCompress) -and (($srcKbps -gt [int]($targetK * 1.3)) -or $downscale)
+$tooHeavy = $srcKbps -gt [int]($targetK * 1.3)
+$needCompress = $mustEncode -or ((-not $NoCompress) -and ($tooHeavy -or $downscale))
+
+# Кодлогч: Intel QuickSync (GPU) байвал түүгээр. Энэ компьютер дээр хэмжсэн (2026-10-01,
+# 720x1280 HEVC, нэг минутын хэсэг): libx264 33 сек, QSV 11 сек; чанар ижил (SSIM 0.990 / 0.989),
+# түлхүүр кадр яг 4 секунд тутам. 1 секундын туршилтаар шалгана — драйвер/төхөөрөмж
+# дэмжихгүй бол libx264 руу өөрөө буцна.
+$useQsv = $false
+if (-not $NoGpu) {
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & $ff -v error -f lavfi -i "color=black:s=640x360:d=1" -c:v h264_qsv -f null - 2>$null
+    $useQsv = ($LASTEXITCODE -eq 0)
+    $ErrorActionPreference = $prevEap
+}
+
 if ($needCompress) {
+    if ($mustEncode) {
+        Write-Host "Формат: $vcodec — iPhone болон зарим утсан дээр тоглохгүй тул H.264 болгож дахин кодлоно."
+    }
     if ($downscale) {
         Write-Host "Хэмжээ: ${w}x${h} — утсанд шаардлагагүй том тул богино талыг $maxShort болгож буулгана."
     }
-    Write-Host "Чанар: $srcKbps kbps — хэрэгцээнээс өндөр тул $targetK kbps болгож шахна (хэмжээ ~2 дахин багасна, чанар мэдэгдэхүйц буурахгүй)."
-    # Хэмжсэн хурд: бодит хугацаанаас ~1.9 дахин хурдан (720x1280, preset fast).
-    # Богино дээж дээр 4x гардаг ч бүтэн кинон дээр хөдөлгөөнтэй хэсгүүд удаашруулдаг.
-    Write-Host "  Ойролцоогоор $([math]::Ceiling($duration / 1.9 / 60)) минут үргэлжилнэ."
+    if ($tooHeavy) {
+        Write-Host "Чанар: $srcKbps kbps — хэрэгцээнээс өндөр тул $targetK kbps болгож шахна (хэмжээ ~2 дахин багасна, чанар мэдэгдэхүйц буурахгүй)."
+    }
+    # Хэмжсэн хурд (720x1280): libx264 preset fast бүтэн кинон дээр бодит хугацаанаас ~1.9 дахин
+    # (2026-10-01: 75 мин HEVC кино 46 минут); QSV 10 минутын хэсэг дээр 7.7 дахин. Хөдөлгөөнтэй
+    # хэсгүүд удаашруулдаг тул тооцоонд 6-г ашиглана.
+    $speedX = if ($useQsv) { 6 } else { 1.9 }
+    $encName = if ($useQsv) { "Intel GPU (QuickSync)" } else { "CPU (libx264)" }
+    Write-Host "  Кодлогч: $encName — ойролцоогоор $([math]::Ceiling($duration / $speedX / 60)) минут үргэлжилнэ."
 }
 else {
     Write-Host "Чанар: $srcKbps kbps — аль хэдийн зохистой тул дахин кодлохгүй (чанар 100% хэвээр)."
@@ -107,29 +140,46 @@ $full = Join-Path $fullDir "$Id.mp4"
 # maxrate = хамгийн хүнд хэсэгт ч тааз тавина (утсан дээр гацахгүй).
 # 4 секунд тутам түлхүүр кадр: HLS хэсгүүд жигд ~8 секунд болж, гүйлгэлт хурдан,
 # мөн хожим өөр чанарын хувилбар нэмэхэд хэсгүүд нь яг давхцана.
-$encode = @(
-    "-c:v", "libx264", "-crf", "24", "-preset", "fast",
-    "-maxrate", "${targetK}k", "-bufsize", "$($targetK * 2)k",
-    "-force_key_frames", "expr:gte(t,n_forced*4)",
-    "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart"
-)
+$keyframes = @("-force_key_frames", "expr:gte(t,n_forced*4)")
+$audioEnc = @("-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart")
+$x264 = @("-c:v", "libx264", "-crf", "24", "-preset", "fast",
+    "-maxrate", "${targetK}k", "-bufsize", "$($targetK * 2)k") + $keyframes + $audioEnc
+# QSV-д crf байхгүй тул дундаж bitrate өгнө: 1200k (libx264 crf 24-тэй ижил хэмжээ гардаг).
+# Эх нь VP9/HEVC шиг хэмнэлттэй, bitrate бага бол түүнээс ~1.4 дахин — H.264 ижил чанарт
+# ойролцоогоор ингэж их бит хэрэглэдэг; хэтрүүлбэл файл л томорно.
+# -forced_idr: албадсан түлхүүр кадрыг жинхэнэ IDR болгоно (HLS хэсэг бүр бие даан эхэлнэ).
+$qsvK = [math]::Min($targetK - 200, [math]::Max(500, [int]($srcKbps * 1.4)))
+$qsv = @("-c:v", "h264_qsv", "-preset", "medium", "-b:v", "${qsvK}k",
+    "-maxrate", "${targetK}k", "-bufsize", "$($targetK * 2)k", "-forced_idr", "1") + $keyframes + $audioEnc
+$encode = if ($useQsv) { $qsv } else { $x264 }
+
+# GPU кодлогч ховор тохиолдолд (сондгой хэмжээ, драйвер) унавал CPU-гаар дахин кодлоно
+function Invoke-Encode([string[]]$filter = @()) {
+    & $ff -v error -stats -y -i $Video @filter @encode $full
+    if ($LASTEXITCODE -ne 0 -and $useQsv) {
+        Write-Host "  (GPU кодлогч амжилтгүй — CPU-гаар дахин кодолж байна, удаан болно…)"
+        & $ff -v error -stats -y -i $Video @filter @x264 $full
+    }
+}
 
 if ($Crop9x16 -and -not $isVertical) {
     # Зөвхөн хүсэлтээр: хэвтээ бичлэгийг голоос нь 9:16 болгож тайрна (дахин кодлоно)
     $cropW = [int]($h * 9 / 16); if ($cropW % 2 -ne 0) { $cropW-- }
     $cropX = [int](($w - $cropW) / 2)
-    & $ff -v error -stats -y -i $Video -vf "crop=${cropW}:${h}:${cropX}:0" @encode $full
+    Invoke-Encode @("-vf", "crop=${cropW}:${h}:${cropX}:0")
 }
 elseif ($needCompress) {
-    if ($downscale) { & $ff -v error -stats -y -i $Video -vf $scaleFilter @encode $full }
-    else { & $ff -v error -stats -y -i $Video @encode $full }
+    if ($downscale) { Invoke-Encode @("-vf", $scaleFilter) }
+    else { Invoke-Encode }
 }
 else {
-    # Чанар зохистой: кодлолгүйгээр mp4 болгож хуулна
-    & $ff -v error -y -i $Video -c copy -movflags +faststart $full
+    # Чанар зохистой: кодлолгүйгээр mp4 болгож хуулна. AAC биш дууг (opus г.м.) л хөрвүүлнэ —
+    # хурдан, дүрсэнд хүрэхгүй.
+    $audioFix = if ($acodec -and $acodec -ne "aac") { @("-c:a", "aac", "-b:a", "96k") } else { @() }
+    & $ff -v error -y -i $Video -c copy @audioFix -movflags +faststart $full
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  (формат тохирохгүй тул дахин кодолж байна…)"
-        & $ff -v error -stats -y -i $Video @encode $full
+        Invoke-Encode
     }
 }
 if ($LASTEXITCODE -ne 0) { Write-Error "Киног бэлтгэж чадсангүй"; exit 1 }
