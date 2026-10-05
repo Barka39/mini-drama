@@ -442,6 +442,32 @@
       "hls": {
         "duration": 6535.1
       }
+    },
+    {
+      "id": "series-261005-2116",
+      "title": "Би амьтны хэл ойлгодог болсноор Аквариум аа аварна",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261005-2116.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2627.3
+      }
+    },
+    {
+      "id": "series-261005-2128",
+      "title": "Мафийн толгойлогчийн охин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261005-2128.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 4390.3
+      }
     }
   ]
 }
