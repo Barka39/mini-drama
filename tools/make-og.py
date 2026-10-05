@@ -152,10 +152,11 @@ def fmt_dur(sec):
     return f"{m // 60} цаг {m % 60} мин" if m >= 60 else f"{m} мин"
 
 
-def clean_art(poster):
+def clean_art(poster, designed=False):
     """Босоо (9:16) бичлэгийн poster-т шатсан хадмал, «DRAMA SUB» тамга доод хэсэгт
-    байдаг (ихэвчлэн 58-65% өндөрт) — дээд 54%-ийг 2:3 хэлбэрээр авна."""
-    if poster.height / poster.width > 1.6:
+    байдаг (ихэвчлэн 58-65% өндөрт) — дээд 54%-ийг 2:3 хэлбэрээр авна. Админаас
+    тавьсан постер (designed) бүтнээрээ (эзэн 2026-10-06: гарчиг нь тайрагдаж байв)."""
+    if not designed and poster.height / poster.width > 1.6:
         h = int(poster.height * 0.54)
         w = min(poster.width, int(h / 1.5))
         x = (poster.width - w) // 2
@@ -171,7 +172,7 @@ def ambient(poster, darkness=0.42):
 
 
 def movie_card(s, poster_path, out):
-    poster = clean_art(Image.open(poster_path).convert("RGB"))
+    poster = clean_art(Image.open(poster_path).convert("RGB"), s.get("designed", False))
     canvas = ambient(poster).convert("RGBA")
     # Зүүнээс баруун тийш бараан — бичиг тод уншигдана
     grad = Image.new("L", (W, 1))
@@ -248,7 +249,7 @@ def home_card(series, out, vip_price=None):
     for idx, ang, sc, cx in order:
         if idx >= len(picks):
             continue
-        im = clean_art(Image.open(picks[idx]["poster_path"]).convert("RGB"))
+        im = clean_art(Image.open(picks[idx]["poster_path"]).convert("RGB"), picks[idx].get("designed", False))
         h = int(base_h * sc)
         w = int(h * im.width / im.height)
         paste_card(canvas, im.resize((w, h), Image.LANCZOS), cx - w // 2, (H - h) // 2 + (0 if sc == 1 else 18), 18, ang, 26)
@@ -283,7 +284,7 @@ def main():
     meta = {}
     try:
         req = urllib.request.Request(
-            f"{SUPABASE_URL}/rest/v1/md_series?select=id,title,tagline,genre,price,free_minutes,hidden",
+            f"{SUPABASE_URL}/rest/v1/md_series?select=id,title,tagline,genre,price,free_minutes,hidden,poster_url",
             headers={"apikey": SUPABASE_ANON, "User-Agent": "curl/8"},
         )
         meta = {r["id"]: r for r in json.load(urllib.request.urlopen(req, timeout=30))}
@@ -305,6 +306,7 @@ def main():
             "free_minutes": float(m.get("free_minutes") if m.get("free_minutes") is not None else c.get("freeMinutes", 0)),
             "duration": dur,
             "poster_path": PUB / c["poster"],
+            "designed": bool(m.get("poster_url")),
         })
 
     vip_price = None
