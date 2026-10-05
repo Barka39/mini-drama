@@ -514,7 +514,7 @@ export function AdminPage() {
                   {posterBusy === m.id ? "Оруулж байна…" : "Зураг сонгох"}
                   <input
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept="image/*"
                     disabled={posterBusy === m.id}
                     onChange={(e) => {
                       changePoster(m, e.target.files?.[0]);

@@ -157,17 +157,39 @@ export async function purgeSeriesFiles(
 // хаягийг нь md_series-д хадгална. Сайтыг дахин гаргах шаардлагагүй.
 const POSTER_MAX_W = 720;
 
+// Зургийг браузераар уншина. createImageBitmap заримдаа (хуучин iPhone, зарим
+// формат) татгалздаг тул <img>-ээр дахин оролдоно.
+async function decodeImage(file: File): Promise<{ src: CanvasImageSource; width: number; height: number; done: () => void }> {
+  try {
+    const bmp = await createImageBitmap(file);
+    return { src: bmp, width: bmp.width, height: bmp.height, done: () => bmp.close() };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return { src: img, width: img.naturalWidth, height: img.naturalHeight, done: () => URL.revokeObjectURL(url) };
+    } catch {
+      URL.revokeObjectURL(url);
+      throw new Error("энэ зургийг уншиж чадсангүй — JPG эсвэл PNG болгоод дахин оролдоно уу (эсвэл зургийн дэлгэцийн агшин авч оруулна уу)");
+    }
+  }
+}
+
 async function shrinkImage(file: File): Promise<Blob> {
   // Утасны зураг 4-5MB байж мэднэ — картанд 540px-ээр л харагддаг тул багасгана.
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, POSTER_MAX_W / bmp.width);
-  const w = Math.round(bmp.width * scale);
-  const h = Math.round(bmp.height * scale);
+  // Ямар ч формат (WEBP, HEIC…) ирсэн JPEG болгож явуулна (эзэн 2026-10-05:
+  // WEBP постер сонгогдохгүй байсан).
+  const img = await decodeImage(file);
+  const scale = Math.min(1, POSTER_MAX_W / img.width);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  canvas.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
-  bmp.close();
+  canvas.getContext("2d")!.drawImage(img.src, 0, 0, w, h);
+  img.done();
   const blob = await new Promise<Blob | null>((res) =>
     canvas.toBlob(res, "image/jpeg", 0.85),
   );
