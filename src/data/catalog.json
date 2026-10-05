@@ -416,6 +416,19 @@
       "hls": {
         "duration": 4507.3
       }
+    },
+    {
+      "id": "series-261005-1911",
+      "title": "Хагарсан сарны хүлээс",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261005-1911.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 7927.6
+      }
     }
   ]
 }
