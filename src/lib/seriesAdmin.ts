@@ -213,7 +213,16 @@ export async function uploadPoster(
       body: blob,
     });
     const out = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-    if (!res.ok || !out.url) return { ok: false, reason: out.error || `алдаа ${res.status}` };
+    if (!res.ok || !out.url) {
+      const words: Record<string, string> = {
+        auth_required: "нэвтрээгүй байна — дахин нэвтэрнэ үү",
+        not_admin: "админ эрх танигдсангүй — гараад дахин нэвтэрнэ үү",
+        bad_type: "зургийн төрөл буруу",
+        too_big: "зураг хэт том",
+        empty: "зураг хоосон байна",
+      };
+      return { ok: false, reason: (out.error && words[out.error]) || out.error || `алдаа ${res.status}` };
+    }
 
     const { error } = await supa.rpc("md_set_poster", { p_id: seriesId, p_url: out.url });
     if (error) return { ok: false, reason: error.message };

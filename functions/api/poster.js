@@ -23,14 +23,19 @@ export async function onRequestPost({ request, env }) {
   if (!/^[\w-]+$/.test(seriesId)) return json({ error: "bad_series" }, 400);
 
   // 1) Хэн болохыг нь шалгана — админ эсэхийг СЕРВЕР талд асууна.
-  //    Хэрэглэгчийн өөрийнх нь эрхээр асуух тул RLS зөвхөн түүний мөрийг өгнө.
+  //    md_is_admin() дуудагчийн өөрийнх нь мөрийг хардаг. (Өмнө нь md_profiles-ийн
+  //    эхний мөрийг хардаг байсан — админ RLS-ээр БҮХ профайлыг хардаг тул эхний мөр
+  //    өөр хүнийх болж, эзэн постер сольж чадахгүй байв; 2026-10-06.)
   const auth = request.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) return json({ error: "auth_required" }, 401);
-  const meRes = await fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=is_admin`, {
-    headers: { apikey: SUPABASE_ANON, Authorization: auth },
+  const adminRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/md_is_admin`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON, Authorization: auth, "content-type": "application/json" },
+    body: "{}",
   });
-  const me = await meRes.json();
-  if (!Array.isArray(me) || !me[0]?.is_admin) return json({ error: "not_admin" }, 403);
+  if (!adminRes.ok || (await adminRes.json().catch(() => false)) !== true) {
+    return json({ error: "not_admin" }, 403);
+  }
 
   // 2) Зураг мөн эсэх, хэмжээ нь багтаж байгаа эсэх
   const type = (request.headers.get("content-type") || "").split(";")[0].trim();
