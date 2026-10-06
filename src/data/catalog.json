@@ -468,6 +468,58 @@
       "hls": {
         "duration": 4390.3
       }
+    },
+    {
+      "id": "series-261006-1519",
+      "title": "Компани аврагч суутан",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261006-1519.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 3777.6
+      }
+    },
+    {
+      "id": "series-261006-1558",
+      "title": "Өв Залгамжлагч Цагаан Чоно",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261006-1558.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 5110
+      }
+    },
+    {
+      "id": "series-261006-1621",
+      "title": "Хулгайлагдсан өв залгамчлагч эргэн ирсэн нь",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261006-1621.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 4783
+      }
+    },
+    {
+      "id": "series-261006-1741",
+      "title": "Шидэт нүд",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261006-1741.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 8825.2
+      }
     }
   ]
 }
