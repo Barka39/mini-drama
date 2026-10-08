@@ -559,6 +559,19 @@
       "hls": {
         "duration": 2732.6
       }
+    },
+    {
+      "id": "series-261008-1551",
+      "title": "Луутай хийсэн нууц гэрээ",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261008-1551.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 6319.3
+      }
     }
   ]
 }
