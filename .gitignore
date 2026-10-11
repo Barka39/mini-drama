@@ -31,3 +31,6 @@ media/
 
 # Wrangler-ийн түр build файлууд — deploy бүрд шинээр үүсдэг, git-д хэрэггүй
 .wrangler/
+
+# OpenCV zoo face models (make-poster.py downloads them, 38 MB)
+tools/models/
