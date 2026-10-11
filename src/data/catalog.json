@@ -572,6 +572,19 @@
       "hls": {
         "duration": 6319.3
       }
+    },
+    {
+      "id": "series-261011-2055",
+      "title": "Үе дамжсан найдвар охин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261011-2055.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 7354.9
+      }
     }
   ]
 }
