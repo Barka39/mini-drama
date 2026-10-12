@@ -585,6 +585,32 @@
       "hls": {
         "duration": 7354.9
       }
+    },
+    {
+      "id": "series-261012-1423",
+      "title": "Шаталтын эрин үеийн хаан",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261012-1423.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 4445.8
+      }
+    },
+    {
+      "id": "series-261012-1447",
+      "title": "Хариугаа авах цаг дор",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261012-1447.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 4256.8
+      }
     }
   ]
 }
