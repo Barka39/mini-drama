@@ -29,6 +29,15 @@ const HLS_TTL = 60 * 60 * 6;
 async function isEntitled(request, seriesId) {
   const auth = request.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) return false;
+  // Админ (сайтын эзэн) бүх киног төлбөргүй үзнэ — Susu tv / YUYUKINO шиг (2026-10-14 эзэн).
+  // md_is_admin() дуудагчийн өөрийнх нь мөрийг хардаг тул хуурч болохгүй. Анхаар: админ RLS-ээр
+  // БҮХ профайлыг хардаг тул доорх vip_until-ийн эхний мөр өөр хүнийх байж болно — тиймээс админыг эхэлж шалгана.
+  const adminRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/md_is_admin`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON, Authorization: auth, "content-type": "application/json" },
+    body: "{}",
+  });
+  if (adminRes.ok && (await adminRes.json().catch(() => false)) === true) return true;
   // Хэрэглэгчийн өөрийнх нь эрхээр асууна — RLS зөвхөн түүний мөрийг буцаана
   const [subRes, buyRes] = await Promise.all([
     fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until`, {
