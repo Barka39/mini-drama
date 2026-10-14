@@ -650,6 +650,19 @@
       "hls": {
         "duration": 3625.7
       }
+    },
+    {
+      "id": "series-261014-1317",
+      "title": "Золиослогч",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261014-1317.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 3578.1
+      }
     }
   ]
 }
