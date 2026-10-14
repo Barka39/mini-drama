@@ -80,6 +80,13 @@ export function AdminPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [purging, setPurging] = useState<{ id: string; files: number } | null>(null);
   const liveMetas = metas.filter((m) => !m.deleted_at);
+  // 2026-10-14 (эзэн): 200-300 кино болоход урт жагсаалтыг гүйлгэхгүй — нэрээр хайж, сонгосныг л харуулна.
+  // id нь series-YYMMDD-HHMM тул үсгийн эрэмбэ = шинэ нь эхэндээ.
+  const [pickId, setPickId] = useState("");
+  const [pickQuery, setPickQuery] = useState("");
+  const newestFirst = [...liveMetas].sort((a, b) => b.id.localeCompare(a.id));
+  const q = pickQuery.trim().toLowerCase();
+  const pickList = q ? newestFirst.filter((m) => (m.title || m.id).toLowerCase().includes(q)) : newestFirst;
   const deletedMetas = metas.filter((m) => m.deleted_at);
 
   const seriesTitle = useCallback(
@@ -444,7 +451,36 @@ export function AdminPage() {
 
       <h3 className="admin-h">Кинонууд ({liveMetas.length})</h3>
       {metas.length === 0 && <p className="muted small">Ачаалж байна…</p>}
-      {liveMetas.map((m) =>
+      {metas.length > 0 && (
+        <div className="link-form">
+          <input
+            className="code-input"
+            placeholder="🔍 Киноны нэрээр хайх…"
+            value={pickQuery}
+            onChange={(e) => setPickQuery(e.target.value)}
+          />
+          <select
+            className="code-input"
+            value={pickId}
+            onChange={(e) => {
+              setPickId(e.target.value);
+              setEditing(null);
+              setDeleting(null);
+            }}
+          >
+            <option value="">
+              {q ? `Олдсон ${pickList.length} кино — сонгох…` : "Засах киногоо сонгох… (шинэ нь эхэнд)"}
+            </option>
+            {pickList.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title || m.id} · {addedAt(m.id)}
+                {m.hidden ? " · нуусан" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {liveMetas.filter((m) => m.id === pickId).map((m) =>
         deleting?.id === m.id ? (
           <div key={m.id} className="series-edit delete-panel">
             <strong>«{m.title || m.id}» устгах уу?</strong>
@@ -637,8 +673,8 @@ export function AdminPage() {
         ),
       )}
       {deletedMetas.length > 0 && (
-        <>
-          <h4 className="admin-sub">Устгасан кинонууд ({deletedMetas.length})</h4>
+        <details>
+          <summary className="admin-sub">Устгасан кинонууд ({deletedMetas.length}) — дарж нээнэ</summary>
           {deletedMetas.map((m) => (
             <div key={m.id} className="admin-row admin-row-deleted">
               <img
@@ -678,7 +714,7 @@ export function AdminPage() {
               )}
             </div>
           ))}
-        </>
+        </details>
       )}
       <p className="muted small">
         Шинэ кино нэмэх бол Desktop дээрх «Мини Драм — Цуврал нэмэх» товчлуулыг ашиглана
@@ -699,8 +735,8 @@ export function AdminPage() {
           value={linkSeries}
           onChange={(e) => setLinkSeries(e.target.value)}
         >
-          <option value="">Кино сонгох…</option>
-          {catalog.map((c) => (
+          <option value="">Кино сонгох… (шинэ нь эхэнд)</option>
+          {[...catalog].sort((a, b) => b.id.localeCompare(a.id)).map((c) => (
             <option key={c.id} value={c.id}>
               {c.title}
             </option>
