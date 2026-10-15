@@ -663,6 +663,19 @@
       "hls": {
         "duration": 3578.1
       }
+    },
+    {
+      "id": "series-261015-1635",
+      "title": "Хойд эхийн хүсэл",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261015-1635.jpg",
+      "price": 3800,
+      "freeMinutes": 8,
+      "episodes": [],
+      "hls": {
+        "duration": 4499
+      }
     }
   ]
 }
