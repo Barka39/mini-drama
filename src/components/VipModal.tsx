@@ -17,7 +17,7 @@ import { track } from "../lib/track";
 import { closeModals, openAuth, useOpenModal, useVipCategory } from "../lib/ui";
 
 const SCOPE_LABEL: Record<Plan["scope"], string> = { ...CATEGORY_LABEL, all: "Бүх кино" };
-const CARD_NAME: Record<Plan["scope"], string> = { ai: "AI кино багц", erotic: "Эротик багц", all: "VIP багц" };
+const CARD_NAME: Record<Plan["scope"], string> = { ai: "AI кино багц", erotic: "Эротик багц", all: "Бүх кино багц" };
 
 function daysLeft(until: string): number {
   return Math.max(1, Math.ceil((new Date(until).getTime() - Date.now()) / 86400000));
@@ -54,8 +54,9 @@ export function VipModal() {
 
   if (!open) return null;
 
-  // Ангиллаас нээгдсэн бол тэр ангилал эхэнд, дараа нь «Бүх кино»; нүүрнээс бол бүгд
-  const scopes: Plan["scope"][] = asked ? [asked, "all"] : ["ai", "erotic", "all"];
+  // 3 багц үргэлж (2026-10-22 эзэн: «AI кино багц яагаад харагдахгүй байна»); ангиллаас
+  // нээгдсэн бол тэр ангилал эхэнд
+  const scopes: Plan["scope"][] = asked === "erotic" ? ["erotic", "ai", "all"] : ["ai", "erotic", "all"];
   const mine = activeVips(s);
   // энэ багц аль хэдийн идэвхтэй юу (тэгвэл товч нь «сунгах» болно)
   const covered = (scope: Plan["scope"]) => mine.some((v) => v.scope === scope);
