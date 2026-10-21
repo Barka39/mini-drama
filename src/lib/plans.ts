@@ -19,9 +19,11 @@ export function usePlans(): Plan[] {
   return plans;
 }
 
-/** Хамгийн хямд (ихэвчлэн 1 сарын) багц — «…-өөс эхлэн» гэж харуулна */
-export function cheapestPlan(plans: Plan[]): Plan | null {
-  return plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
+/** Хамгийн хямд (ихэвчлэн 1 сарын) багц — «…-өөс эхлэн» гэж харуулна. Ангилал өгвөл
+ * тэр ангиллын багцаас (2026-10-21: AI / эротик тус бүр 11,900₮, бүх кино 15,900₮). */
+export function cheapestPlan(plans: Plan[], scope?: Plan["scope"]): Plan | null {
+  const list = scope ? plans.filter((p) => p.scope === scope) : plans;
+  return list.length ? list.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
 }
 
 export type VipPhase =
@@ -32,8 +34,10 @@ export type VipPhase =
 
 /** Сарын эрхийн үе шат — сануулгыг зөв мөчид харуулахын тулд */
 export function vipPhase(s: AppState): VipPhase {
-  if (!s.vipUntil) return { kind: "none" };
-  const days = (new Date(s.vipUntil).getTime() - Date.now()) / 86400000;
+  // хамгийн удаан үргэлжлэх эрх (бүх кино / AI / эротик) — аль нэг нь идэвхтэй бол «идэвхтэй»
+  const ends = [s.vipUntil, s.vipAiUntil, s.vipEroticUntil].filter(Boolean).map((u) => new Date(u as string).getTime());
+  if (!ends.length) return { kind: "none" };
+  const days = (Math.max(...ends) - Date.now()) / 86400000;
   if (days > 3) return { kind: "active", daysLeft: Math.ceil(days) };
   if (days > 0) return { kind: "ending", daysLeft: Math.max(1, Math.ceil(days)) };
   if (days > -14) return { kind: "lapsed", daysAgo: Math.floor(-days) };

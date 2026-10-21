@@ -37,9 +37,22 @@ export function openPurchase(seriesId: string) {
   notify();
 }
 
-export function openVip() {
+// Сарын эрхийн цонх аль ангиллаас нээгдсэн бэ (тэр ангиллын багцууд эхэнд, «Бүх кино» дараа нь).
+// onClick={openVip} хэлбэрээр event ирж болох тул зөвхөн "ai" | "erotic"-ийг авна.
+let vipCategory: "ai" | "erotic" | null = null;
+export function openVip(category?: unknown) {
+  vipCategory = category === "ai" || category === "erotic" ? category : null;
   openModal = "vip";
   notify();
+}
+export function useVipCategory(): "ai" | "erotic" | null {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => vipCategory,
+  );
 }
 
 // Нэвтрэх цонх: аль хуудаснаас (горим) эхлэх, амжилттай бол аль цонх руу буцах.

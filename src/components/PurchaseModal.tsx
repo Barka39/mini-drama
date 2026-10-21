@@ -62,7 +62,7 @@ export function PurchaseModal() {
 
   const series = seriesId ? getSeries(seriesId) : undefined;
   // Сарын эрхтэй бол бүх кино нээлттэй — «авсан» гэж үзнэ (дахин төлүүлэхгүй)
-  const status = series ? (hasVip(s) ? "owned" : buyStatus(s, series.id)) : "none";
+  const status = series ? (hasVip(s, series.category) ? "owned" : buyStatus(s, series.id)) : "none";
   // Захиалгын дүн = зарласан үнэ (хуучин захиалгад өвөрмөц дүн үлдсэн байж болно)
   const payAmount = (series && s.payAmounts[series.id]) || series?.price || 0;
   // QPay (Byl): эзэн админ хуудаснаас асаана. Асаалттай үед нэг киног бүртгэлгүй авна.
@@ -129,7 +129,7 @@ export function PurchaseModal() {
       if (res.ok || res.code === "pending") {
         // Захиалгын дараах шинэчлэлт зочны киног данс руу шилжүүлж, кино аль хэдийн
         // нээгдсэн байж болно — тэгвэл төлбөрийн хуудас руу явуулахгүй.
-        if (canWatchNow(series.id)) {
+        if (canWatchNow(series.id, series.category)) {
           setBusy(false);
           return;
         }
@@ -185,7 +185,7 @@ export function PurchaseModal() {
         {status === "owned" ? (
           <>
             <p className="msg-ok">
-              {hasVip(s) && !s.purchased.includes(series.id)
+              {hasVip(s, series.category) && !s.purchased.includes(series.id)
                 ? "Таны сарын эрх идэвхтэй — энэ кино танд нээлттэй!"
                 : "Төлбөр баталгаажлаа — кино бүрэн нээгдсэн!"}
             </p>

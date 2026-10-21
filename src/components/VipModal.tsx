@@ -2,10 +2,11 @@ import { Crown } from "lucide-react";
 import { InAppGuide } from "./InAppGuide";
 import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
 import { useEffect, useState } from "react";
-import { formatPrice } from "../data/catalog";
+import { CATEGORY_LABEL, formatPrice } from "../data/catalog";
+import { useCatalog } from "../lib/seriesAdmin";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
-  hasVip,
+  activeVips,
   loadPlans,
   refreshAccount,
   requestSubscription,
@@ -14,11 +15,15 @@ import {
   type Plan,
 } from "../lib/store";
 import { track } from "../lib/track";
-import { closeModals, openAuth, useOpenModal } from "../lib/ui";
+import { closeModals, openAuth, useOpenModal, useVipCategory } from "../lib/ui";
+
+const SCOPE_LABEL: Record<Plan["scope"], string> = { ...CATEGORY_LABEL, all: "Бүх кино" };
 
 export function VipModal() {
   const open = useOpenModal() === "vip";
   const s = useAppState();
+  const asked = useVipCategory();
+  const catalog = useCatalog();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +50,16 @@ export function VipModal() {
 
   if (!open) return null;
 
-  const vip = hasVip(s);
+  // Ангиллаас нээгдсэн бол тэр ангилал эхэнд, дараа нь «Бүх кино»; нүүрнээс бол бүгд
+  const scopes: Plan["scope"][] = asked ? [asked, "all"] : ["ai", "erotic", "all"];
+  const counts: Record<Plan["scope"], number> = {
+    ai: catalog.filter((x) => x.category === "ai").length,
+    erotic: catalog.filter((x) => x.category === "erotic").length,
+    all: catalog.length,
+  };
+  const mine = activeVips(s);
+  // энэ багц аль хэдийн идэвхтэй юу (тэгвэл товч нь «сунгах» болно)
+  const covered = (scope: Plan["scope"]) => mine.some((v) => v.scope === scope);
   const payAmount = s.payAmounts["__vip__"] ?? 0;
   const qpay = onlinePayFor(bank, s.isAdmin);
   // Сарын эрх утасны дугаарт холбогддог тул бүртгэл заавал (зочин ч бүртгүүлнэ)
@@ -97,16 +111,21 @@ export function VipModal() {
           <Crown size={20} /> Сарын эрх
         </h3>
         <p className="muted small">
-          Сайт дээрх <strong>бүх киног хязгааргүй</strong> үзнэ. Шинэ кино нэмэгдэх бүрд
+          Ангиллынхаа <strong>бүх киног хязгааргүй</strong> үзнэ. Шинэ кино нэмэгдэх бүрд
           нэмэлт төлбөргүйгээр нээлттэй.
         </p>
 
-        {vip ? (
-          <p className="msg-ok">
-            Таны сарын эрх идэвхтэй —{" "}
-            {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл
-          </p>
-        ) : qpay && needsBrowserGuide ? (
+        {mine.length > 0 && (
+          <div className="msg-ok">
+            {mine.map((v) => (
+              <div key={v.scope}>
+                ✅ {SCOPE_LABEL[v.scope]} — {new Date(v.until).toLocaleDateString("mn-MN")} хүртэл
+              </div>
+            ))}
+          </div>
+        )}
+
+        {qpay && needsBrowserGuide ? (
           // iPhone-ийн Facebook/Messenger: энд төлбөр ажиллахгүй — Safari/Chrome-д нээх заавар
           <InAppGuide kind="sub" chromePath={`${window.location.pathname}?vip=1`} />
         ) : !needAccount && s.subPending ? (
@@ -185,27 +204,43 @@ export function VipModal() {
           </>
         ) : (
           <>
-            <div className="plan-list">
-              {plans.map((p) => {
-                const perMonth = Math.round(p.price / (p.days / 30));
-                const best = p.days > 30;
-                return (
-                  <button
-                    key={p.code}
-                    className={`plan-card ${best ? "plan-best" : ""}`}
-                    disabled={busy}
-                    onClick={() => order(p.code)}
-                  >
-                    {best && <span className="plan-badge">Хэмнэлттэй</span>}
-                    <span className="plan-label">{p.label}</span>
-                    <span className="plan-price">{formatPrice(p.price)}</span>
-                    {best && (
-                      <span className="plan-per">сард {formatPrice(perMonth)}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {scopes.map((scope) => {
+              const group = plans.filter((p) => p.scope === scope).sort((a, b) => a.days - b.days);
+              if (!group.length) return null;
+              const monthly = group[0].price / (group[0].days / 30);
+              return (
+                <div key={scope} className="plan-group">
+                  <div className="plan-group-head">
+                    <strong>{SCOPE_LABEL[scope]}</strong>
+                    <span className="muted small">
+                      {scope === "all" ? `AI + эротик · ${counts.all} кино` : `${counts[scope]} кино`}
+                      {covered(scope) ? " · идэвхтэй — сунгах" : ""}
+                    </span>
+                  </div>
+                  <div className="plan-list">
+                    {group.map((p) => {
+                      const perMonth = Math.round(p.price / (p.days / 30));
+                      const save = Math.round((1 - perMonth / monthly) * 100);
+                      return (
+                        <button
+                          key={p.code}
+                          className={`plan-card ${p.days > 30 ? "plan-best" : ""}`}
+                          disabled={busy}
+                          onClick={() => order(p.code)}
+                        >
+                          {p.days > 30 && (
+                            <span className="plan-badge">{`−${save}%`}</span>
+                          )}
+                          <span className="plan-label">{Math.round(p.days / 30)} сар</span>
+                          <span className="plan-price">{formatPrice(p.price)}</span>
+                          {p.days > 30 && <span className="plan-per">сард {formatPrice(perMonth)}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
             {msg && <p className="msg-err">{msg}</p>}
             {needAccount && (
               <p className="hint-box">

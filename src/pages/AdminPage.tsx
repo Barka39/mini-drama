@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supa } from "../lib/supa";
-import { formatPrice } from "../data/catalog";
+import { CATEGORY_LABEL, formatPrice, type Category } from "../data/catalog";
 import {
   createLinks,
   deleteLink,
@@ -26,6 +26,7 @@ import {
   purgeSeriesFiles,
   restoreSeries,
   saveSeriesMeta,
+  setSeriesCategory,
   seriesUsage,
   uploadPoster,
   useCatalog,
@@ -473,7 +474,7 @@ export function AdminPage() {
             </option>
             {pickList.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.title || m.id} · {addedAt(m.id)}
+                {m.title || m.id} · {addedAt(m.id)} · {m.category === "erotic" ? "эротик" : "AI"}
                 {m.hidden ? " · нуусан" : ""}
               </option>
             ))}
@@ -581,6 +582,25 @@ export function AdminPage() {
               value={editing.genre}
               onChange={(e) => setEditing({ ...editing, genre: e.target.value })}
             />
+            <label className="series-field">
+              <span className="pay-label">Ангилал (сарын эрх ангиллаар нээгдэнэ)</span>
+              <select
+                className="code-input"
+                value={editing.category}
+                onChange={async (e) => {
+                  const category = e.target.value as Category;
+                  const res = await setSeriesCategory(m.id, category);
+                  if (res.ok) {
+                    setEditing({ ...editing, category });
+                    setMetas((list) => list.map((x) => (x.id === m.id ? { ...x, category } : x)));
+                    setMsg(`Ангилал: ${CATEGORY_LABEL[category]} ✅`);
+                  } else setMsg(res.reason ?? "Ангилал солигдсонгүй");
+                }}
+              >
+                <option value="ai">{CATEGORY_LABEL.ai}</option>
+                <option value="erotic">{CATEGORY_LABEL.erotic}</option>
+              </select>
+            </label>
             <div className="series-edit-row">
               <label className="series-field">
                 <span className="pay-label">Үнэ (₮, 0 = үнэгүй)</span>

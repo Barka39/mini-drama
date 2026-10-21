@@ -25,8 +25,18 @@ function json(data, status = 200) {
 // Бүтэн кино 2 цаг хүртэл үргэлжилдэг + түр зогсоох хугацаа
 const HLS_TTL = 60 * 60 * 6;
 
+/** Сарын эрх энэ кинонд хүчинтэй юу: «Бүх кино» (vip_until) эсвэл киноны ангиллын эрх
+ * (2026-10-21: AI кино / эротик кино тус бүр тусдаа зарагдана). */
+export function vipCovers(prof, category, now = Date.now()) {
+  const on = (t) => Boolean(t) && new Date(t).getTime() > now;
+  if (!prof) return false;
+  if (on(prof.vip_until)) return true;
+  if (category === "erotic") return on(prof.vip_erotic_until);
+  return on(prof.vip_ai_until);
+}
+
 /** Хэрэглэгч энэ киног бүтнээр үзэх эрхтэй юу (сарын эрх ЭСВЭЛ худалдаж авсан) */
-async function isEntitled(request, seriesId) {
+async function isEntitled(request, seriesId, category) {
   const auth = request.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) return false;
   // Админ (сайтын эзэн) бүх киног төлбөргүй үзнэ — Susu tv / YUYUKINO шиг (2026-10-14 эзэн).
@@ -40,7 +50,7 @@ async function isEntitled(request, seriesId) {
   if (adminRes.ok && (await adminRes.json().catch(() => false)) === true) return true;
   // Хэрэглэгчийн өөрийнх нь эрхээр асууна — RLS зөвхөн түүний мөрийг буцаана
   const [subRes, buyRes] = await Promise.all([
-    fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until`, {
+    fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until,vip_ai_until,vip_erotic_until`, {
       headers: { apikey: SUPABASE_ANON, Authorization: auth },
     }),
     fetch(
@@ -50,8 +60,7 @@ async function isEntitled(request, seriesId) {
   ]);
   if (!subRes.ok || !buyRes.ok) return false;
   const profs = await subRes.json();
-  const vipUntil = Array.isArray(profs) && profs[0] ? profs[0].vip_until : null;
-  if (vipUntil && new Date(vipUntil).getTime() > Date.now()) return true;
+  if (vipCovers(Array.isArray(profs) ? profs[0] : null, category)) return true;
   const buys = await buyRes.json();
   return Array.isArray(buys) && buys.length > 0;
 }
@@ -63,7 +72,7 @@ async function isEntitled(request, seriesId) {
  */
 async function playHls(request, env, seriesId) {
   const metaRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,free_minutes,hidden,hls`,
+    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,free_minutes,hidden,hls,category`,
     { headers: { apikey: SUPABASE_ANON } },
   );
   const rows = await metaRes.json();
@@ -73,7 +82,7 @@ async function playHls(request, env, seriesId) {
   if (!meta.hls) return json({ error: "not_hls" }, 400);
 
   const free = Number(meta.price ?? 0) <= 0;
-  const entitled = free || (await isEntitled(request, seriesId));
+  const entitled = free || (await isEntitled(request, seriesId, meta.category));
   // free_eps энд «үнэгүй ХЭСГИЙН тоо» (хэсгүүдийн уртаас trigger-ээр тооцогддог)
   const max = entitled ? "a" : Math.max(0, Number(meta.free_eps ?? 0));
 
@@ -119,7 +128,7 @@ export async function onRequestGet({ request, env }) {
 
   // 1) Киноны үнэ ба үнэгүй ангийн тоог сервер талаас авна
   const metaRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,hidden,hls`,
+    `${SUPABASE_URL}/rest/v1/md_series?id=eq.${encodeURIComponent(seriesId)}&select=price,free_eps,hidden,hls,category`,
     { headers: { apikey: SUPABASE_ANON } },
   );
   const metaRows = await metaRes.json();
@@ -141,7 +150,7 @@ export async function onRequestGet({ request, env }) {
 
     // Хэрэглэгчийн өөрийнх нь эрхээр асууна — RLS зөвхөн түүний мөрийг буцаана
     const [subRes, buyRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until`, {
+      fetch(`${SUPABASE_URL}/rest/v1/md_profiles?select=vip_until,vip_ai_until,vip_erotic_until`, {
         headers: { apikey: SUPABASE_ANON, Authorization: auth },
       }),
       fetch(
@@ -152,8 +161,7 @@ export async function onRequestGet({ request, env }) {
     if (!subRes.ok || !buyRes.ok) return json({ error: "auth_failed" }, 401);
 
     const profs = await subRes.json();
-    const vipUntil = Array.isArray(profs) && profs[0] ? profs[0].vip_until : null;
-    const hasVip = vipUntil && new Date(vipUntil).getTime() > Date.now();
+    const hasVip = vipCovers(Array.isArray(profs) ? profs[0] : null, meta.category);
 
     if (!hasVip) {
       const buys = await buyRes.json();

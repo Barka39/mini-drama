@@ -72,7 +72,7 @@ export async function onRequestPost({ request, env }) {
   // Горим: off → хэнд ч үгүй, admin → зөвхөн админд (туршилт), on → бүгдэд
   const [settings, me] = await Promise.all([
     first(rest("md_settings?id=eq.1&select=online_pay")),
-    first(rest(`md_profiles?id=eq.${uid}&select=is_admin,vip_until`, auth)),
+    first(rest(`md_profiles?id=eq.${uid}&select=is_admin,vip_until,vip_ai_until,vip_erotic_until`, auth)),
   ]);
   if (!me) return json({ error: "auth_required" }, 401);
   const mode = settings?.online_pay ?? "off";
@@ -83,7 +83,10 @@ export async function onRequestPost({ request, env }) {
   // Аль хэдийн үзэх эрхтэй бол (кино нь нээлттэй / сарын эрх идэвхтэй) дахин
   // төлүүлэхгүй — давхар төлбөрийг гараар буцаах шаардлагагүй болгоно.
   if (kind === "movie") {
-    const vip = me.vip_until && new Date(me.vip_until).getTime() > Date.now();
+    // сарын эрх энэ киноны ангилалд хүчинтэй бол (бүх кино / тэр ангилал) дахин төлүүлэхгүй
+    const meta = await first(rest(`md_series?id=eq.${encodeURIComponent(series)}&select=category`));
+    const on = (t) => Boolean(t) && new Date(t).getTime() > Date.now();
+    const vip = on(me.vip_until) || (meta?.category === "erotic" ? on(me.vip_erotic_until) : on(me.vip_ai_until));
     const owned = vip || (await first(rest(
       `md_purchases?user_id=eq.${uid}&series_id=eq.${encodeURIComponent(series)}&status=eq.confirmed&select=id&limit=1`,
       auth,

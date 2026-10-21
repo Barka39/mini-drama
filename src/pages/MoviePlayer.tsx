@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2 } from "lucide-react";
-import { formatPrice } from "../data/catalog";
+import { CATEGORY_LABEL, formatPrice } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
 import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
@@ -63,10 +63,12 @@ export function MoviePlayer() {
   const wallTracked = useRef(false);
   const startTracked = useRef(false);
 
-  const plan = cheapestPlan(usePlans());
-  const movieCount = useCatalog().length;
+  const plans = usePlans();
+  const catalogAll = useCatalog();
+  const movieCount = catalogAll.filter((x) => x.category === series?.category).length;
 
-  const owned = !!series && (series.price <= 0 || hasVip(s) || s.purchased.includes(series.id));
+  const owned = !!series && (series.price <= 0 || hasVip(s, series.category) || s.purchased.includes(series.id));
+  const plan = cheapestPlan(plans, series?.category);
   const status = series ? buyStatus(s, series.id) : "none";
 
   useEffect(() => {
@@ -381,10 +383,10 @@ export function MoviePlayer() {
                     className="btn btn-primary"
                     onClick={() => {
                       track("buy_click", series.id);
-                      openVip();
+                      openVip(series.category);
                     }}
                   >
-                    <Crown size={17} /> Бүх {movieCount} кино{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
+                    <Crown size={17} /> {CATEGORY_LABEL[series.category]} · бүх {movieCount}{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
                   </button>
                   <button
                     className="btn btn-outline"
@@ -408,9 +410,9 @@ export function MoviePlayer() {
               <Link className="btn btn-play" to="/">
                 Бусад кино үзэх →
               </Link>
-              {!hasVip(s) && (
-                <button className="btn btn-outline" onClick={openVip}>
-                  <Crown size={17} /> Сарын эрх — бүх кино
+              {!hasVip(s, series.category) && (
+                <button className="btn btn-outline" onClick={() => openVip(series.category)}>
+                  <Crown size={17} /> Сарын эрх — {CATEGORY_LABEL[series.category]}
                 </button>
               )}
               <button className="btn btn-ghost" onClick={() => seekTo(0)}>

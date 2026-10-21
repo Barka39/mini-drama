@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { formatPrice, freeEpCount } from "../data/catalog";
+import { CATEGORY_LABEL, formatPrice, freeEpCount } from "../data/catalog";
 import { siteHost } from "../lib/accessLinks";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
@@ -14,7 +14,7 @@ export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
   const s = useAppState();
   const series = useSeriesById(seriesId);
-  const plan = cheapestPlan(usePlans());
+  const plans = usePlans();
   const startIndex = Math.max(1, Number(epIndex) || 1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -189,8 +189,9 @@ export function PlayerFeed() {
                       >
                         🎬 Энэ киног авах — {formatPrice(series.price)}
                       </button>
-                      <button className="btn btn-outline" onClick={openVip}>
-                        ⭐ Сарын эрх — бүх кино{plan ? ` ${formatPrice(plan.price)}` : ""}
+                      <button className="btn btn-outline" onClick={() => openVip(series.category)}>
+                        ⭐ Сарын эрх — {CATEGORY_LABEL[series.category]}
+                        {cheapestPlan(plans, series.category) ? ` ${formatPrice((cheapestPlan(plans, series.category) as { price: number }).price)}` : ""}
                       </button>
                     </>
                   )}

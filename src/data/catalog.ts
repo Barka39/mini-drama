@@ -21,6 +21,16 @@ export interface Series {
   episodes: Episode[];
   // Нэг бүтэн кино (HLS). Байвал ангиудаар биш, нэг тасралтгүй бичлэгээр тоглоно.
   hls?: { duration: number };
+  // Сайтын 2 ангилал (эзэн 2026-10-21): сарын эрх ангиллаар зарагдана
+  category: Category;
+}
+
+export type Category = "ai" | "erotic";
+export const CATEGORY_LABEL: Record<Category, string> = { ai: "AI кино", erotic: "Эротик кино" };
+
+/** catalog.json-д ангилал байхгүй: сервер хэлэх хүртэл «18+» = эротик, бусад нь AI */
+export function guessCategory(genre: string): Category {
+  return /18\+/.test(genre) ? "erotic" : "ai";
 }
 
 const BASE = import.meta.env.BASE_URL;
@@ -35,7 +45,7 @@ interface RawEpisode {
   title: string;
   duration: number;
 }
-interface RawSeries extends Omit<Series, "episodes"> {
+interface RawSeries extends Omit<Series, "episodes" | "category"> {
   episodes: RawEpisode[];
 }
 // Бичлэггүй киног сайтад гаргахгүй. «Цуврал нэмэх» кино бүртгэлийг эхлээд бичээд, бичлэгийг
@@ -48,6 +58,7 @@ const RAW_SERIES = (raw.series as unknown as RawSeries[]).filter(
 // Сүүлд нэмсэн кино эхэнд харагдана (catalog.json-д шинэ кино төгсгөлд нэмэгддэг)
 export const CATALOG: Series[] = [...RAW_SERIES].reverse().map((s) => ({
   ...s,
+  category: guessCategory(s.genre),
   poster: BASE + s.poster,
   episodes: s.episodes.map((e) => ({
     ...e,
@@ -73,6 +84,7 @@ export interface SeriesOverride {
   hidden: boolean;
   // Админ хуудаснаас солисон постер (R2 дээр). Хоосон бол catalog.json-ы зураг.
   poster_url?: string | null;
+  category?: Category | null;
 }
 
 export function applyOverrides(
@@ -92,6 +104,7 @@ export function applyOverrides(
         price: o.price,
         freeMinutes: o.free_minutes,
         poster: o.poster_url || s.poster,
+        category: o.category || guessCategory(o.genre || s.genre),
       };
     })
     .filter((s) => !overrides[s.id]?.hidden);

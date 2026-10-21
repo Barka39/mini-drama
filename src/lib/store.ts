@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { supa } from "./supa";
 import { CONFIG } from "../config";
 import { currentRouteAsHash } from "./routing";
-import { freeEpCount, type Series } from "../data/catalog";
+import { freeEpCount, type Category, type Series } from "../data/catalog";
 
 const LOCAL_KEY = "drama-demo-state-v1";
 
@@ -21,7 +21,9 @@ export interface AppState {
   // seriesId -> захиалгын дүн (2026-09-26-ноос зарласан үнэтэй ижил; хуучин
   // захиалгад өвөрмөц дүн үлдсэн байж болно). Сарын эрх = "__vip__".
   payAmounts: Record<string, number>;
-  vipUntil: string | null; // сарын эрх дуусах хугацаа
+  vipUntil: string | null; // «Бүх кино» сарын эрх дуусах хугацаа (хуучин m1/m3 ч энд)
+  vipAiUntil: string | null; // «AI кино» ангиллын эрх (2026-10-21)
+  vipEroticUntil: string | null; // «Эротик кино» ангиллын эрх
   subPending: boolean; // сарын эрхийн төлбөр хүлээгдэж байна
   progress: Record<string, number>; // seriesId -> хамгийн сүүлд үзсэн анги (локал)
   // seriesId -> бүтэн киноны зогссон цэг ба нийт урт (секунд, локал)
@@ -84,6 +86,8 @@ let state: AppState = {
   pendingBuys: [],
   payAmounts: {},
   vipUntil: null,
+  vipAiUntil: null,
+  vipEroticUntil: null,
   subPending: false,
   progress: loadProgress(),
   movieTime: loadMovieTime(),
@@ -259,7 +263,7 @@ async function loadServerState(userId: string, anonymous = false, healed = false
   // Өмнө нь шилжүүлж амжаагүй зочны кино байвал эхлээд шилжүүлнэ
   if (!anonymous && !creating) await adoptStoredGuest();
   const [profRes, buyRes] = await Promise.all([
-    supa.from("md_profiles").select("phone, is_admin, full_name, vip_until").eq("id", userId).maybeSingle(),
+    supa.from("md_profiles").select("phone, is_admin, full_name, vip_until, vip_ai_until, vip_erotic_until").eq("id", userId).maybeSingle(),
     supa
       .from("md_purchases")
       .select("series_id, status, amount, kind, plan_days, pay_checkout_id, created_at")
@@ -308,6 +312,8 @@ async function loadServerState(userId: string, anonymous = false, healed = false
       pendingBuys,
       payAmounts,
       vipUntil: profRes.data.vip_until ?? null,
+      vipAiUntil: profRes.data.vip_ai_until ?? null,
+      vipEroticUntil: profRes.data.vip_erotic_until ?? null,
       subPending,
     });
   } else if (anonymous) {
@@ -328,6 +334,8 @@ async function loadServerState(userId: string, anonymous = false, healed = false
       pendingBuys,
       payAmounts,
       vipUntil: null,
+      vipAiUntil: null,
+      vipEroticUntil: null,
       subPending,
     });
   } else if (creating || signingUp || profRes.error) {
@@ -353,6 +361,8 @@ async function loadServerState(userId: string, anonymous = false, healed = false
       pendingBuys,
       payAmounts,
       vipUntil: null,
+      vipAiUntil: null,
+      vipEroticUntil: null,
       subPending,
     });
   }
@@ -382,6 +392,8 @@ supa.auth.onAuthStateChange((_event, session) => {
       pendingBuys: [],
       payAmounts: {},
       vipUntil: null,
+      vipAiUntil: null,
+      vipEroticUntil: null,
       subPending: false,
     });
   }
@@ -560,19 +572,34 @@ export async function requestPurchase(seriesId: string): Promise<BuyResult> {
 }
 
 /** Энэ киног ОДОО үзэх эрхтэй эсэх (async урсгалын дундаас шалгахад — хуучин snapshot биш) */
-export function canWatchNow(seriesId: string): boolean {
-  return state.purchased.includes(seriesId) || hasVip(state);
+export function canWatchNow(seriesId: string, category?: Category): boolean {
+  return state.purchased.includes(seriesId) || hasVip(state, category);
 }
 
-/** Сарын эрх идэвхтэй эсэх */
-export function hasVip(s: AppState): boolean {
-  return !!s.vipUntil && new Date(s.vipUntil).getTime() > Date.now();
+const active = (until: string | null) => !!until && new Date(until).getTime() > Date.now();
+
+/** Сарын эрх: ангилал өгвөл ТЭР кинонд хүчинтэй эсэх («Бүх кино» эсвэл тэр ангиллын эрх);
+ * ангилалгүй бол «Бүх кино» эрх идэвхтэй эсэх (2026-10-21: эрх ангиллаар зарагдана). */
+export function hasVip(s: AppState, category?: Category): boolean {
+  if (active(s.vipUntil)) return true;
+  if (category === "ai") return active(s.vipAiUntil);
+  if (category === "erotic") return active(s.vipEroticUntil);
+  return false;
+}
+
+/** Идэвхтэй сарын эрхүүд — «Бүх кино», «AI кино», «Эротик кино» тус бүрийн дуусах огноо */
+export function activeVips(s: AppState): { scope: "all" | Category; until: string }[] {
+  const out: { scope: "all" | Category; until: string }[] = [];
+  if (active(s.vipUntil)) out.push({ scope: "all", until: s.vipUntil as string });
+  if (active(s.vipAiUntil)) out.push({ scope: "ai", until: s.vipAiUntil as string });
+  if (active(s.vipEroticUntil)) out.push({ scope: "erotic", until: s.vipEroticUntil as string });
+  return out;
 }
 
 // Анги үзэх эрхтэй юу: үнэгүй хэсэг, сарын эрх, эсвэл тухайн киног авсан
 export function canWatch(s: AppState, series: Series, epIndex: number): boolean {
   if (epIndex <= freeEpCount(series)) return true;
-  if (hasVip(s)) return true;
+  if (hasVip(s, series.category)) return true;
   return s.purchased.includes(series.id);
 }
 
@@ -642,12 +669,13 @@ export interface Plan {
   label: string;
   days: number;
   price: number;
+  scope: "all" | Category; // ямар кинонуудыг нээх (2026-10-21)
 }
 
 export async function loadPlans(): Promise<Plan[]> {
   const { data } = await supa
     .from("md_plans")
-    .select("code, label, days, price")
+    .select("code, label, days, price, scope")
     .eq("active", true)
     .order("sort_order");
   return (data ?? []) as Plan[];

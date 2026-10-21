@@ -1506,3 +1506,18 @@ h3 {
   width: 100%;
   justify-content: flex-end;
 }
+
+/* 2026-10-21: сарын эрх ангиллаар — бүлэг бүр 1/3/6 сарын 3 карт (утсанд нэг мөрөнд багтана) */
+.plan-group { margin: 14px 0 6px; }
+.plan-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.plan-group-head strong { font-size: 15px; }
+.plan-group .plan-list { gap: 8px; }
+.plan-group .plan-card { padding: 16px 4px 12px; min-width: 0; }
+.plan-group .plan-price { font-size: 15px; white-space: nowrap; }
+.plan-group .plan-per { font-size: 11px; white-space: nowrap; }
+
+/* 2026-10-21: нүүрний 2 ангилал — гарчиг + тухайн ангиллын сарын эрх */
+.hm-cat { margin-top: 26px; }
+.hm-cat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.hm-cat-head .hm-row-title { margin-bottom: 0; }
+.hm-cat-vip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; border-radius: 999px; background: var(--gold-grad); color: #1a1204; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }

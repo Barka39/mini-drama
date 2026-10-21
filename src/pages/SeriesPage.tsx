@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Check, ChevronLeft, Clock, Crown, Lock, Play, Plus, Share2, ShieldCheck, Zap } from "lucide-react";
 import {
+  CATEGORY_LABEL,
   formatDuration,
   formatPrice,
   freeEpCount,
@@ -40,7 +41,7 @@ export function SeriesPage() {
   const s = useAppState();
   const series = useSeriesById(seriesId);
   const catalog = useCatalog();
-  const plan = cheapestPlan(usePlans());
+  const plans = usePlans();
 
   useEffect(() => {
     if (series) {
@@ -65,7 +66,9 @@ export function SeriesPage() {
 
   const freeCount = freeEpCount(series);
   const status = buyStatus(s, series.id);
-  const vip = hasVip(s);
+  const vip = hasVip(s, series.category);
+  const plan = cheapestPlan(plans, series.category);
+  const inCategory = catalog.filter((x) => x.category === series.category).length;
   const open = series.price <= 0 || vip || status === "owned";
   const continueEp = s.progress[series.id] ?? 1;
   const movie = !!series.hls;
@@ -209,7 +212,7 @@ export function SeriesPage() {
               <span>Хуваалцах</span>
             </button>
             {!vip && (
-              <button className="sd-action sd-action-gold" onClick={openVip}>
+              <button className="sd-action sd-action-gold" onClick={() => openVip(series.category)}>
                 <Crown size={20} />
                 <span>Сарын эрх</span>
               </button>
@@ -229,10 +232,10 @@ export function SeriesPage() {
             <span>Нэг удаа төлөөд хязгааргүй үзнэ</span>
           </div>
           {plan && (
-            <button className="sd-offer-vip" onClick={openVip}>
+            <button className="sd-offer-vip" onClick={() => openVip(series.category)}>
               <Crown size={18} />
               <span>
-                Эсвэл <strong>бүх {catalog.length} кино</strong> сард {formatPrice(plan.price)}
+                Эсвэл <strong>{CATEGORY_LABEL[series.category]} · бүх {inCategory}</strong> сард {formatPrice(plan.price)}
               </span>
             </button>
           )}

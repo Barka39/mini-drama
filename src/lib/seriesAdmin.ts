@@ -2,7 +2,7 @@
 // ангиудын файлын жагсаалтыг хариуцна — нэр/ангилал/үнэ энд байна.
 import { useMemo, useSyncExternalStore } from "react";
 import { supa } from "./supa";
-import { applyOverrides, CATALOG, type Series } from "../data/catalog";
+import { applyOverrides, CATALOG, type Category, type Series } from "../data/catalog";
 
 export interface SeriesMeta {
   id: string;
@@ -14,6 +14,7 @@ export interface SeriesMeta {
   sort_order: number;
   hidden: boolean;
   poster_url: string | null;
+  category: Category;
   // Устгасан кино (админ): сайтаас алга, худалдан авагчид нь replaced_by руу шилжсэн.
   // purged_at = бичлэгийн файл нь бүрмөсөн устсан (сэргээх боломжгүй).
   deleted_at: string | null;
@@ -44,7 +45,7 @@ export async function loadSeriesMeta(force = false): Promise<SeriesMeta[]> {
   const { data } = await supa
     .from("md_series")
     .select(
-      "id, title, tagline, genre, price, free_minutes, sort_order, hidden, poster_url, deleted_at, replaced_by, purged_at",
+      "id, title, tagline, genre, price, free_minutes, sort_order, hidden, poster_url, category, deleted_at, replaced_by, purged_at",
     );
   const next: Record<string, SeriesMeta> = {};
   for (const row of (data ?? []) as SeriesMeta[]) {
@@ -236,6 +237,17 @@ export async function uploadPoster(
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : "тодорхойгүй алдаа" };
   }
+}
+
+/** Киноны ангилал (AI / эротик) — сарын эрх ангиллаар нээгддэг тул админ л солино */
+export async function setSeriesCategory(id: string, category: Category): Promise<{ ok: boolean; reason?: string }> {
+  const { error } = await supa.rpc("md_set_category", { p_id: id, p_category: category });
+  if (error) return { ok: false, reason: error.message };
+  if (overrides[id]) {
+    overrides = { ...overrides, [id]: { ...overrides[id], category } };
+    notify();
+  }
+  return { ok: true };
 }
 
 export async function saveSeriesMeta(m: SeriesMeta): Promise<{ ok: boolean; reason?: string }> {

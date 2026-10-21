@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Check, Crown, Infinity as InfinityIcon, Play, Plus, Search, ShieldCheck, Zap } from "lucide-react";
 import {
-  allCategories,
+  CATEGORY_LABEL,
   formatDuration,
   isAdult,
   formatPrice,
   seriesCategories,
   totalSeconds,
   watchPath,
+  type Category,
   type Series,
 } from "../data/catalog";
 import {
@@ -46,8 +47,11 @@ function progressOf(s: AppState, series: Series): { pct: number; label: string }
 }
 
 function isOpen(s: AppState, series: Series): boolean {
-  return series.price <= 0 || hasVip(s) || buyStatus(s, series.id) === "owned";
+  return series.price <= 0 || hasVip(s, series.category) || buyStatus(s, series.id) === "owned";
 }
+
+/** id нь series-YYMMDD-HHMM тул үсгийн эрэмбээр буурахад хамгийн шинэ нь эхэнд */
+const newestFirst = (a: Series, b: Series) => b.id.localeCompare(a.id);
 
 /** Картын доорх жижиг мөр: үнэ эсвэл «Нээлттэй» */
 function Meta({ s, series }: { s: AppState; series: Series }) {
@@ -106,11 +110,18 @@ export function Home() {
   const s = useAppState();
   const catalog = useCatalog();
   const navigate = useNavigate();
-  const plan = cheapestPlan(usePlans());
+  const plans = usePlans();
+  const plan = cheapestPlan(plans, "ai");
+  const allPlan = cheapestPlan(plans, "all");
   const scrolled = useScrolled();
 
   const featured = catalog[0];
-  const categories = useMemo(() => allCategories(catalog), [catalog]);
+  // Сайт 2 ангилалтай (эзэн 2026-10-21): AI кино, Эротик кино — тус бүр өөрийн сарын эрхтэй
+  const byCategory = useMemo(() => {
+    const out: Record<Category, Series[]> = { ai: [], erotic: [] };
+    for (const x of catalog) out[x.category].push(x);
+    return out;
+  }, [catalog]);
 
   // Эхэлсэн мөртлөө дуусгаагүй кинонууд — буцаж ирэх гол шалтгаан
   const continueList = useMemo(
@@ -125,7 +136,7 @@ export function Home() {
     () => catalog.filter((x) => x.price > 0 && s.purchased.includes(x.id)),
     [catalog, s.purchased],
   );
-  const fresh = useMemo(() => catalog.filter((x) => isNew(x.id)).slice(0, 12), [catalog]);
+  const fresh = useMemo(() => [...catalog].sort(newestFirst).slice(0, 12), [catalog]);
 
   if (!featured) {
     return <div className="page center">Ачаалж байна…</div>;
@@ -203,7 +214,12 @@ export function Home() {
             <span className="km-vip-text">
               <strong>Сарын эрх идэвхтэй</strong>
               <span>
-                {new Date(s.vipUntil as string).toLocaleDateString("mn-MN")} хүртэл бүх кино нээлттэй
+                {vip
+                  ? "Бүх кино нээлттэй"
+                  : hasVip(s, "ai")
+                    ? `${CATEGORY_LABEL.ai} нээлттэй`
+                    : `${CATEGORY_LABEL.erotic} нээлттэй`}{" "}
+                · {phase.daysLeft} хоног үлдсэн
               </span>
             </span>
             <span className="km-vip-cta km-vip-cta-ghost">Сунгах</span>
@@ -220,13 +236,14 @@ export function Home() {
               ) : phase.kind === "lapsed" ? (
                 <>
                   <strong>Сарын эрх тань дууссан</strong>
-                  <span>Сэргээвэл бүх {catalog.length} кино дахин нээгдэнэ</span>
+                  <span>Сэргээвэл кинонууд тань дахин нээгдэнэ</span>
                 </>
               ) : (
                 <>
-                  <strong>Бүх {catalog.length} кино нэг эрхээр</strong>
+                  <strong>Сарын эрх — ангиллаараа эсвэл бүх кино</strong>
                   <span>
-                    {plan ? `Сард ${formatPrice(plan.price)}` : "Хязгааргүй"} · шинэ кино нэмэгдэх бүрд
+                    {plan ? `Ангилал сард ${formatPrice(plan.price)}` : "Хязгааргүй"}
+                    {allPlan ? ` · бүх ${catalog.length} кино ${formatPrice(allPlan.price)}` : ""}
                   </span>
                 </>
               )}
@@ -245,8 +262,8 @@ export function Home() {
           </Row>
         )}
 
-        <Row title={fresh.length >= 4 ? "Шинээр нэмэгдсэн" : "Сүүлд нэмэгдсэн"}>
-          {(fresh.length >= 4 ? fresh : catalog.slice(0, 10)).map((x) => (
+        <Row title="Шинээр нэмэгдсэн">
+          {fresh.map((x) => (
             <PosterCard key={x.id} series={x} s={s} />
           ))}
         </Row>
@@ -259,26 +276,36 @@ export function Home() {
           </Row>
         )}
 
-        {/* Ангилал бүр нэг эгнээ (ганц кинотой ангиллыг эгнээ болгохгүй) */}
-        {categories
-          .map((c) => ({ c, items: catalog.filter((x) => seriesCategories(x).includes(c)) }))
-          .filter((g) => g.items.length >= 2 && g.items.length < catalog.length)
-          .map((g) => (
-            <Row key={g.c} title={g.c === "18+" ? "Насанд хүрэгчдэд · 18+" : g.c}>
-              {g.items.map((x) => (
-                <PosterCard key={x.id} series={x} s={s} />
-              ))}
-            </Row>
-          ))}
-
-        <section className="hm-all">
-          <h2 className="hm-row-title">Бүх кино · {catalog.length}</h2>
-          <div className="hm-grid">
-            {catalog.map((x) => (
-              <PosterCard key={x.id} series={x} s={s} />
-            ))}
-          </div>
-        </section>
+        {/* 2 ангилал — тус бүр бүх кинотойгоо, өөрийн сарын эрхийн товчтой */}
+        {(["ai", "erotic"] as Category[]).map((cat) => {
+          const items = byCategory[cat];
+          if (!items.length) return null;
+          const catPlan = cheapestPlan(plans, cat);
+          const opened = hasVip(s, cat);
+          return (
+            <section key={cat} className="hm-all hm-cat">
+              <div className="hm-cat-head">
+                <h2 className="hm-row-title">
+                  {CATEGORY_LABEL[cat]} · {items.length}
+                </h2>
+                {opened ? (
+                  <span className="hm-meta hm-meta-open">
+                    <Check size={12} strokeWidth={3} /> Нээлттэй
+                  </span>
+                ) : (
+                  <button className="hm-cat-vip" onClick={() => openVip(cat)}>
+                    <Crown size={15} /> Сарын эрх{catPlan ? ` ${formatPrice(catPlan.price)}` : ""}
+                  </button>
+                )}
+              </div>
+              <div className="hm-grid">
+                {items.map((x) => (
+                  <PosterCard key={x.id} series={x} s={s} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
 
         <section className="hm-perks">
           <div className="hm-perk">
