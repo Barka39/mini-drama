@@ -767,6 +767,19 @@
       "hls": {
         "duration": 2210.3
       }
+    },
+    {
+      "id": "series-261021-1843",
+      "title": "Нууц маршрут",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261021-1843.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 1920.3
+      }
     }
   ]
 }
