@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { siteHost } from "../lib/accessLinks";
-import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
+import { canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
 import { openVip } from "../lib/ui";
@@ -89,7 +89,6 @@ export function PlayerFeed() {
   // хадгалсан bookmark) шинэ тоглуулагч руу өөрөө очно.
   if (series.hls) return <Navigate to={`/movie/${series.id}`} replace />;
 
-  const pending = buyStatus(s, series.id) === "pending";
 
   return (
     <div className="feed" ref={containerRef}>
@@ -159,7 +158,7 @@ export function PlayerFeed() {
               )
             ) : (
               <div className="lock-slide" style={{ backgroundImage: `url(${series.poster})` }}>
-                <PayWall series={series} pending={pending} />
+                <PayWall series={series} />
               </div>
             )}
             {ep.index < series.episodes.length && <div className="swipe-hint">↑ Дараагийн анги</div>}

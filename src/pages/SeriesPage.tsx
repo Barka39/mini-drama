@@ -177,7 +177,7 @@ export function SeriesPage() {
               </div>
             )}
 
-            {series.price > 0 && !open && status === "none" && (
+            {series.price > 0 && !open && (status === "none" || status === "pending") && (
               // 2026-10-22 эзэн: нэг кино ба сарын эрх ҮНЭТЭЙГЭЭ зэрэгцэж харагдана; «Нэг кино»
               // дарахад шууд QR, «Сарын эрх» дарахад сарын сонголт — дундуур нь товч нэмэхгүй
               <div className="buy-pair">
@@ -208,17 +208,6 @@ export function SeriesPage() {
                   </button>
                 )}
               </div>
-            )}
-            {series.price > 0 && !open && status === "pending" && (
-              <button
-                className="btn btn-glass btn-wide"
-                onClick={() => {
-                  track("buy_click", series.id);
-                  openPurchase(series.id);
-                }}
-              >
-                <Clock size={17} /> Төлбөр хүлээгдэж байна
-              </button>
             )}
           </div>
 

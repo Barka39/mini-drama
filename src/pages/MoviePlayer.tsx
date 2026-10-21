@@ -358,7 +358,7 @@ export function MoviePlayer() {
 
         {walled && !failed && (
           <div className="movie-overlay movie-wall">
-            <PayWall series={series} pending={status === "pending"} />
+            <PayWall series={series} />
           </div>
         )}
 
