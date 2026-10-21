@@ -1,4 +1,4 @@
-import { Crown } from "lucide-react";
+import { Check, CircleCheck, Crown, X } from "lucide-react";
 import { InAppGuide } from "./InAppGuide";
 import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
 import { useEffect, useState } from "react";
@@ -17,6 +17,11 @@ import { track } from "../lib/track";
 import { closeModals, openAuth, useOpenModal, useVipCategory } from "../lib/ui";
 
 const SCOPE_LABEL: Record<Plan["scope"], string> = { ...CATEGORY_LABEL, all: "Бүх кино" };
+const CARD_NAME: Record<Plan["scope"], string> = { ai: "AI кино багц", erotic: "Эротик багц", all: "VIP багц" };
+
+function daysLeft(until: string): number {
+  return Math.max(1, Math.ceil((new Date(until).getTime() - Date.now()) / 86400000));
+}
 
 export function VipModal() {
   const open = useOpenModal() === "vip";
@@ -27,6 +32,7 @@ export function VipModal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [period, setPeriod] = useState(1);
 
   useEffect(() => {
     if (!open) {
@@ -97,24 +103,52 @@ export function VipModal() {
     setMsg(pay.reason);
   }
 
+  // Багц сонгох үе — өргөн «Тохирох эрхийг сонгоно уу» хуудас (2026-10-22 эзний загвар)
+  const picking = !(qpay && needsBrowserGuide) && !(!needAccount && s.subPending);
+  const months = [...new Set(plans.map((p) => Math.round(p.days / 30)))].sort((a, b) => a - b);
+  const span = months.includes(period) ? period : months[0] ?? 1;
+
   return (
     <div className="modal-backdrop" onClick={closeModals}>
-      <div className="modal pay-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="pay-title pay-title-icon">
-          <Crown size={20} /> Сарын эрх
-        </h3>
-        <p className="muted small">
-          Ангиллынхаа <strong>бүх киног хязгааргүй</strong> үзнэ. Шинэ кино нэмэгдэх бүрд
-          нэмэлт төлбөргүйгээр нээлттэй.
-        </p>
+      <div className={`modal pay-modal ${picking ? "vip-sheet" : ""}`} onClick={(e) => e.stopPropagation()}>
+        {picking ? (
+          <>
+            <button className="vip-x" onClick={closeModals} aria-label="Хаах">
+              <X size={20} />
+            </button>
+            <h2 className="vip-h">Тохирох эрхийг сонгоно уу</h2>
+            <p className="vip-sub">Нэг дор бүх киног хязгааргүй үзэх боломж</p>
+          </>
+        ) : (
+          <>
+            <h3 className="pay-title pay-title-icon">
+              <Crown size={20} /> Сарын эрх
+            </h3>
+            <p className="muted small">
+              Ангиллынхаа <strong>бүх киног хязгааргүй</strong> үзнэ. Шинэ кино нэмэгдэх бүрд
+              нэмэлт төлбөргүйгээр нээлттэй.
+            </p>
+          </>
+        )}
 
         {mine.length > 0 && (
-          <div className="msg-ok">
-            {mine.map((v) => (
-              <div key={v.scope}>
-                ✅ {SCOPE_LABEL[v.scope]} — {new Date(v.until).toLocaleDateString("mn-MN")} хүртэл
-              </div>
-            ))}
+          <div className="vip-active">
+            <span className="vip-active-ic">
+              <CircleCheck size={20} />
+            </span>
+            <div className="vip-active-text">
+              {mine.map((v) => (
+                <div key={v.scope}>
+                  <strong>Идэвхтэй эрх: {SCOPE_LABEL[v.scope]}</strong>
+                  <span>
+                    Дуусах: {v.until.slice(0, 10)} ({daysLeft(v.until)} хоног үлдсэн)
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button className="vip-active-go" onClick={closeModals}>
+              Үзэхийг нээх →
+            </button>
           </div>
         )}
 
@@ -197,43 +231,65 @@ export function VipModal() {
           </>
         ) : (
           <>
-            {scopes.map((scope) => {
-              const group = plans.filter((p) => p.scope === scope).sort((a, b) => a.days - b.days);
-              if (!group.length) return null;
-              const monthly = group[0].price / (group[0].days / 30);
-              return (
-                <div key={scope} className="plan-group">
-                  <div className="plan-group-head">
-                    <strong>{SCOPE_LABEL[scope]}</strong>
-                    <span className="muted small">
-                      {scope === "all" ? "AI + эротик" : ""}
-                      {covered(scope) ? " · идэвхтэй — сунгах" : ""}
-                    </span>
+            {months.length > 1 && (
+              <div className="vip-period" role="tablist">
+                {months.map((m) => (
+                  <button
+                    key={m}
+                    role="tab"
+                    aria-selected={m === span}
+                    className={m === span ? "on" : ""}
+                    onClick={() => setPeriod(m)}
+                  >
+                    {m} сар
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="vip-grid">
+              {scopes.map((scope) => {
+                const group = plans.filter((p) => p.scope === scope);
+                const p = group.find((x) => Math.round(x.days / 30) === span);
+                if (!p) return null;
+                const one = group.find((x) => Math.round(x.days / 30) === 1);
+                const perMonth = Math.round(p.price / span);
+                const save = one && span > 1 ? Math.round((1 - perMonth / one.price) * 100) : 0;
+                const on = covered(scope);
+                return (
+                  <div key={scope} className={`vip-card ${scope === "all" ? "vip-card-best" : ""}`}>
+                    {scope === "all" && <span className="vip-ribbon">Хамгийн ашигтай</span>}
+                    <h4>{CARD_NAME[scope]}</h4>
+                    <div className="vip-price">
+                      {formatPrice(p.price)}
+                      <span>/ {span} сар</span>
+                    </div>
+                    {save > 0 && (
+                      <div className="vip-save">
+                        сард {formatPrice(perMonth)} · −{save}%
+                      </div>
+                    )}
+                    <ul className="vip-feats">
+                      {(scope === "all" ? (["ai", "erotic"] as const) : [scope]).map((c) => (
+                        <li key={c}>
+                          <Check size={16} /> {CATEGORY_LABEL[c]}
+                        </li>
+                      ))}
+                      <li>
+                        <Check size={16} /> Шинэ кино нэмэгдэхэд үнэгүй
+                      </li>
+                      <li className="vip-feat-dim">– Автоматаар сунгагдахгүй</li>
+                    </ul>
+                    <button
+                      className={on ? "vip-buy vip-buy-on" : "vip-buy"}
+                      disabled={busy}
+                      onClick={() => order(p.code)}
+                    >
+                      {on ? "✓ Идэвхтэй · сунгах" : "Эрх авах"}
+                    </button>
                   </div>
-                  <div className="plan-list">
-                    {group.map((p) => {
-                      const perMonth = Math.round(p.price / (p.days / 30));
-                      const save = Math.round((1 - perMonth / monthly) * 100);
-                      return (
-                        <button
-                          key={p.code}
-                          className={`plan-card ${p.days > 30 ? "plan-best" : ""}`}
-                          disabled={busy}
-                          onClick={() => order(p.code)}
-                        >
-                          {p.days > 30 && (
-                            <span className="plan-badge">{`−${save}%`}</span>
-                          )}
-                          <span className="plan-label">{Math.round(p.days / 30)} сар</span>
-                          <span className="plan-price">{formatPrice(p.price)}</span>
-                          {p.days > 30 && <span className="plan-per">сард {formatPrice(perMonth)}</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
             {msg && <p className="msg-err">{msg}</p>}
             {needAccount && (
               <p className="hint-box">
@@ -253,9 +309,11 @@ export function VipModal() {
           </>
         )}
 
-        <button className="btn btn-ghost" onClick={closeModals}>
-          Хаах
-        </button>
+        {!picking && (
+          <button className="btn btn-ghost" onClick={closeModals}>
+            Хаах
+          </button>
+        )}
       </div>
     </div>
   );

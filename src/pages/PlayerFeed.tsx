@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { CATEGORY_LABEL, formatPrice, freeEpCount } from "../data/catalog";
 import { siteHost } from "../lib/accessLinks";
 import { buyStatus, canWatch, setProgress, useAppState } from "../lib/store";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
-import { cheapestPlan, usePlans } from "../lib/plans";
-import { openPurchase, openVip } from "../lib/ui";
+import { openVip } from "../lib/ui";
+import { PayWall } from "../components/PayWall";
 import { AccountBadge } from "../components/AccountBadge";
 import { EpisodeVideo } from "../components/EpisodeVideo";
 
@@ -14,7 +13,6 @@ export function PlayerFeed() {
   const { seriesId, epIndex } = useParams();
   const s = useAppState();
   const series = useSeriesById(seriesId);
-  const plans = usePlans();
   const startIndex = Math.max(1, Number(epIndex) || 1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -91,7 +89,6 @@ export function PlayerFeed() {
   // хадгалсан bookmark) шинэ тоглуулагч руу өөрөө очно.
   if (series.hls) return <Navigate to={`/movie/${series.id}`} replace />;
 
-  const freeCount = freeEpCount(series);
   const pending = buyStatus(s, series.id) === "pending";
 
   return (
@@ -162,40 +159,7 @@ export function PlayerFeed() {
               )
             ) : (
               <div className="lock-slide" style={{ backgroundImage: `url(${series.poster})` }}>
-                <div className="lock-panel">
-                  <div className="lock-icon">🔒</div>
-                  <h3>
-                    {ep.index}-р анги · {ep.title}
-                  </h3>
-                  <p className="muted">
-                    Эхний {freeCount} анги ({series.freeMinutes} минут) үнэгүй. Үргэлжлэлийг үзэхийн
-                    тулд киног бүтнээр нь нээнэ — нэг удаа төлөөд дуустал үзнэ.
-                  </p>
-                  {pending ? (
-                    <>
-                      <p className="msg-ok">⏳ Хүсэлт хүлээгдэж байна</p>
-                      <button className="btn btn-primary" onClick={() => { track("buy_click", series.id); openPurchase(series.id); }}>
-                        Төлбөрийн мэдээлэл харах
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          track("buy_click", series.id);
-                          openPurchase(series.id);
-                        }}
-                      >
-                        🎬 Энэ киног авах — {formatPrice(series.price)}
-                      </button>
-                      <button className="btn btn-outline" onClick={() => openVip(series.category)}>
-                        ⭐ Сарын эрх — {CATEGORY_LABEL[series.category]}
-                        {cheapestPlan(plans, series.category) ? ` ${formatPrice((cheapestPlan(plans, series.category) as { price: number }).price)}` : ""}
-                      </button>
-                    </>
-                  )}
-                </div>
+                <PayWall series={series} pending={pending} />
               </div>
             )}
             {ep.index < series.episodes.length && <div className="swipe-hint">↑ Дараагийн анги</div>}

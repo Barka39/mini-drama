@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2 } from "lucide-react";
-import { CATEGORY_LABEL, formatPrice } from "../data/catalog";
+import { ChevronLeft, Crown, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2 } from "lucide-react";
+import { CATEGORY_LABEL } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
 import { useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
 import { track } from "../lib/track";
-import { openPurchase, openVip } from "../lib/ui";
-import { cheapestPlan, usePlans } from "../lib/plans";
+import { openVip } from "../lib/ui";
+import { PayWall } from "../components/PayWall";
 
 const SPEEDS = [1, 1.25, 1.5, 2];
 const DEFAULT_TITLE = "Кино Мандал — Дэлхийн киног Монгол хэлээрээ";
@@ -63,10 +63,7 @@ export function MoviePlayer() {
   const wallTracked = useRef(false);
   const startTracked = useRef(false);
 
-  const plans = usePlans();
-
   const owned = !!series && (series.price <= 0 || hasVip(s, series.category) || s.purchased.includes(series.id));
-  const plan = cheapestPlan(plans, series?.category);
   const status = series ? buyStatus(s, series.id) : "none";
 
   useEffect(() => {
@@ -360,44 +357,8 @@ export function MoviePlayer() {
         )}
 
         {walled && !failed && (
-          <div className="movie-overlay">
-            <div className="lock-panel">
-              <div className="lock-icon">
-                <Lock size={24} />
-              </div>
-              <h3>Үнэгүй хэсэг дууслаа</h3>
-              <p className="muted">
-                Үргэлжлэлийг яг эндээс нь үзнэ — төлбөр баталгаажмагц кино өөрөө цааш тоглоно.
-              </p>
-              {status === "pending" ? (
-                <button className="btn btn-primary" onClick={() => openPurchase(series.id)}>
-                  <Clock size={17} /> Төлбөр хүлээгдэж байна
-                </button>
-              ) : (
-                <>
-                  {/* Сарын эрх тэргүүнд: орлогын 60% эндээс ордог, хэрэглэгчид ч ашигтай
-                      (нэг киноны биш, бүх киноны эрх) */}
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      track("buy_click", series.id);
-                      openVip(series.category);
-                    }}
-                  >
-                    <Crown size={17} /> Бүх {CATEGORY_LABEL[series.category]}{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => {
-                      track("buy_click", series.id);
-                      openPurchase(series.id);
-                    }}
-                  >
-                    Зөвхөн энэ кино — {formatPrice(series.price)}
-                  </button>
-                </>
-              )}
-            </div>
+          <div className="movie-overlay movie-wall">
+            <PayWall series={series} pending={status === "pending"} />
           </div>
         )}
 

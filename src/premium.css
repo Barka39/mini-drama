@@ -1533,3 +1533,52 @@ h3 {
 .hm-catpage .km-vip { margin: 8px 16px 16px; width: calc(100% - 32px); }
 .hm-catpage-note { margin: 8px 16px 16px; }
 .hm-catpage-grid { padding: 0 16px; }
+
+/* ---------- Төлбөрийн хэсэг (2026-10-22 эзний загвар: түгжээ + «Тохирох эрхийг сонгоно уу») ---------- */
+.movie-wall { background: rgba(6, 7, 10, 0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.lock-slide .wall { position: relative; }
+.wall { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; width: min(560px, 100%); padding: 8px; }
+.wall-lock { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: #a5a8b8; margin-bottom: 6px; }
+.wall h3 { font-size: clamp(22px, 5vw, 28px); font-weight: 800; color: #fff; }
+.wall p { color: #a3a8bf; font-size: 15px; line-height: 1.55; max-width: 460px; }
+.wall-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 10px; width: 100%; }
+.wall-btns button { flex: 1 1 200px; max-width: 260px; min-height: 56px; border-radius: 16px; font-size: 16px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 0 20px; }
+.wall-one { background: #f0174f; color: #fff; border: 0; box-shadow: 0 10px 30px rgba(240, 23, 79, 0.35); }
+.wall-one:hover { background: #ff2a60; }
+.wall-one svg { color: #ffb37a; }
+.wall-sub { background: rgba(255, 255, 255, 0.06); color: #fff; border: 1px solid rgba(255, 255, 255, 0.16); }
+.wall-sub:hover { background: rgba(255, 255, 255, 0.12); }
+
+.modal.vip-sheet { width: min(1180px, 100vw); background: #0d0e12; padding: 28px 20px calc(24px + env(safe-area-inset-bottom)); gap: 16px; position: relative; }
+.vip-x { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.07); color: #c9ccd8; display: grid; place-items: center; cursor: pointer; }
+.vip-h { text-align: center; font-size: clamp(24px, 5.5vw, 40px); font-weight: 900; color: #fff; letter-spacing: -0.02em; padding: 0 36px; }
+.vip-sub { text-align: center; color: #8f94ab; font-size: 15px; margin-top: -6px; }
+.vip-active { display: flex; align-items: center; gap: 14px; background: #0c1a17; border: 1px solid #16352d; border-radius: 18px; padding: 16px 18px; flex-wrap: wrap; }
+.vip-active-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(52, 211, 153, 0.1); color: #34d399; flex: none; }
+.vip-active-text { flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px; }
+.vip-active-text div { display: flex; flex-direction: column; gap: 2px; }
+.vip-active-text strong { color: #fff; font-size: 15px; }
+.vip-active-text span { color: #34d399; font-size: 14px; }
+.vip-active-go { border: 1px solid #1f4a3e; background: #0a1512; color: #fff; border-radius: 14px; padding: 12px 18px; font-weight: 700; cursor: pointer; }
+.vip-period { display: flex; gap: 6px; justify-content: center; background: rgba(255, 255, 255, 0.05); border-radius: 999px; padding: 5px; width: fit-content; margin: 0 auto; }
+.vip-period button { border: 0; background: transparent; color: #a3a8bf; font-weight: 700; padding: 9px 18px; border-radius: 999px; cursor: pointer; }
+.vip-period button.on { background: #fff; color: #0d0e12; }
+.vip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.vip-card { position: relative; display: flex; flex-direction: column; gap: 10px; background: #111217; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 22px; padding: 26px 24px 22px; }
+.vip-card-best { border-color: rgba(124, 92, 255, 0.55); box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.25), 0 20px 50px rgba(91, 70, 255, 0.12); }
+.vip-ribbon { position: absolute; top: -11px; left: 22px; background: linear-gradient(90deg, #5b5cff, #9b3dff); color: #fff; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.vip-card h4 { color: #fff; font-size: 20px; font-weight: 800; }
+.vip-price { color: #7c7dff; font-size: clamp(34px, 7vw, 44px); font-weight: 900; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.vip-price span { color: #8f94ab; font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.vip-save { color: #34d399; font-size: 14px; font-weight: 700; margin-top: -6px; }
+.vip-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 8px 0 14px; flex: 1; }
+.vip-feats li { display: flex; align-items: center; gap: 8px; color: #c4c7d4; font-size: 15px; }
+.vip-feats li svg { color: #34d399; flex: none; }
+.vip-feats .vip-feat-dim { color: #6c7088; }
+.vip-buy { min-height: 56px; border: 0; border-radius: 16px; background: linear-gradient(90deg, #5b5cff, #9b3dff); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; }
+.vip-buy:hover:not(:disabled) { filter: brightness(1.1); }
+.vip-buy:disabled { opacity: 0.6; }
+.vip-buy-on { background: #0c1a17; border: 1px solid #16352d; color: #34d399; }
+@media (min-width: 640px) {
+  .modal.vip-sheet { padding: 40px 36px 32px; border-radius: 24px; }
+}
