@@ -60,7 +60,6 @@ begin
   end if;
 
   -- Зочинд профайл байхгүй (md_purchases.user_id → md_profiles). Утасгүй үүсгэнэ.
-  -- (2026-10-22: 3 хоногийн засвар энэ мөрийг алдсан → зочин «foreign key» алдаа авч байсан)
   insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
 
   perform public.md__expire_movies(auth.uid(), p_series); -- 3 хоног өнгөрсөн бол дахин авна
@@ -77,32 +76,9 @@ begin
     raise exception 'too_many_pending';
   end if;
 
-  -- Өвөрмөц дүн онооно: зарласан үнээс 1..N төгрөг ХАСНА (нэмэхгүй — хэрэглэгч
-  -- зарласнаас илүү төлөх ёсгүй). Хүлээгдэж буй бусад захиалгатай давхцахгүй.
-  declare
-    v_max_off integer := least(99, greatest(1, floor(v_price * 0.03)::integer));
-    v_amount integer := null;
-    v_off integer;
-  begin
-    for v_off in
-      select g from generate_series(1, v_max_off) g order by random()
-    loop
-      if not exists (
-        select 1 from md_purchases
-        where amount = v_price - v_off
-          and status = 'pending'
-          and created_at > now() - interval '48 hours'
-      ) then
-        v_amount := v_price - v_off;
-        exit;
-      end if;
-    end loop;
-    if v_amount is null then v_amount := v_price; end if;
-
-    insert into md_purchases (user_id, series_id, price, amount)
-    values (auth.uid(), p_series, v_price, v_amount)
-    returning id into v_id;
-  end;
+  insert into md_purchases (user_id, series_id, price, amount)
+  values (auth.uid(), p_series, v_price, v_price)
+  returning id into v_id;
 
   return v_id;
 end;
