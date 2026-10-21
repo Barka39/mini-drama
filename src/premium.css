@@ -1582,3 +1582,13 @@ h3 {
 @media (min-width: 640px) {
   .modal.vip-sheet { padding: 40px 36px 32px; border-radius: 24px; }
 }
+
+/* Нэг кино / сарын эрх — үнэтэйгээ зэрэгцэн (2026-10-22 эзэн) */
+.buy-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 600px; }
+.buy-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border-radius: 14px; border: 0; cursor: pointer; text-align: left; background: var(--gold-grad); color: #1a1205; box-shadow: 0 8px 24px rgba(226, 173, 77, 0.25); }
+.buy-opt:hover { filter: brightness(1.06); }
+.buy-opt-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; opacity: 0.85; }
+.buy-opt strong { font-size: 22px; font-weight: 900; letter-spacing: -0.01em; line-height: 1.15; }
+.buy-opt small { font-size: 12px; font-weight: 600; opacity: 0.75; }
+.buy-opt-vip { position: relative; box-shadow: 0 0 0 2px rgba(255, 236, 190, 0.9), 0 8px 24px rgba(226, 173, 77, 0.3); }
+@media (max-width: 380px) { .buy-opt strong { font-size: 19px; } .buy-opt { padding: 10px 12px; } }

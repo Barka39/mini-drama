@@ -178,15 +178,36 @@ export function SeriesPage() {
             )}
 
             {series.price > 0 && !open && status === "none" && (
-              <button
-                className="btn btn-primary btn-wide"
-                onClick={() => {
-                  track("buy_click", series.id);
-                  openPurchase(series.id);
-                }}
-              >
-                Бүтэн киног авах — {formatPrice(series.price)}
-              </button>
+              // 2026-10-22 эзэн: нэг кино ба сарын эрх ҮНЭТЭЙГЭЭ зэрэгцэж харагдана; «Нэг кино»
+              // дарахад шууд QR, «Сарын эрх» дарахад сарын сонголт — дундуур нь товч нэмэхгүй
+              <div className="buy-pair">
+                <button
+                  className="buy-opt"
+                  onClick={() => {
+                    track("buy_click", series.id);
+                    openPurchase(series.id, true);
+                  }}
+                >
+                  <span className="buy-opt-t">Нэг кино</span>
+                  <strong>{formatPrice(series.price)}</strong>
+                  <small>3 хоног үзнэ</small>
+                </button>
+                {plan && (
+                  <button
+                    className="buy-opt buy-opt-vip"
+                    onClick={() => {
+                      track("buy_click", series.id);
+                      openVip(series.category);
+                    }}
+                  >
+                    <span className="buy-opt-t">
+                      <Crown size={15} /> Сарын эрх
+                    </span>
+                    <strong>{formatPrice(plan.price)}</strong>
+                    <small>бүх {CATEGORY_LABEL[series.category]} · 30 хоног</small>
+                  </button>
+                )}
+              </div>
             )}
             {series.price > 0 && !open && status === "pending" && (
               <button

@@ -59,6 +59,10 @@ begin
     raise exception 'free_series';
   end if;
 
+  -- Зочинд профайл байхгүй (md_purchases.user_id → md_profiles). Утасгүй үүсгэнэ.
+  -- (2026-10-22: 3 хоногийн засвар энэ мөрийг алдсан → зочин «foreign key» алдаа авч байсан)
+  insert into md_profiles (id) values (auth.uid()) on conflict (id) do nothing;
+
   perform public.md__expire_movies(auth.uid(), p_series); -- 3 хоног өнгөрсөн бол дахин авна
   if exists (select 1 from md_purchases
              where user_id = auth.uid() and series_id = p_series and status = 'confirmed') then

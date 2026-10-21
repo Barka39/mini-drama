@@ -27,7 +27,7 @@ export function PayWall({ series, pending }: { series: Series; pending: boolean 
             className="wall-one"
             onClick={() => {
               track("buy_click", series.id);
-              openPurchase(series.id);
+              openPurchase(series.id, true);
             }}
           >
             <Zap size={17} /> Нэг удаа ({formatPrice(series.price)})

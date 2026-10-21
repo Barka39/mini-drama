@@ -31,10 +31,20 @@ export function usePurchaseSeriesId(): string | null {
   );
 }
 
-export function openPurchase(seriesId: string) {
+// direct: «Нэг кино» товчноос — цонх нээгдмэгц QPay (QR) руу шууд явна (2026-10-22 эзэн:
+// «давхар давхар төлөх товч дарах шаардлага гарахаар хүн дундаас нь буцдаг»)
+let directPay = false;
+export function openPurchase(seriesId: string, direct = false) {
   purchaseSeriesId = seriesId;
+  directPay = direct;
   openModal = "purchase";
   notify();
+}
+/** Нэг удаа уншина: энэ нээлт шууд төлбөр рүү явах уу */
+export function takeDirectPay(): boolean {
+  const d = directPay;
+  directPay = false;
+  return d;
 }
 
 // Сарын эрхийн цонх аль ангиллаас нээгдсэн бэ (тэр ангиллын багцууд эхэнд, «Бүх кино» дараа нь).

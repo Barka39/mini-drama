@@ -1,7 +1,7 @@
 import { Crown } from "lucide-react";
 import { InAppGuide } from "./InAppGuide";
 import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORY_LABEL, formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../lib/store";
 import { useCatalog } from "../lib/seriesAdmin";
 import { track } from "../lib/track";
-import { closeModals, openAuth, openVip, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
+import { closeModals, openAuth, openVip, takeDirectPay, useOpenModal, usePurchaseSeriesId } from "../lib/ui";
 
 // Хуулж болох мөр: шошго + утга + «Хуулах» товч
 function CopyRow({
@@ -70,12 +70,16 @@ export function PurchaseModal() {
   const qpay = onlinePayFor(bank, s.isAdmin);
   // Утасны дугаартай бүртгэл (зочин биш)
   const hasAccount = s.signedIn && !s.guest;
+  // «Нэг кино» товчноос нээгдсэн бол QPay асаалттай үед шууд төлбөрийн хуудас (QR) руу
+  const direct = useRef(false);
+  const payNow = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!open) {
       if (needsBrowserGuide) markModalInUrl("buy", null);
       return;
     }
+    direct.current = takeDirectPay();
     setMsg(null);
     // iPhone-ийн Facebook/Messenger: ⋯ → «Safari-д нээх» нь ОДООГИЙН хаягийг нээдэг тул хаягт
     // ?buy=<кино> нэмнэ — Safari-д нээгдэхэд энэ цонх өөрөө нээгдэнэ (App.tsx)
@@ -90,6 +94,13 @@ export function PurchaseModal() {
     const t = setInterval(() => void refreshAccount(), 10000);
     return () => clearInterval(t);
   }, [open, status]);
+
+  useEffect(() => {
+    if (!open || !direct.current || !bank) return;
+    direct.current = false;
+    // iPhone-ийн FB/Messenger-т банкны апп нээгддэггүй — тэнд зааврыг нь л харуулна
+    if (qpay && !needsBrowserGuide && status !== "owned") void payNow.current?.();
+  }, [open, bank, qpay, status]);
 
   if (!open || !series) return null;
 
@@ -153,18 +164,21 @@ export function PurchaseModal() {
     setMsg(pay.reason);
   }
 
+  payNow.current = payQpay;
+
   const vipOffer = vipPlan && catalogCount > 2 && (
     // Сарын эрхийн санал. Түгжээ бол хүн худалдан авах бодолтой байгаа ганц мөч —
     // нэг кино авахаас сарын эрх авах нь хамаагүй ашигтайг ЭНД хэлэх ёстой.
+    // 2026-10-22 эзэн: доор нь саарал товч байхад хүн бараг анзаардаггүй → төлбөрийн
+    // товчны яг доор, адил шар, үнэтэй нь.
     <div className="pay-vip">
-      <div className="pay-divider" />
-      <p className="pay-vip-line">
-        Нэг кино 3 хоног. Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
-        <strong>бүх {series ? CATEGORY_LABEL[series.category] : "киног"}</strong> {vipPlan.days} хоног хязгааргүй
-      </p>
-      <button className="btn btn-outline" onClick={() => openVip(series?.category)}>
-        <Crown size={17} /> Сарын эрх авах
+      <button className="btn btn-primary pay-vip-btn" onClick={() => openVip(series?.category)}>
+        <Crown size={17} /> Сарын эрх — бүх {series ? CATEGORY_LABEL[series.category] : "кино"} {formatPrice(vipPlan.price)}
       </button>
+      <p className="pay-vip-line">
+        Нэг кино 3 хоног үзнэ · сарын эрхээр <strong>бүх {series ? CATEGORY_LABEL[series.category] : "киног"}</strong>{" "}
+        {vipPlan.days} хоног хязгааргүй
+      </p>
     </div>
   );
 
@@ -242,6 +256,7 @@ export function PurchaseModal() {
               <button className="btn btn-primary" disabled={busy} onClick={payQpay}>
                 {busy ? "Түр хүлээнэ үү…" : `Төлбөр төлөх — ${formatPrice(series.price)}`}
               </button>
+              {vipOffer}
               {!hasAccount && (
                 <p className="muted small">Бүртгэл шаардлагагүй — кино энэ утсан дээр шууд нээгдэнэ.</p>
               )}
@@ -251,7 +266,6 @@ export function PurchaseModal() {
                   Өмнө нь бүртгүүлсэн бол нэвтрэх
                 </button>
               )}
-              {vipOffer}
             </>
           )
         ) : !hasAccount ? (
@@ -276,8 +290,8 @@ export function PurchaseModal() {
             <button className="btn btn-primary" disabled={busy} onClick={order}>
               {busy ? "Түр хүлээнэ үү…" : `Захиалах — ${formatPrice(series.price)}`}
             </button>
-            <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
             {vipOffer}
+            <p className="muted small">Захиалсны дараа шилжүүлэх дансны мэдээлэл гарч ирнэ.</p>
           </>
         ) : (
           <>
