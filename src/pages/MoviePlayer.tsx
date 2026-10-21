@@ -23,6 +23,39 @@ function fmt(sec: number): string {
 }
 
 // hls.js-ийн бидэнд хэрэгтэй хэсэг (санг зөвхөн энэ хуудсанд, хэрэгтэй үед л ачаална)
+/** init.mp4-ийн шифрийн түлхүүр — сервертэй ижил: SHA-256("init:" + proof) */
+async function initMask(proof: string): Promise<Uint8Array> {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`init:${proof}`)));
+}
+
+/**
+ * IDM-ээс хамгаалах (2026-10-22): хүсэлт бүрт X-KM-Proof толгой, init.mp4-ийг тайлна.
+ * IDM хаягийг манай JS-гүйгээр дахин татдаг — толгойгүй тул 403, init-ийг тайлж чадахгүй.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function guardedLoading(Hls: any, proof: string, mask: Uint8Array | null): any {
+  const Base = Hls.DefaultConfig.loader;
+  class GuardedLoader extends Base {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    load(context: any, config: any, callbacks: any) {
+      if (mask && /\/init\.mp4(\?|$)/.test(context.url)) {
+        const done = callbacks.onSuccess;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        callbacks = { ...callbacks, onSuccess: (response: any, ...rest: any[]) => {
+          const bytes = new Uint8Array(response.data as ArrayBuffer);
+          for (let i = 0; i < bytes.length; i++) bytes[i] ^= mask[i % 32];
+          done({ ...response, data: bytes.buffer }, ...rest);
+        } };
+      }
+      super.load(context, config, callbacks);
+    }
+  }
+  return {
+    loader: GuardedLoader,
+    xhrSetup: (xhr: XMLHttpRequest) => xhr.setRequestHeader("X-KM-Proof", proof),
+  };
+}
+
 interface HlsLike {
   loadSource(url: string): void;
   attachMedia(el: HTMLMediaElement): void;
@@ -134,14 +167,18 @@ export function MoviePlayer() {
     if (!hasMse && v.canPlayType("application/vnd.apple.mpegurl")) {
       playNative();
     } else {
-      void import("hls.js").then(({ default: Hls }) => {
+      void Promise.all([import("hls.js"), stream.proof ? initMask(stream.proof) : null]).then(([{ default: Hls }, mask]) => {
         if (cancelled) return;
         if (!Hls.isSupported()) {
           if (v.canPlayType("application/vnd.apple.mpegurl")) playNative();
           else setFailed(true);
           return;
         }
-        const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60 }) as unknown as HlsLike;
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          ...(stream.proof ? guardedLoading(Hls, stream.proof, mask) : {}),
+        }) as unknown as HlsLike;
         hlsRef.current = hls;
         hls.on("hlsManifestParsed", start);
         hls.on("hlsError", (_e, data) => {

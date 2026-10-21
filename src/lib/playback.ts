@@ -65,6 +65,9 @@ export function clearPlayCache() {
 
 export interface MovieStream {
   url: string;
+  // IDM-ээс хамгаалах баталгаа (2026-10-22): hls.js хүсэлт бүрт X-KM-Proof толгойгоор
+  // илгээж, init.mp4-ийг үүгээр тайлна. MSE-гүй Apple-ийн тоглуулагчид null.
+  proof: string | null;
   entitled: boolean;
   // Төлөөгүй бол энэ секундэд төлбөрийн санал гарна; төлсөн бол null
   previewSeconds: number | null;
@@ -78,7 +81,9 @@ export async function getMovieStream(seriesId: string): Promise<MovieStream | nu
   const { data } = await supa.auth.getSession();
   const token = data.session?.access_token;
   try {
-    const res = await fetch(`/api/play?kind=hls&series=${encodeURIComponent(seriesId)}`, {
+    // MSE-тэй бол hls.js тоглуулна (MoviePlayer-тэй ижил шийдвэр) — сервер хамгаалсан тэмдэг өгнө
+    const mse = typeof window !== "undefined" && ("MediaSource" in window || "ManagedMediaSource" in window);
+    const res = await fetch(`/api/play?kind=hls&series=${encodeURIComponent(seriesId)}&mse=${mse ? 1 : 0}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) return null;
@@ -86,6 +91,7 @@ export async function getMovieStream(seriesId: string): Promise<MovieStream | nu
     if (!body.url) return null;
     return {
       url: body.url,
+      proof: body.proof ?? null,
       entitled: !!body.entitled,
       previewSeconds: body.previewSeconds ?? null,
     };

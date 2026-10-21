@@ -57,16 +57,34 @@ export async function signHlsToken(env, seriesId, exp, max) {
   return `${exp}.${max}.${toHex(sig).slice(0, 32)}`;
 }
 
-/** Зөв бол { max } буцаана ("a" эсвэл тоо), эс бөгөөс null */
+/**
+ * Зөв бол { max, guard } буцаана (max = "a" эсвэл тоо), эс бөгөөс null.
+ * guard (max-ийн өмнөх «h», гарын үсэгт орсон тул хасаж болохгүй): энэ тэмдгээр ирсэн
+ * хүсэлт бүр X-KM-Proof толгойтой байх ёстой, init.mp4 нь шифрлэгдэж очно (2026-10-22,
+ * IDM-ээс хамгаалах — IDM хаягийг манай JS-гүйгээр дахин татдаг тул толгой, тайлах
+ * түлхүүр хоёулаа түүнд байхгүй).
+ */
 export async function verifyHlsToken(env, seriesId, token) {
-  const m = /^(\d{9,11})\.(a|\d{1,6})\.([0-9a-f]{32})$/.exec(token || "");
+  const m = /^(\d{9,11})\.(h?)(a|\d{1,6})\.([0-9a-f]{32})$/.exec(token || "");
   if (!m) return null;
   const exp = Number(m[1]);
   if (exp < Math.floor(Date.now() / 1000)) return null;
-  const expected = await signHlsToken(env, seriesId, exp, m[2]);
+  const expected = await signHlsToken(env, seriesId, exp, `${m[2]}${m[3]}`);
   if (expected.length !== token.length) return null;
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ token.charCodeAt(i);
   if (diff !== 0) return null;
-  return { max: m[2] === "a" ? "a" : Number(m[2]) };
+  return { max: m[3] === "a" ? "a" : Number(m[3]), guard: m[2] === "h" };
+}
+
+/** Хамгаалагдсан тэмдгийн «баталгаа» — /api/play зөвхөн JSON-оор өгнө, хаягт хэзээ ч орохгүй. */
+export async function hlsProof(env, token) {
+  const key = await keyFor(env);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`proof:${token}`));
+  return toHex(sig).slice(0, 32);
+}
+
+/** init.mp4-ийн шифр: SHA-256("init:" + proof)-ийн 32 байтаар XOR (клиент яг ижлээр тайлна). */
+export async function initMask(proof) {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`init:${proof}`)));
 }

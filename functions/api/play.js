@@ -6,7 +6,7 @@
 //
 // Ингэснээр: шууд файлын хаяг гэж байхгүй болно; хуваалцсан холбоос хэдэн
 // минутын дараа үхнэ; төлөөгүй хүн төлбөртэй ангийн холбоосыг ер авч чадахгүй.
-import { signHlsToken, signPlaybackToken } from "../_lib/sign.js";
+import { signHlsToken, signPlaybackToken, hlsProof } from "../_lib/sign.js";
 
 const SUPABASE_URL = "https://uloxtmssvloffbwfwzki.supabase.co";
 const SUPABASE_ANON = "sb_publishable_uDORytsT_NzUAqnBXnq6Bw_Fk9o0LQ1";
@@ -88,7 +88,11 @@ async function playHls(request, env, seriesId) {
   const max = entitled ? "a" : Math.max(0, Number(meta.free_eps ?? 0));
 
   const exp = Math.floor(Date.now() / 1000) + HLS_TTL;
-  const token = await signHlsToken(env, seriesId, exp, max);
+  // hls.js-ээр тоглуулах бүх хөтөч хамгаалагдсан тэмдэг авна. Зөвхөн MSE-гүй Apple-ийн
+  // өөрийн тоглуулагч (толгой нэмж чаддаггүй) хуучин журмаар — IDM бол Windows-ийн програм.
+  const ua = request.headers.get("user-agent") || "";
+  const guard = !(new URL(request.url).searchParams.get("mse") === "0" && /iPhone|iPad|iPod|Macintosh/.test(ua));
+  const token = await signHlsToken(env, seriesId, exp, `${guard ? "h" : ""}${max}`);
   // Олон чанарын хувилбартай кино бол master жагсаалтыг өгнө — тоглуулагч сүлжээний
   // хурдаар өөрөө сонгоно (сул сүлжээнд 360p руу бууж гацахгүй үргэлжилнэ).
   // Эрхийн хил хувилбар бүрд адил үйлчилнэ: хэсгүүд нь яг ижил дугаарлагдсан.
@@ -96,6 +100,7 @@ async function playHls(request, env, seriesId) {
   return json({
     url: `/hls/${seriesId}/${token}/${master ? "master" : "index"}.m3u8`,
     exp,
+    ...(guard ? { proof: await hlsProof(env, token) } : {}),
     entitled,
     // Клиент энэ секундэд төлбөрийн саналыг харуулна. Серверийн хил үүнээс
     // ХОЙНО байдаг (тэр цонхонд ЭХЭЛСЭН хэсэг бүтнээрээ үнэгүй) тул бичлэг

@@ -16,7 +16,7 @@
 //  Буцаах: ЗӨВХӨН GROUPING = false ба/эсвэл SEG_CACHE = false гэж deploy хийнэ. Pages-ийн өмнөх deployment руу
 //  шууд rollback ХИЙХГҮЙ — хуучин функц g2_ нэрийг танихгүй (400) тул аль хэдийн нэгтгэсэн жагсаалт ачаалсан
 //  тоглуулагчид (тэмдэг 6 цаг хүчинтэй) эвдэрнэ. g2_ боловсруулагчийг нэгтгэл сүүлд үйлчилснээс 6+ цаг хадгална.
-import { verifyHlsToken } from "../_lib/sign.js";
+import { hlsProof, initMask, verifyHlsToken } from "../_lib/sign.js";
 
 const TYPES = {
   m3u8: "application/vnd.apple.mpegurl",
@@ -146,6 +146,12 @@ export async function onRequestGet(context) {
 
   const grant = await verifyHlsToken(env, seriesId, token);
   if (!grant) return new Response("link_expired", { status: 403 });
+  // Хамгаалагдсан тэмдэг: манай тоглуулагч л X-KM-Proof толгойг мэднэ (IDM мэдэхгүй → 403)
+  let proof = "";
+  if (grant.guard) {
+    proof = await hlsProof(env, token);
+    if (request.headers.get("x-km-proof") !== proof) return new Response("forbidden", { status: 403 });
+  }
 
   // Танилцуулгын хил: хэсгийн дугаар 0-ээс эхэлдэг тул N хэсэг = 0..N-1
   if (fm[2] !== undefined && grant.max !== "a" && Number(fm[2]) >= grant.max) {
@@ -195,6 +201,13 @@ export async function onRequestGet(context) {
   if (fm[1] === undefined) {
     const media = await openMedia(env, waitUntil, origin, key);
     if (!media) return new Response("not_found", { status: 404 });
+    if (grant.guard && file === "init.mp4") {
+      // ~1 КБ: init-гүйгээр аль ч хэсэг тоглогдохгүй. Шифрлэсэн init-ийг зөвхөн манай тоглуулагч тайлна.
+      const bytes = new Uint8Array(await new Response(media.body).arrayBuffer());
+      const mask = await initMask(proof);
+      for (let i = 0; i < bytes.length; i++) bytes[i] ^= mask[i % 32];
+      return new Response(bytes, { status: 200, headers: { ...segHeaders(bytes.length), "content-type": "application/octet-stream" } });
+    }
     const h = segHeaders(media.size);
     h["content-type"] = TYPES[file.split(".").pop()] || "application/octet-stream";
     return new Response(media.body, { status: 200, headers: h });
