@@ -1521,3 +1521,15 @@ h3 {
 .hm-cat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .hm-cat-head .hm-row-title { margin-bottom: 0; }
 .hm-cat-vip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; border-radius: 999px; background: var(--gold-grad); color: #1a1204; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
+
+/* 2026-10-21: Netflix шиг ангиллын эгнээ — баруун талд «Бүгдийг үзэх» */
+.hm-cat-actions { display: inline-flex; align-items: center; gap: 8px; }
+.hm-cat-all { color: var(--accent-2); font-weight: 700; font-size: 13.5px; white-space: nowrap; text-decoration: none; }
+.hm-row .hm-cat-head { margin-bottom: 12px; }
+.hm-more-box { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: var(--bg-elevated); border: 1px solid var(--border-strong); color: var(--text); }
+.hm-more-box span { font-size: 22px; font-weight: 800; }
+.hm-more-box small { color: var(--accent-2); font-weight: 700; }
+.hm-catpage { padding-bottom: 90px; }
+.hm-catpage .km-vip { margin: 8px 16px 16px; width: calc(100% - 32px); }
+.hm-catpage-note { margin: 8px 16px 16px; }
+.hm-catpage-grid { padding: 0 16px; }

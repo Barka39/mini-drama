@@ -21,6 +21,7 @@ import { PlayerFeed } from "./pages/PlayerFeed";
 import { AdminPage } from "./pages/AdminPage";
 import { HelpPage } from "./pages/HelpPage";
 import { SearchPage } from "./pages/SearchPage";
+import { CategoryPage } from "./pages/CategoryPage";
 import { MyMoviesPage } from "./pages/MyMoviesPage";
 import { ClaimPage } from "./pages/ClaimPage";
 import { PayRedirect } from "./pages/PayRedirect";
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="/my" element={<MyMoviesPage />} />
         <Route path="/u/:token" element={<ClaimPage />} />
         <Route path="/pay" element={<PayRedirect />} />

@@ -46,7 +46,7 @@ function progressOf(s: AppState, series: Series): { pct: number; label: string }
   return { pct: at / series.episodes.length, label: `${at}/${series.episodes.length} анги` };
 }
 
-function isOpen(s: AppState, series: Series): boolean {
+export function isOpen(s: AppState, series: Series): boolean {
   return series.price <= 0 || hasVip(s, series.category) || buyStatus(s, series.id) === "owned";
 }
 
@@ -65,17 +65,24 @@ function Meta({ s, series }: { s: AppState; series: Series }) {
   return <span className="hm-meta">{formatPrice(series.price)}</span>;
 }
 
-/** Хэвтээ гүйдэг эгнээ — Netflix маягийн үндсэн нэгж */
-function Row({ title, children }: { title: string; children: ReactNode }) {
+/** Хэвтээ гүйдэг эгнээ — Netflix маягийн үндсэн нэгж (баруун талдаа товчтой байж болно) */
+function Row({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="hm-row">
-      <h2 className="hm-row-title">{title}</h2>
+      {action ? (
+        <div className="hm-cat-head">
+          <h2 className="hm-row-title">{title}</h2>
+          {action}
+        </div>
+      ) : (
+        <h2 className="hm-row-title">{title}</h2>
+      )}
       <div className="hm-row-scroll">{children}</div>
     </section>
   );
 }
 
-function PosterCard({ series, s, to }: { series: Series; s: AppState; to?: string }) {
+export function PosterCard({ series, s, to }: { series: Series; s: AppState; to?: string }) {
   const prog = progressOf(s, series);
   return (
     <Link to={to ?? `/series/${series.id}`} className="hm-card">
@@ -276,34 +283,41 @@ export function Home() {
           </Row>
         )}
 
-        {/* 2 ангилал — тус бүр бүх кинотойгоо, өөрийн сарын эрхийн товчтой */}
+        {/* 2 ангилал Netflix шиг (эзэн 2026-10-21): хажуу тийш гүйдэг 10 кино + «Бүгдийг үзэх» —
+            доош сунжирсан тор байхгүй тул дараагийн ангилал шууд харагдана */}
         {(["ai", "erotic"] as Category[]).map((cat) => {
           const items = byCategory[cat];
           if (!items.length) return null;
           const catPlan = cheapestPlan(plans, cat);
-          const opened = hasVip(s, cat);
           return (
-            <section key={cat} className="hm-all hm-cat">
-              <div className="hm-cat-head">
-                <h2 className="hm-row-title">
-                  {CATEGORY_LABEL[cat]} · {items.length}
-                </h2>
-                {opened ? (
-                  <span className="hm-meta hm-meta-open">
-                    <Check size={12} strokeWidth={3} /> Нээлттэй
+            <Row
+              key={cat}
+              title={`${CATEGORY_LABEL[cat]} · ${items.length}`}
+              action={
+                <span className="hm-cat-actions">
+                  {!hasVip(s, cat) && (
+                    <button className="hm-cat-vip" onClick={() => openVip(cat)}>
+                      <Crown size={14} /> {catPlan ? formatPrice(catPlan.price) : "Сарын эрх"}
+                    </button>
+                  )}
+                  <Link className="hm-cat-all" to={`/category/${cat}`}>
+                    Бүгдийг үзэх ›
+                  </Link>
+                </span>
+              }
+            >
+              {items.slice(0, 10).map((x) => (
+                <PosterCard key={x.id} series={x} s={s} />
+              ))}
+              {items.length > 10 && (
+                <Link className="hm-card hm-card-more" to={`/category/${cat}`}>
+                  <span className="hm-card-img hm-more-box">
+                    <span>+{items.length - 10}</span>
+                    <small>Бүгдийг үзэх</small>
                   </span>
-                ) : (
-                  <button className="hm-cat-vip" onClick={() => openVip(cat)}>
-                    <Crown size={15} /> Сарын эрх{catPlan ? ` ${formatPrice(catPlan.price)}` : ""}
-                  </button>
-                )}
-              </div>
-              <div className="hm-grid">
-                {items.map((x) => (
-                  <PosterCard key={x.id} series={x} s={s} />
-                ))}
-              </div>
-            </section>
+                </Link>
+              )}
+            </Row>
           );
         })}
 
