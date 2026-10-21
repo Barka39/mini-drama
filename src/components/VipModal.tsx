@@ -3,7 +3,6 @@ import { InAppGuide } from "./InAppGuide";
 import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
 import { useEffect, useState } from "react";
 import { CATEGORY_LABEL, formatPrice } from "../data/catalog";
-import { useCatalog } from "../lib/seriesAdmin";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
   activeVips,
@@ -23,7 +22,6 @@ export function VipModal() {
   const open = useOpenModal() === "vip";
   const s = useAppState();
   const asked = useVipCategory();
-  const catalog = useCatalog();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [bank, setBank] = useState<SiteSettings | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,11 +50,6 @@ export function VipModal() {
 
   // Ангиллаас нээгдсэн бол тэр ангилал эхэнд, дараа нь «Бүх кино»; нүүрнээс бол бүгд
   const scopes: Plan["scope"][] = asked ? [asked, "all"] : ["ai", "erotic", "all"];
-  const counts: Record<Plan["scope"], number> = {
-    ai: catalog.filter((x) => x.category === "ai").length,
-    erotic: catalog.filter((x) => x.category === "erotic").length,
-    all: catalog.length,
-  };
   const mine = activeVips(s);
   // энэ багц аль хэдийн идэвхтэй юу (тэгвэл товч нь «сунгах» болно)
   const covered = (scope: Plan["scope"]) => mine.some((v) => v.scope === scope);
@@ -213,7 +206,7 @@ export function VipModal() {
                   <div className="plan-group-head">
                     <strong>{SCOPE_LABEL[scope]}</strong>
                     <span className="muted small">
-                      {scope === "all" ? `AI + эротик · ${counts.all} кино` : `${counts[scope]} кино`}
+                      {scope === "all" ? "AI + эротик" : ""}
                       {covered(scope) ? " · идэвхтэй — сунгах" : ""}
                     </span>
                   </div>

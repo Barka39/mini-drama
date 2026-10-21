@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ChevronLeft, Clock, Crown, Lock, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2 } from "lucide-react";
 import { CATEGORY_LABEL, formatPrice } from "../data/catalog";
 import { getMovieStream, type MovieStream } from "../lib/playback";
-import { useCatalog, useSeriesById } from "../lib/seriesAdmin";
+import { useSeriesById } from "../lib/seriesAdmin";
 import { buyStatus, hasVip, refreshAccount, setMovieTime, useAppState } from "../lib/store";
 import { track } from "../lib/track";
 import { openPurchase, openVip } from "../lib/ui";
@@ -64,8 +64,6 @@ export function MoviePlayer() {
   const startTracked = useRef(false);
 
   const plans = usePlans();
-  const catalogAll = useCatalog();
-  const movieCount = catalogAll.filter((x) => x.category === series?.category).length;
 
   const owned = !!series && (series.price <= 0 || hasVip(s, series.category) || s.purchased.includes(series.id));
   const plan = cheapestPlan(plans, series?.category);
@@ -386,7 +384,7 @@ export function MoviePlayer() {
                       openVip(series.category);
                     }}
                   >
-                    <Crown size={17} /> {CATEGORY_LABEL[series.category]} · бүх {movieCount}{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
+                    <Crown size={17} /> Бүх {CATEGORY_LABEL[series.category]}{plan ? ` — сард ${formatPrice(plan.price)}` : ""}
                   </button>
                   <button
                     className="btn btn-outline"

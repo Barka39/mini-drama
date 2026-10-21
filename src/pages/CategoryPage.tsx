@@ -31,7 +31,7 @@ export function CategoryPage() {
           <ArrowLeft size={20} />
         </Link>
         <div className="brand">
-          {CATEGORY_LABEL[cat]} · {items.length}
+          {CATEGORY_LABEL[cat]}
         </div>
       </header>
 
@@ -43,7 +43,7 @@ export function CategoryPage() {
         <button className="km-vip" onClick={() => openVip(cat)}>
           <Crown size={22} className="km-vip-icon" />
           <span className="km-vip-text">
-            <strong>{CATEGORY_LABEL[cat]} — бүх {items.length} кино</strong>
+            <strong>{CATEGORY_LABEL[cat]} — бүх кино нэг эрхээр</strong>
             <span>{plan ? `Сард ${formatPrice(plan.price)} · 3, 6 сарын багц хямд` : "Сарын эрх"}</span>
           </span>
           <span className="km-vip-cta">Эрх авах</span>

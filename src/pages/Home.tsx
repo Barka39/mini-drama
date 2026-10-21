@@ -250,7 +250,7 @@ export function Home() {
                   <strong>Сарын эрх — ангиллаараа эсвэл бүх кино</strong>
                   <span>
                     {plan ? `Ангилал сард ${formatPrice(plan.price)}` : "Хязгааргүй"}
-                    {allPlan ? ` · бүх ${catalog.length} кино ${formatPrice(allPlan.price)}` : ""}
+                    {allPlan ? ` · бүх кино ${formatPrice(allPlan.price)}` : ""}
                   </span>
                 </>
               )}
@@ -292,7 +292,7 @@ export function Home() {
           return (
             <Row
               key={cat}
-              title={`${CATEGORY_LABEL[cat]} · ${items.length}`}
+              title={CATEGORY_LABEL[cat]}
               action={
                 <span className="hm-cat-actions">
                   {!hasVip(s, cat) && (
@@ -312,7 +312,7 @@ export function Home() {
               {items.length > 10 && (
                 <Link className="hm-card hm-card-more" to={`/category/${cat}`}>
                   <span className="hm-card-img hm-more-box">
-                    <span>+{items.length - 10}</span>
+                    <span>›</span>
                     <small>Бүгдийг үзэх</small>
                   </span>
                 </Link>

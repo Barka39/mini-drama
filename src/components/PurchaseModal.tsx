@@ -160,7 +160,7 @@ export function PurchaseModal() {
       <div className="pay-divider" />
       <p className="pay-vip-line">
         Нэг кино 3 хоног. Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
-        <strong>{series ? CATEGORY_LABEL[series.category] : "бүх"} · {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
+        <strong>бүх {series ? CATEGORY_LABEL[series.category] : "киног"}</strong> {vipPlan.days} хоног хязгааргүй
       </p>
       <button className="btn btn-outline" onClick={() => openVip(series?.category)}>
         <Crown size={17} /> Сарын эрх авах

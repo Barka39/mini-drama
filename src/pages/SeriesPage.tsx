@@ -68,7 +68,6 @@ export function SeriesPage() {
   const status = buyStatus(s, series.id);
   const vip = hasVip(s, series.category);
   const plan = cheapestPlan(plans, series.category);
-  const inCategory = catalog.filter((x) => x.category === series.category).length;
   const open = series.price <= 0 || vip || status === "owned";
   const continueEp = s.progress[series.id] ?? 1;
   const movie = !!series.hls;
@@ -235,7 +234,7 @@ export function SeriesPage() {
             <button className="sd-offer-vip" onClick={() => openVip(series.category)}>
               <Crown size={18} />
               <span>
-                Эсвэл <strong>{CATEGORY_LABEL[series.category]} · бүх {inCategory}</strong> сард {formatPrice(plan.price)}
+                Эсвэл <strong>бүх {CATEGORY_LABEL[series.category]}</strong> сард {formatPrice(plan.price)}
               </span>
             </button>
           )}
