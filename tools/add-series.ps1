@@ -51,9 +51,26 @@ if (-not (Test-Path -LiteralPath $Video)) { Write-Error "Видео олдсон
 # ffmpeg/ffprobe-д бүтэн зам өгнө (харьцангуй зам Set-Location-ийн дараа алдагдана)
 $Video = (Resolve-Path -LiteralPath $Video).ProviderPath
 
+# Аль хэдийн ашиглагдсан ID: каталог, HLS-ийн урт, постер — аль нэгэнд байвал давхцана.
+# (2026-10-21: хоёр кино ижил минутад нэмэгдэж нэг ID авсан тул хоёр дахь нь эхнийхийн
+# бичлэгийг R2 дээр дарж бичсэн — «Нийтийн байр» хуудас «Нууц маршрут»-ыг тоглуулсан.)
+function Test-IdTaken([string]$candidate) {
+    $cat = [System.IO.File]::ReadAllText((Join-Path $root "src\data\catalog.json"))
+    if ($cat -match ('"id"\s*:\s*"' + [regex]::Escape($candidate) + '"')) { return $true }
+    if (Test-Path -LiteralPath (Join-Path $root "tools\hls-durations\$candidate.json")) { return $true }
+    if (Test-Path -LiteralPath (Join-Path $root "public\posters\$candidate.jpg")) { return $true }
+    return $false
+}
 if ($Id -eq "") {
-    # Латин ID автоматаар: кирилл үсгийг орхиод цаг хугацааны тэмдэг ашиглана
+    # Латин ID автоматаар: кирилл үсгийг орхиод цаг хугацааны тэмдэг ашиглана.
+    # Тэр минутын ID эзэлсэн бол дараагийн чөлөөтэйг авна (-HHmm-2, -3, ...).
     $Id = "series-" + (Get-Date -Format "yyMMdd-HHmm")
+    $base = $Id; $n = 2
+    while (Test-IdTaken $Id) { $Id = "$base-$n"; $n++ }
+}
+elseif (Test-IdTaken $Id) {
+    Write-Error "ID '$Id' аль хэдийн байгаа кинонд ашиглагдсан — өөр кинонд давхар ID өгвөл бичлэг нь дарж бичигдэнэ. -Id-г орхивол шинэ ID автоматаар үүснэ."
+    exit 1
 }
 
 # Видеоны хэмжээ, үргэлжлэх хугацаа

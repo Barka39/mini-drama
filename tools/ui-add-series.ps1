@@ -22,6 +22,32 @@ if (-not (Test-Path -LiteralPath $video)) {
     exit 1
 }
 
+# Сайтад гаргахад Supabase-ийн токен хэрэгтэй. Хугацаа нь дууссан бол 10 минутын кодлолтын
+# ДАРАА биш, ОДОО хэлнэ (2026-10-21: токен дууссанаас кинонууд сайтад гараагүй).
+$envFile = Join-Path (Split-Path $PSScriptRoot -Parent) ".env"
+$tok = ""; $ref = ""
+if (Test-Path -LiteralPath $envFile) {
+    foreach ($line in [System.IO.File]::ReadAllLines($envFile)) {
+        if ($line -match '^\s*SUPABASE_ACCESS_TOKEN\s*=\s*"?([^"]*)"?\s*$') { $tok = $Matches[1] }
+        if ($line -match '^\s*SUPABASE_PROJECT_REF\s*=\s*"?([^"]*)"?\s*$') { $ref = $Matches[1] }
+    }
+}
+$tokOk = $false
+if ($tok -and $ref) {
+    try {
+        Invoke-RestMethod -Method Post -Uri "https://api.supabase.com/v1/projects/$ref/database/query" -Headers @{ Authorization = "Bearer $tok"; 'Content-Type' = 'application/json' } -Body '{"query":"select 1"}' -TimeoutSec 20 | Out-Null
+        $tokOk = $true
+    } catch { }
+}
+if (-not $tokOk) {
+    Write-Host ""
+    Write-Host "АНХААР: Supabase-ийн токен хүчингүй байна — кино нэмэгдсэн ч сайтад ГАРАХГҮЙ." -ForegroundColor Red
+    Write-Host "  1) supabase.com/dashboard/account/tokens -> Generate new token"
+    Write-Host "  2) drama-web\.env файлын SUPABASE_ACCESS_TOKEN= мөрийг шинэ токеноор солино"
+    Write-Host "  3) Энэ цонхыг дахин нээнэ"
+    Read-Host "Enter дарж хаана уу"
+    exit 1
+}
 $title = Read-Host "2) Цувралын нэр"
 if (-not $title) {
     Write-Host "Нэр заавал хэрэгтэй." -ForegroundColor Red
@@ -48,7 +74,9 @@ Write-Host "   Анхдагчаар бичлэгийн хэлбэрийг хэв
 $crop = Read-Host "6) Хэвтээ бичлэгийг босоо (9:16) болгож тайрах уу? (y / хоосон = үгүй)"
 # Энэ асуулт өмнө нь ХАМГИЙН СҮҮЛД (кодлолт, хуулалт дууссаны дараа) асуугддаг байсан тул
 # компьютерийн өмнө хүлээх шаардлагатай байв. Одоо эхэнд асууна — дараа нь бүгд өөрөө дуусна.
-$ans = Read-Host "7) Дууссаны дараа сайтад шууд гаргах уу? (y = тийм / хоосон = үгүй)"
+# 2026-10-21 (эзэн): хоосон орхиход сайтад ГАРАХГҮЙ байсан тул 4 кино харагдахгүй үлдсэн — одоо анхдагч нь «тийм».
+$ans = Read-Host "7) Дууссаны дараа сайтад шууд гаргах уу? (хоосон = тийм / n = үгүй)"
+if ($ans -ne "n") { $ans = "y" }
 
 Write-Host ""
 Write-Host "Бүх асуулт дууслаа — цааш өөрөө явна, компьютерийн өмнө хүлээх шаардлагагүй."
