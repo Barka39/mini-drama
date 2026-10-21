@@ -266,7 +266,7 @@ async function loadServerState(userId: string, anonymous = false, healed = false
     supa.from("md_profiles").select("phone, is_admin, full_name, vip_until, vip_ai_until, vip_erotic_until").eq("id", userId).maybeSingle(),
     supa
       .from("md_purchases")
-      .select("series_id, status, amount, kind, plan_days, pay_checkout_id, created_at")
+      .select("series_id, status, amount, kind, plan_days, pay_checkout_id, created_at, expires_at")
       .eq("user_id", userId),
   ]);
 
@@ -292,7 +292,9 @@ async function loadServerState(userId: string, anonymous = false, healed = false
       }
       continue;
     }
-    if (row.status === "confirmed") purchased.push(row.series_id);
+    // нэг киноны эрх 3 хоног (2026-10-21); хоосон expires_at = өмнө нь авсан, хязгааргүй
+    if (row.status === "confirmed" && (!row.expires_at || new Date(row.expires_at).getTime() > Date.now()))
+      purchased.push(row.series_id);
     else if (row.status === "pending") {
       pendingBuys.push(row.series_id);
       if (row.amount) payAmounts[row.series_id] = row.amount;

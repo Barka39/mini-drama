@@ -2,7 +2,7 @@ import { Crown } from "lucide-react";
 import { InAppGuide } from "./InAppGuide";
 import { markModalInUrl, needsBrowserGuide } from "../lib/inapp";
 import { useEffect, useState } from "react";
-import { formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
+import { CATEGORY_LABEL, formatDuration, formatPrice, getSeries, totalSeconds } from "../data/catalog";
 import { getSettings, onlinePayFor, type SiteSettings } from "../lib/settings";
 import {
   buyStatus,
@@ -56,11 +56,12 @@ export function PurchaseModal() {
   const [copied, setCopied] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const catalog = useCatalog();
-  // Хамгийн хямд (ихэвчлэн 1 сарын) багц — оролт болгож харуулна
-  const vipPlan = plans.length ? plans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
-  const catalogCount = catalog.length;
-
-  const series = seriesId ? getSeries(seriesId) : undefined;
+  // админы засвартай (ангилал нь серверээс) хувилбар; ачаалагдаагүй бол catalog.json-ынх
+  const series = seriesId ? (catalog.find((x) => x.id === seriesId) ?? getSeries(seriesId)) : undefined;
+  // тухайн киноны ангиллын хамгийн хямд (1 сарын) багц — 2026-10-21 сарын эрх ангиллаар
+  const catPlans = series ? plans.filter((p) => p.scope === series.category) : [];
+  const vipPlan = catPlans.length ? catPlans.reduce((a, b) => (a.price <= b.price ? a : b)) : null;
+  const catalogCount = series ? catalog.filter((x) => x.category === series.category).length : catalog.length;
   // Сарын эрхтэй бол бүх кино нээлттэй — «авсан» гэж үзнэ (дахин төлүүлэхгүй)
   const status = series ? (hasVip(s, series.category) ? "owned" : buyStatus(s, series.id)) : "none";
   // Захиалгын дүн = зарласан үнэ (хуучин захиалгад өвөрмөц дүн үлдсэн байж болно)
@@ -158,10 +159,10 @@ export function PurchaseModal() {
     <div className="pay-vip">
       <div className="pay-divider" />
       <p className="pay-vip-line">
-        Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
-        <strong>бүх {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
+        Нэг кино 3 хоног. Эсвэл <strong>{formatPrice(vipPlan.price)}</strong>-өөр{" "}
+        <strong>{series ? CATEGORY_LABEL[series.category] : "бүх"} · {catalogCount} киног</strong> {vipPlan.days} хоног хязгааргүй
       </p>
-      <button className="btn btn-outline" onClick={openVip}>
+      <button className="btn btn-outline" onClick={() => openVip(series?.category)}>
         <Crown size={17} /> Сарын эрх авах
       </button>
     </div>

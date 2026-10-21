@@ -229,7 +229,7 @@ export function SeriesPage() {
           </div>
           <div className="sd-offer-item">
             <ShieldCheck size={18} />
-            <span>Нэг удаа төлөөд хязгааргүй үзнэ</span>
+            <span>Нэг удаа төлөөд 3 хоног хүссэнээрээ үзнэ</span>
           </div>
           {plan && (
             <button className="sd-offer-vip" onClick={() => openVip(series.category)}>

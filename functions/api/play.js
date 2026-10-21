@@ -35,7 +35,8 @@ export function vipCovers(prof, category, now = Date.now()) {
   return on(prof.vip_ai_until);
 }
 
-/** Хэрэглэгч энэ киног бүтнээр үзэх эрхтэй юу (сарын эрх ЭСВЭЛ худалдаж авсан) */
+/** Хэрэглэгч энэ киног бүтнээр үзэх эрхтэй юу (сарын эрх ЭСВЭЛ худалдаж авсан).
+ * Нэг киноны эрх 3 хоног (2026-10-21): expires_at хоосон = түүнээс өмнө авсан, хязгааргүй. */
 async function isEntitled(request, seriesId, category) {
   const auth = request.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) return false;
@@ -54,7 +55,7 @@ async function isEntitled(request, seriesId, category) {
       headers: { apikey: SUPABASE_ANON, Authorization: auth },
     }),
     fetch(
-      `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&select=id`,
+      `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})&select=id`,
       { headers: { apikey: SUPABASE_ANON, Authorization: auth } },
     ),
   ]);
@@ -154,7 +155,7 @@ export async function onRequestGet({ request, env }) {
         headers: { apikey: SUPABASE_ANON, Authorization: auth },
       }),
       fetch(
-        `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&select=id`,
+        `${SUPABASE_URL}/rest/v1/md_purchases?series_id=eq.${encodeURIComponent(seriesId)}&status=eq.confirmed&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})&select=id`,
         { headers: { apikey: SUPABASE_ANON, Authorization: auth } },
       ),
     ]);

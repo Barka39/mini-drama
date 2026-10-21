@@ -318,8 +318,8 @@ export function Home() {
           <div className="hm-perk">
             <InfinityIcon size={20} />
             <span>
-              <strong>Нэг төлөөд хязгааргүй</strong>
-              Авсан кино тань хэзээ ч, хэдэн ч удаа
+              <strong>Нэг кино 3 хоног</strong>
+              Авсан киногоо 3 хоногийн дотор хэдэн ч удаа
             </span>
           </div>
           <div className="hm-perk">

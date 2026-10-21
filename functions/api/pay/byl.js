@@ -88,7 +88,7 @@ export async function onRequestPost({ request, env }) {
     const on = (t) => Boolean(t) && new Date(t).getTime() > Date.now();
     const vip = on(me.vip_until) || (meta?.category === "erotic" ? on(me.vip_erotic_until) : on(me.vip_ai_until));
     const owned = vip || (await first(rest(
-      `md_purchases?user_id=eq.${uid}&series_id=eq.${encodeURIComponent(series)}&status=eq.confirmed&select=id&limit=1`,
+      `md_purchases?user_id=eq.${uid}&series_id=eq.${encodeURIComponent(series)}&status=eq.confirmed&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(new Date().toISOString())})&select=id&limit=1`,
       auth,
     )));
     if (owned) return json({ error: "owned" }, 409);
