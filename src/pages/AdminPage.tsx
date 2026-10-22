@@ -120,7 +120,7 @@ export function AdminPage() {
   // 1 биш 3: нэг хүн линкээ мессенжерийн дотоод хөтчөөр нэг, дараа нь Chrome-оор
   // дахин нээхэд өөр төхөөрөмж мэт тоологддог. 1 байвал линк шууд дүүрч, хүн нь
   // «бүртгүүлнэ үү» гэсэн хаалттай дэлгэц рүү унадаг.
-  const [linkDevices, setLinkDevices] = useState("3");
+  const [linkDevices, setLinkDevices] = useState("2"); // 2026-10-22 эзэн: бүх линк 2 төхөөрөмж
   const [linkNote, setLinkNote] = useState("");
   const [makingLinks, setMakingLinks] = useState(false);
 
