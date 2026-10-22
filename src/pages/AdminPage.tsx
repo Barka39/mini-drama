@@ -97,9 +97,9 @@ export function AdminPage() {
   const [pending, setPending] = useState<AdminPurchase[]>([]);
   // QPay захиалга (Byl хуудас үүссэн) огт харагдахгүй: төлсөн нь Byl-ийн мэдэгдлээр
   // өөрөө нээгддэг, төлөөгүй нь эзэнд хамаагүй. Энд зөвхөн дансаар шилжүүлсэн захиалга.
-  // 2026-10-22: сарын эрхийн захиалга QPay хуудас нээсэн ч дансаар шилжүүлсэн байж болно (олдсон:
-  // захиалга хүлээгдэж, жагсаалт хоосон) — тиймээс сарын эрх QPay-тэй ч энд харагдана
-  const manualPending = pending.filter((t) => !t.pay_checkout_id || t.kind === "sub");
+  // 2026-10-22: QPay хуудас нээгээд төлөөгүй сарын эрх (50+, ихэнх нь төлөөгүй) энд ХАРАГДАХГҮЙ —
+  // дансаар шилжүүлсэн хүнийг чатбот утасны дугаараар нь олж өөрөө нээнэ (md_bot_grant_vip)
+  const manualPending = pending.filter((t) => !t.pay_checkout_id);
   const SCOPE_NAME: Record<string, string> = { ai: "AI кино", er: "Эротик", all: "Бүх кино", m: "Бүх кино" };
   const purchaseLabel = (t: AdminPurchase) => {
     if (t.kind !== "sub") return seriesTitle(t.series_id ?? "");
