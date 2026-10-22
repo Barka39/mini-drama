@@ -97,9 +97,15 @@ export function AdminPage() {
   const [pending, setPending] = useState<AdminPurchase[]>([]);
   // QPay захиалга (Byl хуудас үүссэн) огт харагдахгүй: төлсөн нь Byl-ийн мэдэгдлээр
   // өөрөө нээгддэг, төлөөгүй нь эзэнд хамаагүй. Энд зөвхөн дансаар шилжүүлсэн захиалга.
-  const manualPending = pending.filter((t) => !t.pay_checkout_id);
-  const purchaseLabel = (t: AdminPurchase) =>
-    t.kind === "sub" ? `Сарын эрх (${t.plan_code === "m3" ? "3 сар" : "1 сар"})` : seriesTitle(t.series_id ?? "");
+  // 2026-10-22: сарын эрхийн захиалга QPay хуудас нээсэн ч дансаар шилжүүлсэн байж болно (олдсон:
+  // захиалга хүлээгдэж, жагсаалт хоосон) — тиймээс сарын эрх QPay-тэй ч энд харагдана
+  const manualPending = pending.filter((t) => !t.pay_checkout_id || t.kind === "sub");
+  const SCOPE_NAME: Record<string, string> = { ai: "AI кино", er: "Эротик", all: "Бүх кино", m: "Бүх кино" };
+  const purchaseLabel = (t: AdminPurchase) => {
+    if (t.kind !== "sub") return seriesTitle(t.series_id ?? "");
+    const m = /^([a-z]+)(\d+)$/.exec(t.plan_code ?? "");
+    return m ? `Сарын эрх · ${SCOPE_NAME[m[1]] ?? m[1]} · ${m[2]} сар` : "Сарын эрх";
+  };
   const [history, setHistory] = useState<AdminPurchase[]>([]);
   const [grantPhone, setGrantPhone] = useState("");
   const [grantSeries, setGrantSeries] = useState("");
@@ -395,7 +401,10 @@ export function AdminPage() {
           <div>
             <strong>{t.phone ?? "Зочин"}</strong> · {purchaseLabel(t)} ·{" "}
             <span className="pack-price">{formatPrice(t.price)}</span>
-            <div className="muted small">{new Date(t.created_at).toLocaleString("mn-MN")}</div>
+            <div className="muted small">
+              {new Date(t.created_at).toLocaleString("mn-MN")}
+              {t.pay_checkout_id ? " · QPay хуудас нээсэн — дансаар төлсөн бол баримтаа шалгаад батлаарай" : ""}
+            </div>
           </div>
           <div className="admin-actions">
             <button className="btn btn-primary" onClick={() => decide(t.id, true)}>
