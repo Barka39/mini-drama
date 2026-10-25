@@ -780,6 +780,19 @@
       "hls": {
         "duration": 1920.3
       }
+    },
+    {
+      "id": "series-261025-1452",
+      "title": "Халуун усны охин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261025-1452.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 1570.6
+      }
     }
   ]
 }
