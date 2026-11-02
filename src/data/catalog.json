@@ -819,6 +819,19 @@
       "hls": {
         "duration": 2690.5
       }
+    },
+    {
+      "id": "series-261102-1720",
+      "title": "Намайг янзлаач",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261102-1720.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 1818.7
+      }
     }
   ]
 }
