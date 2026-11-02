@@ -806,6 +806,19 @@
       "hls": {
         "duration": 2372.7
       }
+    },
+    {
+      "id": "series-261102-1710",
+      "title": "Донтой охин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261102-1710.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2690.5
+      }
     }
   ]
 }
