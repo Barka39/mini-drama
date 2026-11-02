@@ -793,6 +793,19 @@
       "hls": {
         "duration": 1570.6
       }
+    },
+    {
+      "id": "series-261102-1701",
+      "title": "Захриралын бээб",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261102-1701.jpg",
+      "price": 3800,
+      "freeMinutes": 10,
+      "episodes": [],
+      "hls": {
+        "duration": 2372.7
+      }
     }
   ]
 }
