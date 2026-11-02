@@ -832,6 +832,19 @@
       "hls": {
         "duration": 1818.7
       }
+    },
+    {
+      "id": "series-261102-1725",
+      "title": "Дүрэмгүй шөнө",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261102-1725.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2303
+      }
     }
   ]
 }
