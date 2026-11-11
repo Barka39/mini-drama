@@ -923,6 +923,19 @@
       "hls": {
         "duration": 1447.8
       }
+    },
+    {
+      "id": "series-261111-1740",
+      "title": "ЦуварАл",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261111-1740.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 2527.5
+      }
     }
   ]
 }
