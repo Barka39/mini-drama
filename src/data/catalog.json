@@ -871,6 +871,19 @@
       "hls": {
         "duration": 3149.6
       }
+    },
+    {
+      "id": "series-261111-1706",
+      "title": "Шөнийн дуран",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261111-1706.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 2856
+      }
     }
   ]
 }
