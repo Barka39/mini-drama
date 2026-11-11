@@ -897,6 +897,19 @@
       "hls": {
         "duration": 1806.4
       }
+    },
+    {
+      "id": "series-261111-1731",
+      "title": "Сүүнээ",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261111-1731.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 2420
+      }
     }
   ]
 }
