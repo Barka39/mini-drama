@@ -884,6 +884,19 @@
       "hls": {
         "duration": 2856
       }
+    },
+    {
+      "id": "series-261111-1716",
+      "title": "Бүжигчин охин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261111-1716.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 1806.4
+      }
     }
   ]
 }
