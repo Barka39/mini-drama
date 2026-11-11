@@ -936,6 +936,19 @@
       "hls": {
         "duration": 2527.5
       }
+    },
+    {
+      "id": "series-261111-1746",
+      "title": "Анчин",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261111-1746.jpg",
+      "price": 3800,
+      "freeMinutes": 5,
+      "episodes": [],
+      "hls": {
+        "duration": 1958
+      }
     }
   ]
 }
