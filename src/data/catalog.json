@@ -962,6 +962,19 @@
       "hls": {
         "duration": 2760.5
       }
+    },
+    {
+      "id": "series-261112-2314",
+      "title": "Миний сонголт",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261112-2314.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 1641
+      }
     }
   ]
 }
