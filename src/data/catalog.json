@@ -975,6 +975,19 @@
       "hls": {
         "duration": 1641
       }
+    },
+    {
+      "id": "series-261114-1505",
+      "title": "Уурхайн сарнай",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261114-1505.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2854
+      }
     }
   ]
 }
