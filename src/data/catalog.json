@@ -988,6 +988,19 @@
       "hls": {
         "duration": 2854
       }
+    },
+    {
+      "id": "series-261114-1706",
+      "title": "Сайн жолооч",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261114-1706.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2331.2
+      }
     }
   ]
 }
