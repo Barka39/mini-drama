@@ -1001,6 +1001,19 @@
       "hls": {
         "duration": 2331.2
       }
+    },
+    {
+      "id": "series-261114-1736",
+      "title": "Халуун энгэр",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261114-1736.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 2844.1
+      }
     }
   ]
 }
