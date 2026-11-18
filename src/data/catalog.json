@@ -1014,6 +1014,19 @@
       "hls": {
         "duration": 2844.1
       }
+    },
+    {
+      "id": "series-261118-1514",
+      "title": "Боолчлол",
+      "tagline": "",
+      "genre": "Драм",
+      "poster": "posters/series-261118-1514.jpg",
+      "price": 3800,
+      "freeMinutes": 15,
+      "episodes": [],
+      "hls": {
+        "duration": 1814.1
+      }
     }
   ]
 }
